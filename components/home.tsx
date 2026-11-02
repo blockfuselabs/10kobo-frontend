@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createApiClient, type ChatMessage, type Me } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
+import { ContactConfirmCard, PlanApprovalCard } from './cards';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -46,10 +47,7 @@ export function Home() {
     end.current?.scrollIntoView();
   }, [messages]);
 
-  async function send(event: FormEvent) {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content || sending) return;
+  async function post(content: string) {
     setSending(true);
     setError(null);
     try {
@@ -62,6 +60,14 @@ export function Home() {
       setSending(false);
     }
   }
+
+  function send(event: FormEvent) {
+    event.preventDefault();
+    const content = draft.trim();
+    if (content && !sending) void post(content);
+  }
+
+  const reload = () => api.messages().then(setMessages);
 
   const address = me?.wallet_address ?? wallet.address;
 
@@ -81,19 +87,29 @@ export function Home() {
 
       <section className="flex flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
         {messages.length === 0 && (
-          <p className="m-auto text-sm text-[var(--muted)]">No messages yet. The assistant is not connected yet.</p>
+          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc. Test version, so no real money moves.</p>
         )}
         {messages.map((message) => (
-          <p
-            key={message.id}
-            className={
-              message.role === 'user'
-                ? 'max-w-[85%] self-end rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]'
-                : 'max-w-[85%] self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2'
-            }
-          >
-            {message.content}
-          </p>
+          <div key={message.id} className="flex flex-col gap-2">
+            <p
+              className={
+                message.role === 'user'
+                  ? 'max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]'
+                  : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2'
+              }
+            >
+              {message.content}
+            </p>
+            {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
+            {message.contact && (
+              <ContactConfirmCard
+                contact={message.contact}
+                api={api}
+                onChange={reload}
+                onConfirmed={(name) => post(`I confirmed ${name}. Please continue.`)}
+              />
+            )}
+          </div>
         ))}
         <div ref={end} />
       </section>
@@ -107,7 +123,7 @@ export function Home() {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           maxLength={2000}
-          placeholder="Type a message"
+          placeholder="Tell me what to pay"
           className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
         />
         <button

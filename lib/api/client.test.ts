@@ -17,6 +17,15 @@ describe('createApiClient', () => {
     expect(init.body).toBe(JSON.stringify({ content: 'hello' }));
   });
 
+  it('accepts an empty success response', async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    const api = createApiClient('http://api.test', async () => 't', fetcher as unknown as typeof fetch);
+    await expect(api.confirmContact('c1')).resolves.toBeNull();
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://api.test/v1/contacts/c1/confirm');
+    expect(init.method).toBe('POST');
+  });
+
   it('does not call the server without a token', async () => {
     const fetcher = vi.fn();
     const api = createApiClient('http://api.test', async () => null, fetcher as unknown as typeof fetch);
