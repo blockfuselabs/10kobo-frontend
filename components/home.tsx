@@ -67,8 +67,14 @@ export function Home() {
     const content = draft.trim();
     if (content && !sending)
       void respond(async () => {
-        await api.send(content);
+        // Cleared at once, so anything typed while this sends is kept. Restored if sending fails.
         setDraft('');
+        try {
+          await api.send(content);
+        } catch (failure) {
+          setDraft((current) => current || content);
+          throw failure;
+        }
       });
   }
 

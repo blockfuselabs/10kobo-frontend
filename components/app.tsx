@@ -1,8 +1,11 @@
 'use client';
 
-import { IdentityProvider } from '@/lib/privy-provider';
+import { IdentityProvider as PrivyIdentityProvider } from '@/lib/privy-provider';
+import { TestIdentityProvider } from '@/lib/test-provider';
 import { useAuth } from '@/lib/auth/auth';
 import { Home } from './home';
+
+const IdentityProvider = process.env.NEXT_PUBLIC_IDENTITY === 'test' ? TestIdentityProvider : PrivyIdentityProvider;
 
 function Gate() {
   const { ready, signedIn, signIn } = useAuth();
