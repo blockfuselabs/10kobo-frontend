@@ -19,7 +19,7 @@ export function Home() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const end = useRef<HTMLDivElement>(null);
+  const conversation = useRef<HTMLElement>(null);
 
   // The backend learns the wallet from the provider, which can take a moment after sign-up.
   const walletKnown = Boolean(me?.wallet_address);
@@ -44,15 +44,16 @@ export function Home() {
   }, [api]);
 
   useEffect(() => {
-    end.current?.scrollIntoView();
+    // Scroll only the conversation: scrolling the page could push the message box out of view.
+    const box = conversation.current;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [messages]);
 
-  async function post(content: string) {
+  async function respond(request: () => Promise<unknown>) {
     setSending(true);
     setError(null);
     try {
-      await api.send(content);
-      setDraft('');
+      await request();
       setMessages(await api.messages());
     } catch (failure) {
       setError((failure as Error).message);
@@ -64,7 +65,11 @@ export function Home() {
   function send(event: FormEvent) {
     event.preventDefault();
     const content = draft.trim();
-    if (content && !sending) void post(content);
+    if (content && !sending)
+      void respond(async () => {
+        await api.send(content);
+        setDraft('');
+      });
   }
 
   const reload = () => api.messages().then(setMessages);
@@ -72,7 +77,7 @@ export function Home() {
   const address = me?.wallet_address ?? wallet.address;
 
   return (
-    <main className="mx-auto flex h-dvh max-w-2xl flex-col px-4">
+    <main className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-2xl flex-col px-4">
       <header className="flex items-center justify-between gap-4 border-b border-[var(--line)] py-3">
         <div className="min-w-0">
           <p className="truncate text-sm">{me?.email ?? '…'}</p>
@@ -85,7 +90,7 @@ export function Home() {
         </button>
       </header>
 
-      <section className="flex flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
+      <section ref={conversation} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
         {messages.length === 0 && (
           <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc. Test version, so no real money moves.</p>
         )}
@@ -106,12 +111,11 @@ export function Home() {
                 contact={message.contact}
                 api={api}
                 onChange={reload}
-                onConfirmed={(name) => post(`I confirmed ${name}. Please continue.`)}
+                onConfirmed={(contactId) => respond(() => api.contactConfirmed(contactId))}
               />
             )}
           </div>
         ))}
-        <div ref={end} />
       </section>
 
       {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}

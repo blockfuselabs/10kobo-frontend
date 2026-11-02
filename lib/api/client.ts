@@ -82,6 +82,13 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     messages: async () => (await request<{ messages: ChatMessage[] }>('/v1/chat/messages')).messages,
     send: async (content: string) =>
       (await request<{ reply: ChatMessage }>('/v1/chat/messages', { method: 'POST', body: JSON.stringify({ content }) })).reply,
+    contactConfirmed: async (contactId: string) =>
+      (
+        await request<{ reply: ChatMessage }>('/v1/chat/messages/contact-confirmed', {
+          method: 'POST',
+          body: JSON.stringify({ contact_id: contactId }),
+        })
+      ).reply,
     approvePlan: (id: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST' }),
     rejectPlan: (id: string) => request<Plan>(`/v1/plans/${id}/reject`, { method: 'POST' }),
     confirmContact: (id: string) => request<null>(`/v1/contacts/${id}/confirm`, { method: 'POST' }),

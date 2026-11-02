@@ -100,7 +100,7 @@ export function ContactConfirmCard({
   contact: ContactCard;
   api: ApiClient;
   onChange: () => Promise<unknown>;
-  onConfirmed: (name: string) => Promise<unknown>;
+  onConfirmed: (contactId: string) => Promise<unknown>;
 }) {
   const { busy, error, run } = useAction(onChange);
 
@@ -118,7 +118,7 @@ export function ContactConfirmCard({
           onClick={() =>
             void run(async () => {
               await api.confirmContact(contact.id);
-              await onConfirmed(contact.name);
+              await onConfirmed(contact.id);
             })
           }
         >
