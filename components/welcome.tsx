@@ -88,37 +88,11 @@ const Nav = ({ Icon, label, active = false }: { Icon: () => ReactNode; label: st
   </p>
 );
 
-/** Our own drawn landscape at first light: sky, sun and hills. It needs no photo licence and is only a backdrop. */
-function Landscape() {
-  return (
-    <svg aria-hidden viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffd46b" />
-          <stop offset="0.3" stopColor="#ffe9b0" />
-          <stop offset="0.6" stopColor="#bfe6cf" />
-          <stop offset="1" stopColor="#6cc39e" />
-        </linearGradient>
-        <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#fff3c4" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#fff3c4" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="1440" height="900" fill="url(#sky)" />
-      <circle cx="1190" cy="120" r="300" fill="url(#glow)" />
-      <circle cx="1190" cy="120" r="62" fill="#fff8e0" />
-      <path d="M0 430C180 340 330 370 500 430s300 80 480 10 300-90 460-30v490H0Z" fill="#3fa77f" />
-      <path d="M0 590c200-80 360-50 540 20s340 70 520 0 260-70 380-40v330H0Z" fill="#0f7355" />
-      <path d="M0 740c240-60 420-30 620 20s400 40 560-10 200-40 260-30v180H0Z" fill="#083d2e" />
-    </svg>
-  );
-}
-
 /** The web app in a browser window, built to match the real one. It follows the typing box, so readers see what a request becomes. */
 function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase: Phase }) {
   const sent = phase !== 'typing';
   return (
-    <div aria-hidden className="relative mx-auto w-full max-w-4xl select-none overflow-hidden rounded-2xl border border-white/40 bg-white text-[#0b2a20] shadow-[0_40px_90px_rgb(3_30_22/0.45)]">
+    <div aria-hidden className="relative mx-auto w-full max-w-5xl select-none overflow-hidden rounded-2xl border border-[#d3dfd8] bg-white text-[#0b2a20] shadow-[0_24px_70px_rgb(8_61_46/0.14)]">
       <div className="flex items-center gap-2 border-b border-[#e6ece9] bg-[#f6f8f7] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ff6159]" />
         <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
@@ -212,8 +186,11 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
         </header>
 
         <main>
-          <section className="flex flex-col items-center gap-6 pt-4 pb-8 text-center md:gap-6 md:pt-6 md:pb-10">
-            <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[5rem]">
+          <section className="flex flex-col items-center gap-6 pt-2 pb-8 text-center md:gap-7 md:pb-10">
+            <div className="w-full text-left">
+              <AppWindow scene={scene} typed={typed} phase={phase} />
+            </div>
+            <h1 className="font-display mt-6 text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] md:mt-10 lg:text-[5rem]">
               Send money like <br className="hidden sm:block" />
               sending a{' '}
               <span className="relative inline-block rounded-[1.1rem] bg-[#0a7f5c] px-[0.28em] pb-[0.08em] text-white">
@@ -226,10 +203,6 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
             </p>
             <div className="flex w-full justify-center text-left">
               <ChatStart onSignIn={onSignIn} typed={typed} />
-            </div>
-            <div className="relative mt-4 w-full overflow-hidden rounded-[1.75rem] px-3 pt-8 pb-8 text-left md:mt-8 md:rounded-[2.5rem] md:px-16 md:pt-28 md:pb-16 lg:px-28">
-              <Landscape />
-              <AppWindow scene={scene} typed={typed} phase={phase} />
             </div>
             <ul className="mt-6 flex w-full flex-wrap items-center justify-center gap-x-10 gap-y-3 text-[15px] font-medium text-[#3d5248] md:mt-8 md:justify-between md:px-4">
               {['Bank transfers', 'Airtime and data', 'Scheduled payments', 'Naira deposits', 'USDC on Base', 'Receipts in the chat'].map((item) => (
