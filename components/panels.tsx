@@ -44,16 +44,58 @@ function CopyRow({ label, value, copy, testId }: { label: string; value: string;
 
 const STEPS = ['Waiting for your transfer', 'Naira received, sending your USDC', 'USDC in your wallet'];
 const STEP_OF: Partial<Record<NairaDeposit['status'], number>> = { waiting: 0, processing: 1, completed: 2 };
+const SLOW_AFTER_SECONDS = 15 * 60;
 
-function DepositProgress({ deposit, onDone, onClose, busy, inChat = false }: { deposit: NairaDeposit; onDone: () => void; onClose: () => void; busy: boolean; inChat?: boolean }) {
+export function Spinner() {
+  return <span aria-hidden className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)] align-[-2px]" />;
+}
+
+function DepositProgress({
+  deposit,
+  onDone,
+  onClose,
+  onSent,
+  busy,
+  inChat = false,
+}: {
+  deposit: NairaDeposit;
+  onDone: () => void;
+  onClose: () => void;
+  onSent: () => void;
+  busy: boolean;
+  inChat?: boolean;
+}) {
+  const [showAccount, setShowAccount] = useState(false);
+  const [sentAt, setSentAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const sent = deposit.user_sent;
   const seconds = useSecondsLeft(deposit.status === 'waiting' ? deposit.expires_at : null);
+  useEffect(() => {
+    if (!sent) return;
+    setSentAt((old) => old ?? Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, [sent]);
+  const slow = sentAt !== null && now - sentAt > SLOW_AFTER_SECONDS * 1000;
   const closing = seconds > 0 && seconds < 300;
-  const timedOut = deposit.status === 'expired' || (deposit.status === 'waiting' && seconds === 0);
-  const step = STEP_OF[deposit.status];
+  const lookingLate = sent && (deposit.status === 'expired' || (deposit.status === 'waiting' && seconds === 0));
+  const timedOut = !sent && (deposit.status === 'expired' || (deposit.status === 'waiting' && seconds === 0));
+  const waiting = deposit.status === 'waiting' && !timedOut && !lookingLate;
+  const step = lookingLate ? 0 : STEP_OF[deposit.status];
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  const labels = sent ? ['Looking for your transfer', STEPS[1]!, STEPS[2]!] : STEPS;
   return (
     <div className="flex flex-col gap-3" aria-label="Naira deposit">
-      {deposit.status === 'waiting' && !timedOut && (
+      {(sent && (waiting || lookingLate)) || deposit.status === 'processing' ? (
+        <div className="rounded-lg border border-[var(--accent)] p-3" role="status" data-testid="deposit-coming">
+          <p className="font-medium"><Spinner /> Your {deposit.amount} is on its way</p>
+          <p className="text-sm text-[var(--muted)]">
+            {deposit.status === 'processing' ? 'We have your naira and are sending your USDC.' : 'We are looking for your transfer.'} This usually takes about 2 minutes, and you can leave this page. We will tell you here when it arrives.
+          </p>
+          {slow && <p className="mt-2 text-sm">This is taking longer than usual. If your bank shows the money left, please keep the receipt and contact support.</p>}
+        </div>
+      ) : null}
+      {waiting && (!sent || showAccount) && (
         <>
           <div className="flex items-center justify-between rounded-lg border border-[var(--line)] p-3">
             <p className="text-sm">Account expires in</p>
@@ -66,6 +108,16 @@ function DepositProgress({ deposit, onDone, onClose, busy, inChat = false }: { d
           </div>
           <p className="text-sm text-[var(--muted)]">You get about {deposit.usdc}. Send the exact amount, in one transfer. This account works once.</p>
         </>
+      )}
+      {waiting && !sent && (
+        <button className="rounded-lg bg-[var(--accent)] px-4 py-3 font-medium text-[var(--accent-text)]" disabled={busy} onClick={onSent}>
+          {busy ? 'Processing…' : 'I have sent the money'}
+        </button>
+      )}
+      {waiting && sent && (
+        <button className="self-start text-sm underline" onClick={() => setShowAccount((value) => !value)}>
+          {showAccount ? 'Hide account details' : 'Show account details'}
+        </button>
       )}
       {timedOut && (
         <div className="rounded-lg border border-[var(--line)] p-3">
@@ -81,25 +133,25 @@ function DepositProgress({ deposit, onDone, onClose, busy, inChat = false }: { d
       )}
       {step !== undefined && (
         <ol className="flex flex-col gap-2" aria-label="Progress">
-          {STEPS.map((label, index) => (
+          {labels.map((label, index) => (
             <li key={label} className={`flex items-center gap-2 text-sm ${index > step ? 'text-[var(--muted)]' : ''}`} aria-current={index === step ? 'step' : undefined}>
-              <span aria-hidden className="w-4 text-center">{index < step || step === 2 ? '✓' : index === step ? '●' : '○'}</span>
+              <span aria-hidden className="w-4 text-center">
+                {index < step || step === 2 ? '✓' : index === step && (sent || step === 1) ? <Spinner /> : index === step ? '●' : '○'}
+              </span>
               {label}
             </li>
           ))}
         </ol>
       )}
-      {deposit.status === 'waiting' && !timedOut && <p className="text-sm text-[var(--muted)]">Stay on this page or come back later. It updates by itself, usually within 2 minutes of your transfer.</p>}
-      {deposit.status === 'processing' && <p className="text-sm text-[var(--muted)]">We have your naira. Your USDC usually arrives within 2 minutes.</p>}
       {deposit.status === 'completed' && <p className="font-medium">About {deposit.usdc} added to your wallet.</p>}
       {deposit.status === 'cancelled' && <p className="text-sm text-[var(--muted)]">You closed this deposit for {deposit.amount}. Please do not send money to its account.</p>}
       {inChat
-        ? deposit.status === 'waiting' && !timedOut && (
+        ? waiting && !sent && (
             <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={onClose}>
               Cancel deposit
             </button>
           )
-        : deposit.status !== 'processing' && (
+        : (deposit.status === 'completed' || timedOut || deposit.status === 'failed' || (waiting && !sent)) && (
             <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? onDone : onClose}>
               {deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? 'Make a new deposit' : 'Cancel and start again'}
             </button>
@@ -125,12 +177,12 @@ export function DepositCard({ deposit: first, api, onChanged }: { deposit: Naira
     }, 5000);
     return () => clearInterval(timer);
   }, [api, deposit.id, status, onChanged]);
-  const close = async () => {
+  const act = async (work: () => Promise<unknown>, after: () => void) => {
     setBusy(true);
     setError(null);
     try {
-      await api.closeDeposit(deposit.id);
-      setDeposit({ ...deposit, status: 'cancelled' });
+      await work();
+      after();
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -140,7 +192,19 @@ export function DepositCard({ deposit: first, api, onChanged }: { deposit: Naira
   return (
     <section className="flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-label="Deposit card">
       <p className="font-medium">Deposit {deposit.amount}</p>
-      <DepositProgress deposit={deposit} busy={busy} onDone={() => undefined} onClose={() => void close()} inChat />
+      <DepositProgress
+        deposit={deposit}
+        busy={busy}
+        onDone={() => undefined}
+        onClose={() => void act(() => api.closeDeposit(deposit.id), () => setDeposit({ ...deposit, status: 'cancelled' }))}
+        onSent={() =>
+          void act(() => api.depositSent(deposit.id), () => {
+            setDeposit({ ...deposit, user_sent: true });
+            onChanged();
+          })
+        }
+        inChat
+      />
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </section>
   );
@@ -205,7 +269,23 @@ function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => voi
   if (deposit) {
     return (
       <>
-        <DepositProgress deposit={deposit} busy={busy} onDone={() => void closeThen(deposit.id)} onClose={() => void closeThen(deposit.id)} />
+        <DepositProgress
+          deposit={deposit}
+          busy={busy}
+          onDone={() => void closeThen(deposit.id)}
+          onClose={() => void closeThen(deposit.id)}
+          onSent={() => {
+            setBusy(true);
+            setError(null);
+            api.depositSent(deposit.id).then(
+              () => {
+                setDeposit({ ...deposit, user_sent: true });
+                onChanged();
+              },
+              (failure: Error) => setError(failure.message),
+            ).finally(() => setBusy(false));
+          }}
+        />
         {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       </>
     );

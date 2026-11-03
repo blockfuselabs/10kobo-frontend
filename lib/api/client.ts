@@ -25,6 +25,7 @@ export interface NairaDeposit {
   account_number: string;
   account_name: string | null;
   expires_at: string;
+  user_sent: boolean;
 }
 
 export interface DepositTerms {
@@ -40,6 +41,7 @@ export interface WalletSummary {
   limit_used: string;
   limit_left: string;
   naira_per_usdc: number | null;
+  deposit_on_the_way?: string | null;
 }
 
 export interface ActivityEntry {
@@ -176,6 +178,7 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     startDeposit: async (amountNaira: number) =>
       (await request<{ deposit: NairaDeposit }>('/v1/deposits', { method: 'POST', body: JSON.stringify({ amount_naira: amountNaira }) })).deposit,
     getDeposit: async (id: string) => (await request<{ deposit: NairaDeposit | null }>(`/v1/deposits/${id}`)).deposit,
+    depositSent: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/sent`, { method: 'POST' }),
     closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
     activity: async () => (await request<{ activity: ActivityEntry[] }>('/v1/activity')).activity,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,

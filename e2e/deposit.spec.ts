@@ -10,6 +10,7 @@ const base = {
   bank_name: 'Safehaven Microfinance Bank',
   account_number: '6010681891',
   account_name: 'Switchlabsltd Checkout',
+  user_sent: false,
 };
 
 for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) {
@@ -43,8 +44,20 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     expect(scroll, 'no sideways scrolling').toBe(true);
     await page.screenshot({ path: `${SHOTS}/deposit-waiting-${size.width}.png` });
 
+    await page.route(`**/v1/deposits/${base.id}/sent`, (route) => {
+      state = { ...state!, user_sent: true };
+      return route.fulfill({ json: { ok: true } });
+    });
+    await page.getByRole('button', { name: 'I have sent the money' }).click();
+    await expect(page.getByTestId('deposit-coming')).toContainText('Your ₦2,000 is on its way');
+    await expect(page.getByRole('list', { name: 'Progress' })).toContainText('Looking for your transfer');
+    await expect(page.getByTestId('deposit-account')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Show account details' }).click();
+    await expect(page.getByTestId('deposit-account')).toHaveText('6010681891');
+    await page.screenshot({ path: `${SHOTS}/deposit-coming-${size.width}.png` });
+
     state = { ...state!, status: 'processing' };
-    await expect(page.getByText('We have your naira.')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('deposit-coming')).toContainText('We have your naira', { timeout: 8000 });
     await expect(page.getByTestId('deposit-timer')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/deposit-processing-${size.width}.png` });
 

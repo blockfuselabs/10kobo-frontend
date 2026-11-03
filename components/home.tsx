@@ -5,7 +5,7 @@ import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel } from './panels';
+import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -138,6 +138,7 @@ export function Home() {
                 ? 'Balance unavailable'
                 : ''}
             {summary ? ` · ${summary.limit_left} left today` : ''}
+            {summary?.deposit_on_the_way && <span className="block text-sm" data-testid="deposit-on-the-way"><Spinner /> {summary.deposit_on_the_way} on its way</span>}
           </p>
         </div>
         <button onClick={() => void signOut()} className="shrink-0 text-sm text-[var(--muted)] underline">
