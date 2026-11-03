@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
+const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display' });
 
 export const metadata: Metadata = { title: '10kobo', description: 'Buy airtime and send money by chat.' };
 export const viewport: Viewport = {
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${display.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );
