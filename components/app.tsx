@@ -21,7 +21,7 @@ function Gate() {
       >
         Sign in with email
       </button>
-      <p className="text-xs text-[var(--muted)]">Test version. No real money.</p>
+      <p className="text-xs text-[var(--muted)]">{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'This uses real money.' : 'Test version. No real money.'}</p>
     </main>
   );
 }

@@ -27,7 +27,7 @@ export function ReceivePanel({ summary }: { summary: WalletSummary | null }) {
           {copied ? 'Copied' : 'Copy address'}
         </button>
       )}
-      <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. Test version: test USDC on Base Sepolia only.</p>
+      <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
     </section>
   );
 }

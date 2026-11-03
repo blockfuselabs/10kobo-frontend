@@ -171,7 +171,7 @@ export function Home() {
       <section ref={conversation} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
         {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
         {messages.length === 0 && (
-          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc in 30 minutes. Test version, so no real money moves.</p>
+          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc in 30 minutes.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? ' This uses real money.' : ' Test version, so no real money moves.'}</p>
         )}
         {messages.map((message) => (
           <div key={message.id} className="flex flex-col gap-2">
