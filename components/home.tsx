@@ -132,7 +132,11 @@ export function Home() {
             {address ?? 'Creating your wallet…'}
           </p>
           <p className="truncate text-sm" data-testid="balance">
-            {summary?.balance_usdc ? `${summary.balance_usdc} (about ${summary.balance_naira})` : address ? 'Balance unavailable' : ''}
+            {summary?.balance_usdc
+              ? `${summary.balance_usdc}${summary.balance_naira ? ` (about ${summary.balance_naira})` : ''}`
+              : address
+                ? 'Balance unavailable'
+                : ''}
             {summary ? ` · ${summary.limit_left} left today` : ''}
           </p>
         </div>

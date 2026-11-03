@@ -20,7 +20,7 @@ export interface WalletSummary {
   balance_naira: string | null;
   limit_used: string;
   limit_left: string;
-  naira_per_usdc: number;
+  naira_per_usdc: number | null;
 }
 
 export interface ActivityEntry {
