@@ -91,7 +91,7 @@ test('schedules airtime for 1 minute later: one approval, then it runs with no s
   await expect(card).toContainText('Scheduled', { timeout: 60_000 });
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/2-scheduled.png' });
   const after = await usdc(WALLET);
-  await expect(page.locator('main')).toContainText('Sent: ₦300 airtime to Obinna', { timeout: 120_000 });
+  await expect(page.locator('main')).toContainText('Scheduled payment sent, as you approved: ₦300 airtime to Obinna', { timeout: 120_000 });
   expect(await usdc(WALLET)).toBe(after - 200_000n);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/3-sent.png' });
 });
