@@ -1,6 +1,6 @@
 'use client';
 
-import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
+import { addRpcUrlOverrideToChain, PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { SmartWalletsProvider, useSmartWallets } from '@privy-io/react-auth/smart-wallets';
 import { useMemo, type ReactNode } from 'react';
 import type { Address, Hex } from 'viem';
@@ -10,7 +10,9 @@ import { WalletContext, type Wallet } from './wallet/wallet';
 
 // The only file that knows about Privy. Replacing it means providing Auth and Wallet another way.
 const APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '';
-const chain = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? base : baseSepolia;
+const network = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? base : baseSepolia;
+// The public Base RPC refuses busy networks, so the wallet can read through our own route instead.
+const chain = process.env.NEXT_PUBLIC_WALLET_RPC ? addRpcUrlOverrideToChain(network, process.env.NEXT_PUBLIC_WALLET_RPC) : network;
 
 /** The backend and this page could be started with different settings. Real USDC must not go to a test address. */
 async function assertSameNetwork(chainId: number) {
@@ -39,7 +41,13 @@ function Bridge({ children }: { children: ReactNode }) {
       sendCalls: async (calls) => {
         if (!client) throw new Error('Your wallet is not ready yet. Please try again in a moment.');
         await assertSameNetwork(chain.id);
-        return client.sendTransaction({ calls: calls.map((call) => ({ to: call.to as Address, data: call.data as Hex })) });
+        try {
+          return await client.sendTransaction({ calls: calls.map((call) => ({ to: call.to as Address, data: call.data as Hex })) });
+        } catch (failure) {
+          // The card shows a plain sentence, so the real reason must be kept somewhere.
+          console.error('Wallet send failed:', failure);
+          throw failure;
+        }
       },
     }),
     [address, client],
