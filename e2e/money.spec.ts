@@ -123,9 +123,16 @@ test('rejecting moves nothing', async () => {
 
 test('does not offer to send more than the wallet holds', async () => {
   const before = await usdc(WALLET);
+  const cards = await page.getByRole('region', { name: 'Payments to approve' }).count();
   await say(page, 'send Ada 300 usdc');
-  // The agent may refuse from the balance, or the approval may refuse it. The chain tests cover the second. Either way nothing moves.
-  await expect(page.locator('main')).toContainText(/more than your balance|You need 300.00 USDC|only have/i, { timeout: 60_000 });
+  // The agent may refuse from the balance, or offer a card that the approval then refuses. Either way nothing moves.
+  if ((await page.getByRole('region', { name: 'Payments to approve' }).count()) > cards) {
+    const card = lastPlan(page);
+    await approve(card);
+    await expect(card.getByRole('alert')).toContainText('You need 300.00 USDC', { timeout: 30_000 });
+  } else {
+    await expect(page.locator('main')).toContainText(/more than your balance|only have|not enough|short/i, { timeout: 10_000 });
+  }
   expect(await usdc(WALLET)).toBe(before);
 });
 
