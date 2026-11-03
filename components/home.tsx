@@ -256,7 +256,7 @@ export function Home() {
                     <div className="flex flex-col gap-1.5">
                       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">What would you like to do?</h1>
                       <p className="text-sm text-[var(--muted)]">
-                        Type it the way you would say it.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? ' This uses real money.' : ' Test version, so no real money moves.'}
+                        Type it the way you would say it.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? '' : ' Test version, so no real money moves.'}
                       </p>
                     </div>
                     <div className="flex max-w-md flex-wrap justify-center gap-2">
