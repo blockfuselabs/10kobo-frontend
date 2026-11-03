@@ -39,3 +39,24 @@ for (const size of [
     expect(after.pageCanScroll, 'the page itself should not scroll').toBe(false);
   });
 }
+
+test('a message shows once while it is sending, even when the reply is slow', async ({ page }) => {
+  await page.route('**/v1/chat/messages', async (route) => {
+    if (route.request().method() === 'POST') {
+      // The server saves the message at once, then takes its time, the way a slow model does.
+      const response = await route.fetch();
+      await new Promise((done) => setTimeout(done, 14_000));
+      await route.fulfill({ response });
+    } else await route.continue();
+  });
+  await page.goto('/');
+  const text = `only once ${Date.now()}`;
+  await page.getByLabel('Message').fill(text);
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  for (let second = 0; second < 13; second += 1) {
+    await page.waitForTimeout(1000);
+    expect(await page.getByText(text, { exact: true }).count()).toBe(1);
+  }
+  await expect(page.getByRole('button', { name: 'Sending…' })).toBeHidden({ timeout: 30_000 });
+  expect(await page.getByText(text, { exact: true }).count()).toBe(1);
+});

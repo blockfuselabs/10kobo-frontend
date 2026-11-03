@@ -34,6 +34,7 @@ export function Home() {
   // Shown straight away, until the saved copy comes back with the reply.
   const [waitingOn, setWaitingOn] = useState<string | null>(null);
   const conversation = useRef<HTMLElement>(null);
+  const sendingNow = useRef(false);
 
   // The backend learns the wallet from the provider, which can take a moment after sign-up.
   const walletKnown = Boolean(me?.wallet_address);
@@ -59,12 +60,16 @@ export function Home() {
     api.messages().then(setMessages, (failure: Error) => setError(failure.message));
     void refreshSummary();
     const timer = setInterval(() => {
+      void refreshSummary();
+      // Not while sending: the saved copy of the message would appear beside the one already on screen.
+      if (sendingNow.current) return;
       // Only replace the list when it changed, so the view does not jump while someone reads.
       api.messages().then(
-        (latest) => setMessages((current) => (JSON.stringify(current) === JSON.stringify(latest) ? current : latest)),
+        (latest) => {
+          if (!sendingNow.current) setMessages((current) => (JSON.stringify(current) === JSON.stringify(latest) ? current : latest));
+        },
         () => undefined,
       );
-      void refreshSummary();
     }, REFRESH_MS);
     return () => clearInterval(timer);
   }, [api, refreshSummary]);
@@ -77,6 +82,7 @@ export function Home() {
 
   async function respond(request: () => Promise<unknown>) {
     setSending(true);
+    sendingNow.current = true;
     setError(null);
     try {
       await request();
@@ -85,6 +91,7 @@ export function Home() {
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
+      sendingNow.current = false;
       setSending(false);
     }
   }
@@ -165,8 +172,11 @@ export function Home() {
         {messages.map((message) => (
           <div key={message.id} className="flex flex-col gap-2">
             <p
+              data-notice={message.notice ? 'true' : undefined}
               className={
-                message.role === 'user'
+                message.notice
+                  ? 'max-w-[85%] self-center whitespace-pre-wrap rounded-lg px-3 py-1 text-center text-sm text-[var(--muted)]'
+                  : message.role === 'user'
                   ? 'max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]'
                   : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2'
               }

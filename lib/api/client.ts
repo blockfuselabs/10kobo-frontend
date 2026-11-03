@@ -90,6 +90,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  notice?: boolean;
   created_at: string;
   plan: Plan | null;
   contact: ContactCard | null;
