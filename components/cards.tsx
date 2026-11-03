@@ -43,9 +43,9 @@ const STATUS_LABEL: Record<Plan['status'], string | null> = {
   expired: 'This quote expired. Nothing was sent. Ask again for a new one.',
 };
 
-const primary = 'rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-[var(--accent-text)] disabled:opacity-50';
-const secondary = 'rounded-lg border border-[var(--line)] px-4 py-2 disabled:opacity-50';
-const card = 'flex max-w-[85%] flex-col gap-3 self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
+const primary = 'btn-primary';
+const secondary = 'btn-secondary';
+const card = 'card rise';
 
 /** Whether this user has a PIN to enter. Set once, for all the cards. */
 export const PinContext = createContext(false);
@@ -61,7 +61,7 @@ function PinField({ value, onChange }: { value: string; onChange: (value: string
       placeholder="PIN"
       value={value}
       onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-      className="w-24 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+      className="field w-24"
     />
   );
 }
@@ -123,7 +123,7 @@ function useAction(onChange: () => Promise<unknown>) {
 /** Opens the transaction on the block explorer, in a new tab. */
 export function TxLink({ hash }: { hash: string }) {
   return (
-    <a className="underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
+    <a className="font-medium text-[var(--accent)] underline-offset-2 hover:underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
       View
     </a>
   );
@@ -202,13 +202,13 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
               )}
             </div>
             <div className="shrink-0 text-right">
-              <p className="font-medium">{item.route === 'usdc' ? item.amount_usdc : item.amount_naira}</p>
+              <p className="amount font-semibold">{item.route === 'usdc' ? item.amount_usdc : item.amount_naira}</p>
               <p className="text-sm text-[var(--muted)]">{item.route === 'usdc' ? `about ${item.amount_naira}` : item.amount_usdc}</p>
             </div>
           </li>
         ))}
       </ul>
-      <p className="flex justify-between font-medium">
+      <p className="amount flex justify-between font-semibold">
         <span>Total</span>
         <span>{plan.total_naira} ({plan.total_usdc})</span>
       </p>
@@ -296,7 +296,7 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
               <p className="text-sm font-medium">{item.when}</p>
               {item.last_error && <p className="text-sm text-red-600 dark:text-red-400">Last try: {item.last_error}</p>}
             </div>
-            <p className="shrink-0 font-medium">{item.amount}</p>
+            <p className="amount shrink-0 font-semibold">{item.amount}</p>
           </li>
         ))}
       </ul>
@@ -398,7 +398,7 @@ export function ContactConfirmCard({
   const pin = usePin();
 
   if (contact.status === 'confirmed') {
-    return <p className="self-start text-sm text-[var(--muted)]">Saved {contact.name}: {contact.detail}</p>;
+    return <p className="self-center rounded-full bg-[var(--surface-2)] px-3.5 py-1.5 text-xs text-[var(--muted)]">Saved {contact.name}: {contact.detail}</p>;
   }
   return (
     <section className={card} aria-label="Confirm this recipient">

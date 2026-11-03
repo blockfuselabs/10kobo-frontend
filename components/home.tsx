@@ -5,17 +5,25 @@ import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
+import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, Logo, PlusIcon, SendIcon, SignOutIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
 // New messages can arrive with no action from the user: deposits, reminders and scheduled payments.
 const REFRESH_MS = 10000;
+const SUGGESTIONS = [
+  ['Deposit ₦5,000', 'Deposit 5000'],
+  ['Buy ₦500 airtime', 'Buy N500 airtime for '],
+  ['Pay ₦2,000 to a bank', 'Pay 2000 to '],
+  ['Set a monthly payment', 'Every month pay 5000 to '],
+  ['What is my balance?', 'What is my balance?'],
+] as const;
 const VIEWS = [
-  ['chat', 'Chat'],
-  ['schedules', 'Scheduled'],
-  ['activity', 'Activity'],
-  ['receive', 'Add USDC'],
+  ['chat', 'Chat', ChatIcon],
+  ['schedules', 'Scheduled', CalendarIcon],
+  ['activity', 'Activity', ActivityIcon],
+  ['receive', 'Add USDC', PlusIcon],
 ] as const;
 type View = (typeof VIEWS)[number][0];
 
@@ -25,6 +33,7 @@ export function Home() {
   const api = useMemo(() => createApiClient(API_URL, getToken), [getToken]);
 
   const [me, setMe] = useState<Me | null>(null);
+  const [copiedWallet, setCopiedWallet] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -124,121 +133,196 @@ export function Home() {
 
   return (
     <PinContext.Provider value={Boolean(me?.has_pin)}>
-    <main className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-2xl flex-col px-4">
-      <header className="flex items-center justify-between gap-4 border-b border-[var(--line)] py-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm">{me?.email ?? '…'}</p>
-          <p className="truncate font-mono text-xs text-[var(--muted)]" data-testid="wallet">
-            {address ?? 'Creating your wallet…'}
-          </p>
-          <p className="truncate text-sm" data-testid="balance">
-            {summary?.balance_usdc
-              ? `${summary.balance_usdc}${summary.balance_naira ? ` (about ${summary.balance_naira})` : ''}`
-              : address
-                ? 'Balance unavailable'
-                : ''}
-            {summary ? ` · ${summary.limit_left} left today` : ''}
-            {summary?.deposit_on_the_way && <span className="block text-sm" data-testid="deposit-on-the-way"><Spinner /> {summary.deposit_on_the_way} on its way</span>}
-          </p>
+    <main className="fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]">
+      <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:gap-5 md:border-r md:border-b-0 md:px-5 md:pt-6 md:pb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Logo />
+            <span className="font-semibold tracking-tight">10kobo</span>
+          </div>
+          <button onClick={() => void signOut()} aria-label="Sign out" title={me?.email ?? undefined} className="flex items-center gap-1.5 rounded-lg p-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+            <SignOutIcon />
+            <span className="hidden md:inline">Sign out</span>
+          </button>
         </div>
-        <button onClick={() => void signOut()} className="shrink-0 text-sm text-[var(--muted)] underline">
-          Sign out
-        </button>
+        <div className="inset flex flex-col gap-0.5 px-3.5 py-3 md:gap-1 md:p-4">
+          <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Balance</p>
+          <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2">
+            {summary?.balance_usdc ? (
+              <>
+                <span className="text-lg font-semibold tracking-tight md:text-2xl">{summary.balance_usdc}</span>
+                {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
+              </>
+            ) : (
+              <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
+            )}
+          </p>
+          {summary && <p className="amount text-xs text-[var(--muted)]">{summary.limit_left} left to send today</p>}
+          {summary?.deposit_on_the_way && (
+            <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-[var(--accent)]" data-testid="deposit-on-the-way">
+              <Spinner /> {summary.deposit_on_the_way} on its way
+            </p>
+          )}
+          <div className="mt-2 hidden items-center gap-2 border-t border-[var(--line)] pt-2.5 md:flex">
+            <p className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--muted)]" data-testid="wallet" title={address ?? undefined}>
+              {address ?? 'Creating your wallet…'}
+            </p>
+            {address && (
+              <button
+                aria-label="Copy wallet address"
+                title="Copy wallet address"
+                className="text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+                onClick={() => void navigator.clipboard?.writeText(address).then(() => {
+                  setCopiedWallet(true);
+                  setTimeout(() => setCopiedWallet(false), 1500);
+                })}
+              >
+                {copiedWallet ? <CheckIcon /> : <CopyIcon />}
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <nav className="flex gap-1 border-b border-[var(--line)] py-2 text-sm" aria-label="Sections">
-        {VIEWS.map(([key, label]) => (
+      <nav
+        aria-label="Sections"
+        className="row-start-3 grid grid-cols-4 gap-1 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:flex md:flex-col md:content-start md:border-t-0 md:border-r md:px-3 md:py-1"
+      >
+        {VIEWS.map(([key, label, ViewIcon]) => (
           <button
             key={key}
             onClick={() => setView(key)}
             aria-current={view === key ? 'page' : undefined}
-            className={view === key ? 'rounded-lg bg-[var(--surface)] px-3 py-1 font-medium' : 'rounded-lg px-3 py-1 text-[var(--muted)]'}
+            className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
+              view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
+            }`}
           >
+            <ViewIcon />
             {label}
           </button>
         ))}
       </nav>
 
-      {view !== 'chat' && (
-        <section className="min-h-0 flex-1 overflow-y-auto">
-          {view === 'schedules' && <SchedulesPanel api={api} />}
-          {view === 'activity' && <ActivityPanel api={api} />}
-          {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
-        </section>
-      )}
-
-      {view === 'chat' && (
-      <>
-      <section ref={conversation} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
-        {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
-        {messages.length === 0 && (
-          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc in 30 minutes.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? ' This uses real money.' : ' Test version, so no real money moves.'}</p>
+      <div className="row-start-2 flex min-h-0 flex-col md:col-start-2 md:row-span-2 md:row-start-1">
+        {view !== 'chat' && (
+          <section className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
+              {view === 'schedules' && <SchedulesPanel api={api} />}
+              {view === 'activity' && <ActivityPanel api={api} />}
+              {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
+            </div>
+          </section>
         )}
-        {messages.map((message) => (
-          <div key={message.id} className="flex flex-col gap-2">
-            <p
-              data-notice={message.notice ? 'true' : undefined}
-              className={
-                message.notice
-                  ? 'max-w-[85%] self-center whitespace-pre-wrap rounded-lg px-3 py-1 text-center text-sm text-[var(--muted)]'
-                  : message.role === 'user'
-                  ? 'max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]'
-                  : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2'
-              }
-            >
-              {message.content}
-              {message.notice && message.tx_hash && (
-                <>
-                  {' '}
-                  <TxLink hash={message.tx_hash} />
-                </>
-              )}
-            </p>
-            {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
-            {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
-            {message.cancel_schedule && <CancelScheduleCard schedule={message.cancel_schedule} api={api} onChange={reload} />}
-            {message.deposit && <DepositCard deposit={message.deposit} api={api} onChanged={refreshSummary} />}
-            {message.contact && (
-              <ContactConfirmCard
-                contact={message.contact}
-                api={api}
-                onChange={reload}
-                onConfirmed={(contactId) => respond(() => api.contactConfirmed(contactId))}
-              />
-            )}
-          </div>
-        ))}
-        {waitingOn && (
-          <p className="max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]">{waitingOn}</p>
+
+        {view === 'chat' && (
+          <>
+            <section ref={conversation} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+              <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col gap-3 px-4 py-5 md:px-8 md:py-8">
+                {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
+                {messages.length === 0 && (
+                  <div className="m-auto flex flex-col items-center gap-5 py-6 text-center">
+                    <div className="flex flex-col gap-1.5">
+                      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">What would you like to do?</h1>
+                      <p className="text-sm text-[var(--muted)]">
+                        Type it the way you would say it.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? ' This uses real money.' : ' Test version, so no real money moves.'}
+                      </p>
+                    </div>
+                    <div className="flex max-w-md flex-wrap justify-center gap-2">
+                      {SUGGESTIONS.map(([label, text]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            setDraft(text);
+                            document.getElementById('message')?.focus();
+                          }}
+                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-sm transition-colors hover:border-[var(--accent)]"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {messages.map((message) => (
+                  <div key={message.id} className="rise flex flex-col gap-2">
+                    <p
+                      data-notice={message.notice ? 'true' : undefined}
+                      className={
+                        message.notice
+                          ? 'max-w-[90%] self-center whitespace-pre-wrap rounded-full bg-[var(--surface-2)] px-3.5 py-1.5 text-center text-xs text-[var(--muted)]'
+                          : message.role === 'user'
+                            ? 'max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]'
+                            : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
+                      }
+                    >
+                      {message.content}
+                      {message.notice && message.tx_hash && (
+                        <>
+                          {' '}
+                          <TxLink hash={message.tx_hash} />
+                        </>
+                      )}
+                    </p>
+                    {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
+                    {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
+                    {message.cancel_schedule && <CancelScheduleCard schedule={message.cancel_schedule} api={api} onChange={reload} />}
+                    {message.deposit && <DepositCard deposit={message.deposit} api={api} onChanged={refreshSummary} />}
+                    {message.contact && (
+                      <ContactConfirmCard
+                        contact={message.contact}
+                        api={api}
+                        onChange={reload}
+                        onConfirmed={(contactId) => respond(() => api.contactConfirmed(contactId))}
+                      />
+                    )}
+                  </div>
+                ))}
+                {waitingOn && (
+                  <p className="max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]">{waitingOn}</p>
+                )}
+                {sending && (
+                  <p className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-3.5" aria-label="Thinking">
+                    <span className="dot" />
+                    <span className="dot" />
+                    <span className="dot" />
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <div className="mx-auto w-full max-w-2xl px-4 pb-3 md:px-8 md:pb-6">
+              {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+              <form
+                onSubmit={send}
+                autoComplete="off"
+                className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 pl-4 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--accent)]"
+              >
+                <input
+                  id="message"
+                  aria-label="Message"
+                  // Chrome would otherwise offer old messages, including account numbers, as suggestions.
+                  name="chat-message-no-history"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  maxLength={2000}
+                  placeholder="Tell me what to pay"
+                  className="min-w-0 flex-1 bg-transparent py-1.5 outline-none placeholder:text-[var(--muted)] focus-visible:outline-none"
+                />
+                <button
+                  aria-label={sending ? 'Sending…' : 'Send'}
+                  disabled={sending || !draft.trim()}
+                  className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {sending ? <Spinner /> : <SendIcon />}
+                </button>
+              </form>
+            </div>
+          </>
         )}
-        {sending && <p className="self-start text-sm text-[var(--muted)]">Thinking…</p>}
-      </section>
-
-      {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-      <form onSubmit={send} autoComplete="off" className="flex gap-2 pb-4">
-        <input
-          id="message"
-          aria-label="Message"
-          // Chrome would otherwise offer old messages, including account numbers, as suggestions.
-          name="chat-message-no-history"
-          autoComplete="off"
-          autoCorrect="off"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          maxLength={2000}
-          placeholder="Tell me what to pay"
-          className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
-        />
-        <button
-          disabled={sending || !draft.trim()}
-          className="rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-[var(--accent-text)] disabled:opacity-50"
-        >
-          {sending ? 'Sending…' : 'Send'}
-        </button>
-      </form>
-      </>
-      )}
+      </div>
     </main>
     </PinContext.Provider>
   );

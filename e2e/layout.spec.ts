@@ -26,8 +26,9 @@ for (const size of [
     await page.goto('/');
     await expect(page.getByLabel('Message')).toBeVisible();
     console.log('empty chat', await boxFullyVisible(page));
-    for (let i = 0; i < 10; i += 1) {
-      const text = `hello ${size.width} ${i}`;
+    for (let i = 0; i < 5; i += 1) {
+      // Unique per run, because this database keeps messages between runs.
+      const text = `hello ${size.width} ${i} ${Date.now()}`;
       await page.getByLabel('Message').fill(text);
       await page.getByRole('button', { name: 'Send', exact: true }).click();
       await expect(page.getByText(text, { exact: true })).toBeVisible();

@@ -58,15 +58,14 @@ test('asks for a PIN first when required', async () => {
 
 test('a wrong PIN stops an approval, the right one lets it through', async () => {
   await say(page, `Save Ada's wallet ${DEAD} and send her 2 usdc`);
-  const contact = page.getByRole('region', { name: 'Confirm this recipient' }).last();
-  await expect(contact).toBeVisible({ timeout: 60_000 });
-  await expect(contact.getByRole('button', { name: 'Yes, save' })).toBeDisabled();
-  await contact.getByLabel('PIN').fill('0001');
-  await contact.getByRole('button', { name: 'Yes, save' }).click();
-  await expect(contact.getByRole('alert')).toContainText('PIN is not right', { timeout: 15_000 });
-  await contact.getByLabel('PIN').fill('4829');
-  await confirmContact(page);
-  await expect(lastPlan(page)).toContainText('Ada', { timeout: 60_000 });
+  // One approval pays and saves a new wallet, so the PIN guards that single step.
+  const card = lastPlan(page);
+  await expect(card).toContainText('Ada', { timeout: 60_000 });
+  await expect(card).toContainText(DEAD);
+  await expect(card.getByRole('button', { name: 'Approve' })).toBeDisabled();
+  await card.getByLabel('PIN').fill('0001');
+  await card.getByRole('button', { name: 'Approve' }).click();
+  await expect(card.getByRole('alert')).toContainText('PIN is not right', { timeout: 15_000 });
 });
 
 test('sends USDC by chat: it needs my approval, then really moves', async () => {

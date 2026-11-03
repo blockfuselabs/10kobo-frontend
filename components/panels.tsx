@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ApiClient, DepositTerms, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
 
-const row = 'flex justify-between gap-4 border-b border-[var(--line)] py-3';
+const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
 
 const dateOf = (value: string) =>
   new Date(value).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -27,13 +27,13 @@ function useSecondsLeft(until: string | null): number {
 function CopyRow({ label, value, copy, testId }: { label: string; value: string; copy: string; testId: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2.5 last:border-0">
       <div className="min-w-0">
         <p className="text-xs text-[var(--muted)]">{label}</p>
         <p className="break-words font-medium" data-testid={testId}>{value}</p>
       </div>
       <button
-        className="shrink-0 rounded-lg border border-[var(--line)] px-3 py-1 text-sm"
+        className="btn-small"
         onClick={() => void navigator.clipboard?.writeText(copy).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}
       >
         {copied ? 'Copied' : 'Copy'}
@@ -87,8 +87,8 @@ function DepositProgress({
   return (
     <div className="flex flex-col gap-3" aria-label="Naira deposit">
       {(sent && (waiting || lookingLate)) || deposit.status === 'processing' ? (
-        <div className="rounded-lg border border-[var(--accent)] p-3" role="status" data-testid="deposit-coming">
-          <p className="font-medium"><Spinner /> Your {deposit.amount} is on its way</p>
+        <div className="flex flex-col gap-1 rounded-xl bg-[var(--accent-soft)] p-3.5" role="status" data-testid="deposit-coming">
+          <p className="flex items-center gap-2 font-semibold"><Spinner /> Your {deposit.amount} is on its way</p>
           <p className="text-sm text-[var(--muted)]">
             {deposit.status === 'processing' ? 'We have your naira and are sending your USDC.' : 'We are confirming your transfer with the bank.'} This usually takes about 2 minutes, and you can leave this page. We will tell you here when it arrives.
           </p>
@@ -97,11 +97,11 @@ function DepositProgress({
       ) : null}
       {waiting && (!sent || showAccount) && (
         <>
-          <div className="flex items-center justify-between rounded-lg border border-[var(--line)] p-3">
+          <div className="inset flex items-center justify-between p-3.5">
             <p className="text-sm">Account expires in</p>
             <p className={`font-mono text-xl font-semibold ${closing ? 'text-red-600 dark:text-red-400' : ''}`} role="timer" data-testid="deposit-timer">{clock}</p>
           </div>
-          <div className="rounded-lg border border-[var(--line)] px-3 py-1">
+          <div className="inset px-3.5 py-1">
             <CopyRow label="Send exactly" value={deposit.amount} copy={String(deposit.amount_naira)} testId="deposit-amount" />
             <CopyRow label={deposit.bank_name ?? 'Bank'} value={deposit.account_number} copy={deposit.account_number} testId="deposit-account" />
             {deposit.account_name && <p className="py-2 text-sm"><span className="text-[var(--muted)]">Account name: </span>{deposit.account_name}</p>}
@@ -110,24 +110,24 @@ function DepositProgress({
         </>
       )}
       {waiting && !sent && (
-        <button className="rounded-lg bg-[var(--accent)] px-4 py-3 font-medium text-[var(--accent-text)]" disabled={busy} onClick={onSent}>
+        <button className="btn-primary w-full" disabled={busy} onClick={onSent}>
           {busy ? 'Processing…' : 'I have sent the money'}
         </button>
       )}
       {waiting && sent && (
-        <button className="self-start text-sm underline" onClick={() => setShowAccount((value) => !value)}>
+        <button className="self-start text-sm font-medium text-[var(--accent)] underline-offset-2 hover:underline" onClick={() => setShowAccount((value) => !value)}>
           {showAccount ? 'Hide account details' : 'Show account details'}
         </button>
       )}
       {timedOut && (
-        <div className="rounded-lg border border-[var(--line)] p-3">
-          <p className="font-medium">This account has expired</p>
+        <div className="inset p-3.5">
+          <p className="font-semibold">This account has expired</p>
           <p className="text-sm text-[var(--muted)]">Please do not send money to it. If you already did, we will tell you here as soon as it is confirmed.</p>
         </div>
       )}
       {deposit.status === 'failed' && (
-        <div className="rounded-lg border border-[var(--line)] p-3">
-          <p className="font-medium text-red-600 dark:text-red-400">This deposit could not be completed</p>
+        <div className="inset p-3.5">
+          <p className="font-semibold text-red-600 dark:text-red-400">This deposit could not be completed</p>
           <p className="text-sm text-[var(--muted)]">If money left your bank, please contact support with the amount and time.</p>
         </div>
       )}
@@ -147,12 +147,12 @@ function DepositProgress({
       {deposit.status === 'cancelled' && <p className="text-sm text-[var(--muted)]">You closed this deposit for {deposit.amount}. Please do not send money to its account.</p>}
       {inChat
         ? waiting && !sent && (
-            <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={onClose}>
+            <button className="btn-secondary self-start" disabled={busy} onClick={onClose}>
               Cancel deposit
             </button>
           )
         : (deposit.status === 'completed' || timedOut || deposit.status === 'failed' || (waiting && !sent)) && (
-            <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? onDone : onClose}>
+            <button className="btn-secondary self-start" disabled={busy} onClick={deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? onDone : onClose}>
               {deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? 'Make a new deposit' : 'Cancel and start again'}
             </button>
           )}
@@ -190,8 +190,8 @@ export function DepositCard({ deposit: first, api, onChanged }: { deposit: Naira
     }
   };
   return (
-    <section className="flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-label="Deposit card">
-      <p className="font-medium">Deposit {deposit.amount}</p>
+    <section className="card rise" aria-label="Deposit card">
+      <p className="amount text-lg font-semibold tracking-tight">Deposit {deposit.amount}</p>
       <DepositProgress
         deposit={deposit}
         busy={busy}
@@ -303,7 +303,7 @@ function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => voi
       <label className="flex flex-col gap-1 text-sm">
         Amount in naira
         <input
-          className="rounded-lg border border-[var(--line)] bg-transparent p-3 text-base"
+          className="field text-lg font-medium"
           inputMode="numeric"
           autoComplete="off"
           name="deposit-amount"
@@ -315,7 +315,7 @@ function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => voi
       {terms && valid && <p className="text-sm text-[var(--muted)]">You get about {(value / terms.rate).toFixed(2)} USDC at ₦{terms.rate.toLocaleString('en-NG')} per USDC.</p>}
       {terms && amount !== '' && !valid && <p className="text-sm text-[var(--muted)]">Enter between {naira(terms.minimum_naira)} and {naira(terms.maximum_naira)}.</p>}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      <button className="self-start rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-[var(--accent-text)] disabled:opacity-50" disabled={!valid || busy}>
+      <button className="btn-primary w-full" disabled={!valid || busy}>
         {busy ? 'Processing…' : 'Get bank account'}
       </button>
     </form>
@@ -326,23 +326,28 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   const [copied, setCopied] = useState(false);
   const address = summary?.address;
   return (
-    <section className="flex flex-col gap-3 py-4" aria-label="Receive USDC">
-      <p className="font-medium">Deposit naira</p>
-      <DepositNaira api={api} onChanged={onChanged} />
-      <p className="mt-4 border-t border-[var(--line)] pt-4 font-medium">Or receive USDC</p>
+    <section className="flex flex-col gap-4" aria-label="Receive USDC">
+      <h1 className="page-title">Add USDC</h1>
+      <div className="panel">
+        <p className="font-semibold">Deposit naira</p>
+        <DepositNaira api={api} onChanged={onChanged} />
+      </div>
+      <div className="panel">
+      <p className="font-semibold">Or receive USDC</p>
       <p className="text-sm text-[var(--muted)]">Send USDC on the Base network to this address. Sending any other coin, or using another network, can lose the money.</p>
-      <p className="break-all rounded-lg border border-[var(--line)] p-3 font-mono text-sm" data-testid="receive-address">
+      <p className="inset break-all p-3.5 font-mono text-sm" data-testid="receive-address">
         {address ?? 'Your wallet is being set up…'}
       </p>
       {address && (
         <button
-          className="self-start rounded-lg border border-[var(--line)] px-4 py-2"
+          className="btn-secondary self-start"
           onClick={() => void navigator.clipboard?.writeText(address).then(() => setCopied(true))}
         >
           {copied ? 'Copied' : 'Copy address'}
         </button>
       )}
       <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
+      </div>
     </section>
   );
 }
@@ -355,13 +360,15 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
   }, [api]);
   if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
   if (!entries) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
-  if (entries.length === 0) return <p className="py-4 text-sm text-[var(--muted)]">Nothing yet.</p>;
+  if (entries.length === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Activity</h1><p className="text-sm text-[var(--muted)]">Nothing yet. Your payments and deposits will show here.</p></div>;
   return (
-    <ul aria-label="Activity">
+    <div className="flex flex-col gap-4">
+    <h1 className="page-title">Activity</h1>
+    <ul aria-label="Activity" className="flex flex-col gap-2">
       {entries.map((entry, index) => (
         <li key={index} className={row}>
           <div className="min-w-0">
-            <p className="break-words">{entry.description}</p>
+            <p className="break-words font-medium first-letter:uppercase">{entry.description}</p>
             <p className="text-sm text-[var(--muted)]">
               {dateOf(entry.created_at)} · {entry.status.replace(/_/g, ' ')}
               {entry.tx_hash && (
@@ -373,12 +380,13 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p>{entry.amount_naira ?? entry.amount_usdc}</p>
+            <p className="amount font-semibold">{entry.amount_naira ?? entry.amount_usdc}</p>
             {entry.amount_naira && <p className="text-sm text-[var(--muted)]">{entry.amount_usdc}</p>}
           </div>
         </li>
       ))}
     </ul>
+    </div>
   );
 }
 
@@ -391,9 +399,11 @@ export function SchedulesPanel({ api }: { api: ApiClient }) {
   }, [load]);
   if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
   if (!schedules) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
-  if (schedules.length === 0) return <p className="py-4 text-sm text-[var(--muted)]">No scheduled payments. Try: send N500 airtime to Kc every month.</p>;
+  if (schedules.length === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Scheduled</h1><p className="text-sm text-[var(--muted)]">No scheduled payments. Try: send N500 airtime to Kc every month.</p></div>;
   return (
-    <ul aria-label="Scheduled payments">
+    <div className="flex flex-col gap-4">
+    <h1 className="page-title">Scheduled</h1>
+    <ul aria-label="Scheduled payments" className="flex flex-col gap-2">
       {schedules.map((schedule) => (
         <li key={schedule.id} className={row}>
           <div className="min-w-0">
@@ -407,5 +417,6 @@ export function SchedulesPanel({ api }: { api: ApiClient }) {
         </li>
       ))}
     </ul>
+    </div>
   );
 }
