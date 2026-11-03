@@ -150,6 +150,7 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
+    recheckPlan: (id: string) => request<Plan>(`/v1/plans/${id}/recheck`, { method: 'POST' }),
     abandonPlan: (id: string) => request<Plan>(`/v1/plans/${id}/abandon`, { method: 'POST' }),
     approveSchedules: (groupId: string, pin?: string) =>
       request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/approve`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),

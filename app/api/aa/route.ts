@@ -65,7 +65,8 @@ export async function POST(request: Request) {
     const response = await fetch(upstream, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: text,
+      // The parsed copy, so what is forwarded is exactly what was checked.
+      body: JSON.stringify(parsed),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     return new Response(await response.text(), { status: response.status, headers: { 'content-type': 'application/json' } });

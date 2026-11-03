@@ -72,6 +72,36 @@ function usePin() {
   return { needed, pin, setPin, ready: !needed || pin.length === 4, value: needed ? pin : undefined };
 }
 
+const RESIGN_WAIT_MS = 2 * 60 * 1000;
+const sendKey = (planId: string) => `10kobo:send:${planId}`;
+
+function savedSend(planId: string): { hash?: string; at?: number } {
+  try {
+    return JSON.parse(localStorage.getItem(sendKey(planId)) ?? '{}') as { hash?: string; at?: number };
+  } catch {
+    return {};
+  }
+}
+
+function rememberSend(planId: string, send: { hash?: string; at: number }): void {
+  try {
+    localStorage.setItem(sendKey(planId), JSON.stringify(send));
+  } catch {
+    // Private windows can refuse storage. The server's recheck and the signing window still protect the user.
+  }
+}
+
+function forgetSend(planId: string): void {
+  try {
+    localStorage.removeItem(sendKey(planId));
+  } catch {
+    // Nothing to do.
+  }
+}
+
+/** Only a clear refusal counts. Any other error could come after the wallet really sent the transaction. */
+const userDeclined = (failure: unknown): boolean => /reject|denied|declin|cancel|closed/i.test(String((failure as Error)?.message ?? ''));
+
 function useAction(onChange: () => Promise<unknown>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,16 +126,33 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
   const pin = usePin();
   const notice = STATUS_LABEL[plan.status];
 
-  /** Records the approval, then asks the wallet to sign. Declining means nothing moved. */
+  /**
+   * Asks the wallet to sign, keeping the hash in the browser first. If telling the server fails or the page
+   * reloads, the hash is sent again rather than the money. Only a clear "no" from the user drops the payment.
+   */
   const sign = async (calls: Plan['calls']) => {
     if (calls.length === 0) return;
+    const stored = savedSend(plan.id);
+    if (stored.hash) return void (await api.fundPlan(plan.id, stored.hash));
+    if (stored.at && Date.now() - stored.at < RESIGN_WAIT_MS) {
+      throw new Error('Your last try may still be going through. Please wait two minutes before signing again.');
+    }
+    // The first send may have landed even though this page never heard about it.
+    const fresh = await api.recheckPlan(plan.id);
+    if (fresh.calls.length === 0) return;
+    rememberSend(plan.id, { at: Date.now() });
     let hash: string;
     try {
-      hash = await wallet.sendCalls(calls);
-    } catch {
+      hash = await wallet.sendCalls(fresh.calls);
+    } catch (failure) {
+      if (!userDeclined(failure)) {
+        throw new Error('We could not confirm this yet, and it may still go through. Please wait. Do not send it again.');
+      }
+      forgetSend(plan.id);
       await api.abandonPlan(plan.id);
       throw new Error('Not signed, so nothing was sent.');
     }
+    rememberSend(plan.id, { hash, at: Date.now() });
     await api.fundPlan(plan.id, hash);
   };
 
