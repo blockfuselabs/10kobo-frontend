@@ -44,7 +44,29 @@ export interface WalletSummary {
   deposit_on_the_way?: string | null;
 }
 
+export interface Receipt {
+  reference: string;
+  kind: string;
+  title: string;
+  recipient: string | null;
+  recipient_detail: string | null;
+  amount: string;
+  second_amount: string | null;
+  note: string | null;
+  completed_at: string;
+  tx_hash: string | null;
+}
+
+export interface ActivityPage {
+  activity: ActivityEntry[];
+  page: number;
+  per_page: number;
+  total: number;
+}
+
 export interface ActivityEntry {
+  id: string;
+  has_receipt: boolean;
   kind: 'payment' | 'deposit';
   created_at: string;
   description: string;
@@ -85,6 +107,7 @@ export interface PlanItem {
   data_plan: string | null;
   amount_naira: string;
   amount_usdc: string;
+  payment_id?: string | null;
   payment_status: PaymentStatus | null;
   failure_reason: string | null;
   tx_hash: string | null;
@@ -194,7 +217,8 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     getDeposit: async (id: string) => (await request<{ deposit: NairaDeposit | null }>(`/v1/deposits/${id}`)).deposit,
     depositSent: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/sent`, { method: 'POST' }),
     closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
-    activity: async () => (await request<{ activity: ActivityEntry[] }>('/v1/activity')).activity,
+    activity: (page: number) => request<ActivityPage>(`/v1/activity?page=${page}`),
+    receipt: async (kind: 'payment' | 'deposit', id: string) => (await request<{ receipt: Receipt }>(`/v1/receipts/${kind}/${id}`)).receipt,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),

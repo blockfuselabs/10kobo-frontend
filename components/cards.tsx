@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
+import { ReceiptDialog } from './receipt-dialog';
 import type { ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
 import { useWallet } from '@/lib/wallet/wallet';
 
@@ -146,6 +147,8 @@ function Receipt({ hash, paidAt }: { hash: string | null | undefined; paidAt: st
 }
 
 export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: ApiClient; onChange: () => Promise<unknown> }) {
+  const [receiptFor, setReceiptFor] = useState<string | null>(null);
+  const closeReceipt = useCallback(() => setReceiptFor(null), []);
   const { busy, error, run } = useAction(onChange);
   const wallet = useWallet();
   const pin = usePin();
@@ -183,6 +186,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
 
   return (
     <section className={card} aria-label="Payments to approve">
+      {receiptFor && <ReceiptDialog api={api} kind="payment" id={receiptFor} onClose={closeReceipt} />}
       <ul className="flex flex-col gap-3">
         {plan.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
@@ -199,6 +203,9 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                   {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
                 </p>
+              )}
+              {item.payment_status === 'completed' && !item.simulated && item.payment_id && (
+                <button onClick={() => setReceiptFor(item.payment_id!)} className="mt-1 cursor-pointer text-sm font-medium underline underline-offset-2">Get receipt</button>
               )}
             </div>
             <div className="shrink-0 text-right">

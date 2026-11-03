@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ActivityEntry, ApiClient, DepositTerms, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
+import type { ActivityEntry, ActivityPage, ApiClient, DepositTerms, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
+import { ReceiptDialog } from './receipt-dialog';
 
 const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
 
@@ -352,40 +353,73 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   );
 }
 
+const STATUS_LABEL: Record<string, string> = { paying: 'processing', funded: 'processing', funding: 'confirming', awaiting_signature: 'waiting for you', needs_support: 'being checked' };
+const readable = (text: string) => text.replace(/0x[0-9a-fA-F]{40}/g, (address) => `${address.slice(0, 6)}…${address.slice(-4)}`);
+
 export function ActivityPanel({ api }: { api: ApiClient }) {
-  const [entries, setEntries] = useState<ActivityEntry[] | null>(null);
+  const [result, setResult] = useState<ActivityPage | null>(null);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState<ActivityEntry | null>(null);
+  const closeReceipt = useCallback(() => setOpen(null), []);
   useEffect(() => {
-    api.activity().then(setEntries, (failure: Error) => setError(failure.message));
-  }, [api]);
+    let current = true;
+    setError(null);
+    api.activity(page).then(
+      (found) => {
+        if (current) setResult(found);
+      },
+      (failure: Error) => {
+        if (current) setError(failure.message);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [api, page]);
   if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
-  if (!entries) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
-  if (entries.length === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Activity</h1><p className="text-sm text-[var(--muted)]">Nothing yet. Your payments and deposits will show here.</p></div>;
+  if (!result) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
+  if (result.total === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Activity</h1><p className="text-sm text-[var(--muted)]">Nothing yet. Your payments and deposits will show here.</p></div>;
+  const pages = Math.max(1, Math.ceil(result.total / result.per_page));
   return (
     <div className="flex flex-col gap-4">
-    <h1 className="page-title">Activity</h1>
-    <ul aria-label="Activity" className="flex flex-col gap-2">
-      {entries.map((entry, index) => (
-        <li key={index} className={row}>
-          <div className="min-w-0">
-            <p className="break-words font-medium first-letter:uppercase">{entry.description}</p>
-            <p className="text-sm text-[var(--muted)]">
-              {dateOf(entry.created_at)} · {entry.status.replace(/_/g, ' ')}
-              {entry.tx_hash && (
-                <>
-                  {' · '}
-                  <TxLink hash={entry.tx_hash} />
-                </>
-              )}
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="amount font-semibold">{entry.amount_naira ?? entry.amount_usdc}</p>
-            {entry.amount_naira && <p className="text-sm text-[var(--muted)]">{entry.amount_usdc}</p>}
-          </div>
-        </li>
-      ))}
-    </ul>
+      <h1 className="page-title">Activity</h1>
+      <ul aria-label="Activity" className="flex flex-col gap-2">
+        {result.activity.map((entry) => (
+          <li key={`${entry.kind}-${entry.id}`} className={row}>
+            <div className="min-w-0">
+              <p className="break-words font-medium first-letter:uppercase">{readable(entry.description)}</p>
+              <p className="text-sm text-[var(--muted)]">
+                {dateOf(entry.created_at)} · {STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, ' ')}
+                {entry.tx_hash && (
+                  <>
+                    {' · '}
+                    <TxLink hash={entry.tx_hash} />
+                  </>
+                )}
+                {entry.has_receipt && (
+                  <>
+                    {' · '}
+                    <button onClick={() => setOpen(entry)} className="cursor-pointer font-medium text-[var(--foreground)] underline-offset-2 hover:underline">Receipt</button>
+                  </>
+                )}
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="amount font-semibold">{entry.amount_naira ?? entry.amount_usdc}</p>
+              {entry.amount_naira && <p className="text-sm text-[var(--muted)]">{entry.amount_usdc}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {pages > 1 && (
+        <nav aria-label="Activity pages" className="flex items-center justify-between gap-3">
+          <button className="btn-secondary px-4 py-2 text-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Previous</button>
+          <span className="amount text-sm text-[var(--muted)]">Page {page} of {pages}</span>
+          <button className="btn-secondary px-4 py-2 text-sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next →</button>
+        </nav>
+      )}
+      {open && <ReceiptDialog api={api} kind={open.kind} id={open.id} onClose={closeReceipt} />}
     </div>
   );
 }
