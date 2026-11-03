@@ -169,6 +169,8 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
   return {
     me: () => request<Me>('/v1/me'),
     conversations: async () => (await request<{ conversations: Chat[] }>('/v1/chat/messages/conversations')).conversations,
+    renameChat: (id: string, title: string) => request<{ ok: boolean }>(`/v1/chat/messages/conversations/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
+    deleteChat: (id: string) => request<{ ok: boolean }>(`/v1/chat/messages/conversations/${id}`, { method: 'DELETE' }),
     messages: async (conversationId?: string) =>
       (await request<{ messages: ChatMessage[] }>(`/v1/chat/messages${conversationId ? `?conversation=${conversationId}` : ''}`)).messages,
     /** Without a chat, this starts a new one. Returns which chat it went into. */

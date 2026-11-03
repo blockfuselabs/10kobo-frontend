@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, Logo, PlusIcon } from './icons';
+import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, Logo, PlusIcon, ThemeToggle } from './icons';
 
 const STEPS = [
   ['Type it', 'Say what you want in your own words, like "send 5k to Mum".'],
@@ -180,9 +180,12 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
             <a href="#how" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
             <a href="#what" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
           </nav>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="h-11 w-11 rounded-full" />
           <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 py-2.5 text-[15px] font-semibold md:px-7 md:py-3 md:text-base transition-colors hover:bg-[var(--surface-2)]">
             Sign in
           </button>
+          </div>
         </header>
 
         <main>

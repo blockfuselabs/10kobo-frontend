@@ -5,7 +5,7 @@ import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSumma
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon } from './icons';
+import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -37,26 +37,147 @@ const VIEWS = [
 ] as const;
 type View = (typeof VIEWS)[number][0];
 
-function ChatList({ chats, active, onOpen }: { chats: Chat[]; active: string | null; onOpen: (id: string | null) => void }) {
+type ChatActions = { onOpen: (id: string | null) => void; onRename: (id: string, title: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
+
+/** A chat's three-dot menu. Fixed to the screen, so the scrolling list cannot cut it off. */
+function ChatMenu({ chat, anchor, onClose, onStartRename, onDelete }: { chat: Chat; anchor: DOMRect; onClose: () => void; onStartRename: () => void; onDelete: (id: string) => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const away = (event: MouseEvent) => {
+      if (!box.current?.contains(event.target as Node)) onClose();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [onClose]);
+  const width = 232;
+  const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
+  const top = Math.min(anchor.bottom + 6, window.innerHeight - 190);
+  const item = 'flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-[var(--surface-2)]';
+  return (
+    <div ref={box} role="menu" aria-label="Chat options" style={{ left, top, width }} className="rise fixed z-50 flex flex-col gap-0.5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-[0_18px_50px_rgb(0_0_0/0.22)]">
+      {confirming ? (
+        <div className="flex flex-col gap-2.5 p-2">
+          <p className="text-sm font-semibold">Delete this chat?</p>
+          <p className="text-xs leading-relaxed text-[var(--muted)]">Its messages will be gone. Your payments and scheduled payments will not change.</p>
+          {failed && <p role="alert" className="text-xs text-red-600 dark:text-red-400">That did not work. Please try again.</p>}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 cursor-pointer rounded-lg border border-[var(--line)] py-2 text-sm font-semibold">Cancel</button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                setFailed(false);
+                onDelete(chat.id).then(onClose, () => {
+                  setFailed(true);
+                  setBusy(false);
+                });
+              }}
+              className="flex-1 cursor-pointer rounded-lg bg-red-600 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {busy ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button role="menuitem" onClick={onStartRename} className={item}><PencilIcon />Rename</button>
+          <button role="menuitem" onClick={() => setConfirming(true)} className={`${item} text-red-600 dark:text-red-400`}><TrashIcon />Delete</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ChatRow({ chat, active, actions }: { chat: Chat; active: boolean; actions: ChatActions }) {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(chat.title);
+  const closeMenu = useCallback(() => setAnchor(null), []);
+  const save = () => {
+    setRenaming(false);
+    const title = name.trim();
+    if (title && title !== chat.title) void actions.onRename(chat.id, title).catch(() => setName(chat.title));
+    else setName(chat.title);
+  };
+  if (renaming) {
+    return (
+      <li>
+        <input
+          autoFocus
+          aria-label="Chat name"
+          value={name}
+          maxLength={80}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={save}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') save();
+            if (event.key === 'Escape') {
+              setName(chat.title);
+              setRenaming(false);
+            }
+          }}
+          className="w-full rounded-xl border border-[var(--accent)] bg-[var(--surface)] px-3 py-1.5 text-sm"
+        />
+      </li>
+    );
+  }
+  return (
+    <li className={`group relative flex items-center rounded-xl transition-colors ${active ? 'bg-[var(--surface-2)]' : 'hover:bg-[var(--surface-2)]'}`}>
+      <button
+        onClick={() => actions.onOpen(chat.id)}
+        aria-current={active ? 'true' : undefined}
+        title={chat.title}
+        className={`min-w-0 flex-1 cursor-pointer truncate rounded-xl py-2 pr-1 pl-3 text-left text-sm ${active ? 'font-medium' : 'text-[var(--muted)] group-hover:text-[var(--foreground)]'}`}
+      >
+        {chat.title}
+      </button>
+      <button
+        aria-label="Chat options"
+        aria-haspopup="menu"
+        aria-expanded={anchor !== null}
+        onClick={(event) => setAnchor(anchor ? null : event.currentTarget.getBoundingClientRect())}
+        className={`mr-1 grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-lg text-[var(--muted)] transition-opacity hover:text-[var(--foreground)] focus-visible:opacity-100 max-md:opacity-100 ${anchor || active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      >
+        <DotsIcon />
+      </button>
+      {anchor && (
+        <ChatMenu
+          chat={chat}
+          anchor={anchor}
+          onClose={closeMenu}
+          onStartRename={() => {
+            setAnchor(null);
+            setName(chat.title);
+            setRenaming(true);
+          }}
+          onDelete={actions.onDelete}
+        />
+      )}
+    </li>
+  );
+}
+
+function ChatList({ chats, active, actions }: { chats: Chat[]; active: string | null; actions: ChatActions }) {
   return (
     <>
-      <button onClick={() => onOpen(null)} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+      <button onClick={() => actions.onOpen(null)} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
         <PencilIcon />
         New chat
       </button>
       {chats.length > 0 && <p className="px-3 pt-2 pb-0.5 text-xs font-medium text-[var(--muted)]">Recent chats</p>}
       <ul aria-label="Your chats" className="flex flex-col gap-0.5">
         {chats.map((chat) => (
-          <li key={chat.id}>
-            <button
-              onClick={() => onOpen(chat.id)}
-              aria-current={chat.id === active ? 'true' : undefined}
-              title={chat.title}
-              className={`w-full cursor-pointer truncate rounded-xl px-3 py-2 text-left text-sm transition-colors ${chat.id === active ? 'bg-[var(--surface-2)] font-medium' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'}`}
-            >
-              {chat.title}
-            </button>
-          </li>
+          <ChatRow key={chat.id} chat={chat} active={chat.id === active} actions={actions} />
         ))}
       </ul>
     </>
@@ -138,6 +259,25 @@ export function Home() {
     void loadMessages().catch((failure: Error) => setError(failure.message));
   };
 
+  const chatActions: ChatActions = {
+    onOpen: openChat,
+    onRename: async (id, title) => {
+      await api.renameChat(id, title);
+      await loadChats();
+    },
+    onDelete: async (id) => {
+      await api.deleteChat(id);
+      if (activeChatRef.current === id) {
+        // Moves to the next chat, or to a new one if this was the last.
+        activeChatRef.current = null;
+        startedNew.current = false;
+        setActiveChat(null);
+        setMessages([]);
+      }
+      await loadChats();
+    },
+  };
+
   useEffect(() => {
     void loadChats().catch((failure: Error) => setError(failure.message));
     void refreshSummary();
@@ -213,9 +353,12 @@ export function Home() {
             <Logo />
             <span className="font-semibold tracking-tight">10kobo</span>
           </div>
-          <button onClick={() => void signOut()} aria-label="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)] md:hidden">
+          <div className="flex items-center gap-1 md:hidden">
+            <ThemeToggle />
+          <button onClick={() => void signOut()} aria-label="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
             <SignOutIcon />
           </button>
+          </div>
         </div>
         <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
           <div className="flex flex-col gap-0.5">
@@ -270,7 +413,7 @@ export function Home() {
           ))}
         </nav>
         <div className="hidden min-h-0 flex-col gap-1 border-t border-[var(--line)] pt-3 md:flex">
-          <ChatList chats={chats} active={activeChat} onOpen={openChat} />
+          <ChatList chats={chats} active={activeChat} actions={chatActions} />
         </div>
       </div>
 
@@ -297,6 +440,7 @@ export function Home() {
             {(me?.email ?? '?').slice(0, 1)}
           </span>
           <p className="min-w-0 flex-1 truncate text-sm" title={me?.email ?? undefined}>{me?.email ?? '…'}</p>
+          <ThemeToggle />
           <button onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
             <SignOutIcon />
           </button>
@@ -323,7 +467,7 @@ export function Home() {
               <button onClick={() => openChat(null)} className="shrink-0 rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-sm font-semibold">+ New</button>
               {chatsOpen && (
                 <div className="absolute inset-x-2 top-full z-20 mt-1 flex max-h-[60dvh] flex-col gap-1 overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 shadow-[var(--shadow)]">
-                  <ChatList chats={chats} active={activeChat} onOpen={openChat} />
+                  <ChatList chats={chats} active={activeChat} actions={chatActions} />
                 </div>
               )}
             </div>
@@ -427,7 +571,7 @@ export function Home() {
                   disabled={sending || !draft.trim()}
                   className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {sending ? <Spinner /> : <SendIcon />}
+                  {sending ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-text)] border-t-transparent" /> : <SendIcon />}
                 </button>
               </form>
             </div>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/lib/auth/auth';
-import { Logo } from './icons';
+import { Logo, ThemeToggle } from './icons';
 
 const looksLikeEmail = (value: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.trim());
 
@@ -57,9 +57,12 @@ export function LoginPage() {
           <Logo size={38} />
           <span className="font-display text-2xl font-bold tracking-tight">10kobo</span>
         </Link>
-        <Link href="/" className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
-          ← Back to home
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+            ← Back to home
+          </Link>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 pb-16">
@@ -83,7 +86,7 @@ export function LoginPage() {
                   className="field text-base font-normal"
                 />
               </label>
-              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
               <button className="btn-primary w-full py-3.5" disabled={!looksLikeEmail(email) || busy}>
                 {busy ? 'Sending…' : 'Continue'}
               </button>
@@ -121,7 +124,7 @@ export function LoginPage() {
                   className="field amount text-center font-mono text-2xl font-medium tracking-[0.4em]"
                 />
               </label>
-              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
               <button className="btn-primary w-full py-3.5" disabled={code.length !== 6 || busy}>
                 {busy ? 'Checking…' : 'Log in'}
               </button>
