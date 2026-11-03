@@ -14,6 +14,25 @@ export interface WalletCall {
 export type PaymentStatus =
   | 'pending' | 'completed' | 'failed' | 'awaiting_signature' | 'funding' | 'funded' | 'paying' | 'returning' | 'returned' | 'needs_support';
 
+export interface NairaDeposit {
+  id: string;
+  status: 'waiting' | 'processing' | 'completed' | 'failed' | 'expired' | 'cancelled';
+  amount: string;
+  amount_naira: number;
+  usdc: string;
+  rate: string;
+  bank_name: string | null;
+  account_number: string;
+  account_name: string | null;
+  expires_at: string;
+}
+
+export interface DepositTerms {
+  rate: number;
+  minimum_naira: number;
+  maximum_naira: number;
+}
+
 export interface WalletSummary {
   address: string | null;
   balance_usdc: string | null;
@@ -151,6 +170,11 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
         })
       ).reply,
     wallet: () => request<WalletSummary>('/v1/wallet'),
+    depositTerms: () => request<DepositTerms>('/v1/deposits/terms'),
+    currentDeposit: async () => (await request<{ deposit: NairaDeposit | null }>('/v1/deposits/current')).deposit,
+    startDeposit: async (amountNaira: number) =>
+      (await request<{ deposit: NairaDeposit }>('/v1/deposits', { method: 'POST', body: JSON.stringify({ amount_naira: amountNaira }) })).deposit,
+    closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
     activity: async () => (await request<{ activity: ActivityEntry[] }>('/v1/activity')).activity,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
     fundPlan: (id: string, txHash: string) =>

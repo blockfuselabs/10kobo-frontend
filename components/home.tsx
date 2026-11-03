@@ -162,7 +162,7 @@ export function Home() {
         <section className="min-h-0 flex-1 overflow-y-auto">
           {view === 'schedules' && <SchedulesPanel api={api} />}
           {view === 'activity' && <ActivityPanel api={api} />}
-          {view === 'receive' && <ReceivePanel summary={summary} />}
+          {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
         </section>
       )}
 
