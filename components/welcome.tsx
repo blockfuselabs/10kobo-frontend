@@ -44,9 +44,9 @@ function PreviewRow({ name, detail, amount }: { name: string; detail: string; am
 /** A picture of the chat on a phone, with made-up names. It is not a working chat, so screen readers skip it. */
 function Showcase() {
   return (
-    <div aria-hidden className="relative h-[27rem] select-none overflow-hidden rounded-[2rem] bg-gradient-to-b from-[#0d5c45] to-[#083d2e] md:h-[33rem]">
-      <div className="absolute inset-x-0 -top-24 mx-auto h-80 w-[70%] rounded-full bg-[#3fd8a2] opacity-25 blur-3xl" />
-      <div className="absolute inset-x-0 top-10 bottom-0 mx-auto w-[18.5rem] overflow-hidden rounded-t-[2.5rem] border-[7px] border-b-0 border-[#07261c] bg-white text-[#0b2a20] shadow-[0_30px_60px_rgb(0_0_0/0.35)] md:top-12 md:w-[20.5rem]">
+    <div aria-hidden className="relative flex select-none flex-col items-center overflow-hidden rounded-[2rem] bg-gradient-to-b from-[#0d5c45] to-[#083d2e] px-4 pt-10 pb-12 md:pt-12 md:pb-14">
+      <div className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-80 w-[70%] rounded-full bg-[#3fd8a2] opacity-25 blur-3xl" />
+      <div className="relative w-[18.5rem] overflow-hidden rounded-[2.5rem] border-[7px] border-[#07261c] bg-white text-[#0b2a20] md:w-[20.5rem]">
         <div className="flex items-center gap-2 border-b border-[#e6ece9] px-4 pt-4 pb-3">
           <Logo size={22} />
           <span className="text-sm font-semibold">10kobo</span>
@@ -68,11 +68,17 @@ function Showcase() {
             </div>
           </div>
           <p className="self-center rounded-full bg-[#eef3f0] px-3 py-1 text-[11px] text-[#55695f]">Receipt shows here once it is paid</p>
+          <div className="mt-1 flex items-center gap-2 rounded-xl border border-[#dbe5df] py-1.5 pr-1.5 pl-3 text-[12px] text-[#55695f]">
+            <span className="flex-1">Tell me what to pay</span>
+            <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#0a7f5c] text-[13px] text-white">↑</span>
+          </div>
         </div>
+        <div className="mx-auto mb-1.5 h-1 w-24 rounded-full bg-[#0b2a20]/20" />
       </div>
-      <FloatingNote className="drift left-[6%] top-[22%] hidden md:flex lg:left-[9%]" title="Sent to Mum" detail="Bank transfer" amount="₦5,000" />
-      <FloatingNote className="drift-late right-[6%] top-[44%] hidden md:flex lg:right-[9%]" title="Rent is scheduled" detail="28th of every month" amount="₦80,000" />
-      <FloatingNote className="drift bottom-[12%] left-[6%] hidden lg:flex lg:left-[7%]" title="Airtime delivered" detail="Tunde, MTN" amount="₦500" />
+      <div className="mt-1 h-4 w-[17rem] rounded-[50%] bg-black/40 blur-md md:w-[19rem]" />
+      <FloatingNote className="left-[6%] top-[22%] hidden md:flex lg:left-[7%]" title="Sent to Mum" detail="Bank transfer" amount="₦5,000" />
+      <FloatingNote className="right-[6%] top-[44%] hidden md:flex lg:right-[7%]" title="Rent is scheduled" detail="28th of every month" amount="₦80,000" />
+      <FloatingNote className="bottom-[14%] left-[6%] hidden lg:flex lg:left-[7%]" title="Airtime delivered" detail="Tunde, MTN" amount="₦500" />
     </div>
   );
 }
@@ -98,9 +104,6 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           <div className="flex items-center gap-2">
             <button onClick={onSignIn} className="btn-secondary px-4 py-2 text-sm">
               Sign in
-            </button>
-            <button onClick={onSignIn} className="btn-primary hidden px-4 py-2 text-sm sm:inline-flex">
-              Create account
             </button>
           </div>
         </header>
@@ -150,15 +153,6 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
             </ul>
           </Section>
 
-          <section className="mb-12 flex flex-col items-start justify-between gap-6 rounded-[2rem] bg-[#083d2e] p-8 text-white md:flex-row md:items-center md:p-12">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Your next payment is one message away.</h2>
-              <p className="text-[#b9d8ca]">Sign in with your email to get started.</p>
-            </div>
-            <button onClick={onSignIn} className="w-full shrink-0 cursor-pointer rounded-[0.875rem] bg-white px-7 py-3.5 font-semibold text-[#083d2e] transition-opacity hover:opacity-90 md:w-auto">
-              Get started
-            </button>
-          </section>
         </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] py-6 text-sm text-[var(--muted)]">

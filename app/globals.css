@@ -217,23 +217,3 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
-
-@keyframes drift {
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.drift {
-  animation: drift 5s ease-in-out infinite;
-}
-.drift-late {
-  animation: drift 6s ease-in-out 1.2s infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .drift,
-  .drift-late {
-    animation: none;
-  }
-}
