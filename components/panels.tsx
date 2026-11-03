@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ApiClient, Schedule, WalletSummary } from '@/lib/api/client';
-import { CancelScheduleButton } from './cards';
+import { CancelScheduleButton, TxLink } from './cards';
 
 const row = 'flex justify-between gap-4 border-b border-[var(--line)] py-3';
 
@@ -49,6 +49,12 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
             <p className="break-words">{entry.description}</p>
             <p className="text-sm text-[var(--muted)]">
               {dateOf(entry.created_at)} · {entry.status.replace(/_/g, ' ')}
+              {entry.tx_hash && (
+                <>
+                  {' · '}
+                  <TxLink hash={entry.tx_hash} />
+                </>
+              )}
             </p>
           </div>
           <div className="shrink-0 text-right">

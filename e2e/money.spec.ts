@@ -44,6 +44,10 @@ test.beforeAll(async ({ browser }) => {
   await expect(page.getByTestId('balance')).toContainText('50.00 USDC', { timeout: 60_000 });
 });
 
+test('the message box does not offer old messages', async () => {
+  await expect(page.getByLabel('Message')).toHaveAttribute('autocomplete', 'off');
+});
+
 test('asks for a PIN first when required', async () => {
   const card = page.getByRole('region', { name: 'Set your PIN' });
   await expect(card).toBeVisible({ timeout: 30_000 });
@@ -93,6 +97,10 @@ test('schedules airtime for 1 minute later: one approval, then it runs with no s
   const after = await usdc(WALLET);
   await expect(page.locator('main')).toContainText('Scheduled payment sent, as you approved: ₦300 airtime to Obinna', { timeout: 120_000 });
   expect(await usdc(WALLET)).toBe(after - 200_000n);
+  // The notice and the card both link to the transaction.
+  const notice = page.locator('[data-notice="true"]').filter({ hasText: 'Scheduled payment sent' }).last();
+  await expect(notice.getByRole('link', { name: 'View' })).toHaveAttribute('href', /basescan\.org\/tx\/0x[0-9a-f]{64}/);
+  await expect(card.getByLabel('Receipt').getByRole('link', { name: 'View' })).toHaveAttribute('href', /basescan\.org\/tx\/0x[0-9a-f]{64}/);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/3-sent.png' });
 });
 
@@ -139,6 +147,7 @@ test('does not offer to send more than the wallet holds', async () => {
 
 test('activity and the add-USDC address are there', async () => {
   await page.getByRole('button', { name: 'Activity', exact: true }).click();
+  await expect(page.getByRole('list', { name: 'Activity' }).getByRole('link', { name: 'View' }).first()).toHaveAttribute('href', /basescan/);
   await expect(page.getByRole('list', { name: 'Activity' })).toContainText('usdc to Ada');
   await expect(page.getByRole('list', { name: 'Activity' })).toContainText('airtime to Obinna');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/5-activity.png' });

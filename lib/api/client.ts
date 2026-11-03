@@ -45,6 +45,8 @@ export interface Schedule {
   when: string;
   next_run_at: string | null;
   last_error: string | null;
+  last_tx_hash: string | null;
+  last_paid_at: string | null;
 }
 
 export interface ScheduleGroup {
@@ -92,6 +94,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   notice?: boolean;
+  tx_hash?: string | null;
   created_at: string;
   plan: Plan | null;
   contact: ContactCard | null;

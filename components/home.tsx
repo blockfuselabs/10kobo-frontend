@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
-import { CancelScheduleCard, ContactConfirmCard, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
+import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
 import { ActivityPanel, ReceivePanel, SchedulesPanel } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -182,6 +182,12 @@ export function Home() {
               }
             >
               {message.content}
+              {message.notice && message.tx_hash && (
+                <>
+                  {' '}
+                  <TxLink hash={message.tx_hash} />
+                </>
+              )}
             </p>
             {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
             {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
@@ -204,10 +210,14 @@ export function Home() {
 
       {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <form onSubmit={send} className="flex gap-2 pb-4">
+      <form onSubmit={send} autoComplete="off" className="flex gap-2 pb-4">
         <input
           id="message"
           aria-label="Message"
+          // Chrome would otherwise offer old messages, including account numbers, as suggestions.
+          name="chat-message-no-history"
+          autoComplete="off"
+          autoCorrect="off"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           maxLength={2000}

@@ -120,23 +120,25 @@ function useAction(onChange: () => Promise<unknown>) {
   return { busy, error, run };
 }
 
-/** Shown once everything has gone through, in place of a second step. */
-function Receipt({ plan }: { plan: Plan }) {
-  const first = plan.items[0];
-  const hash = first?.tx_hash;
-  const when = first?.paid_at
-    ? new Date(first.paid_at).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' })
-    : null;
+/** Opens the transaction on the block explorer, in a new tab. */
+export function TxLink({ hash }: { hash: string }) {
+  return (
+    <a className="underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
+      View
+    </a>
+  );
+}
+
+/** Shown once a payment has gone through. */
+function Receipt({ hash, paidAt }: { hash: string | null | undefined; paidAt: string | null | undefined }) {
+  const when = paidAt ? new Date(paidAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : null;
   return (
     <div className="flex flex-col gap-1 border-t border-[var(--line)] pt-3 text-sm" aria-label="Receipt">
       <p className="font-medium">Receipt</p>
       {when && <p className="text-[var(--muted)]">{when}</p>}
       {hash && (
         <p className="break-all text-[var(--muted)]">
-          Transaction {hash.slice(0, 10)}…{hash.slice(-6)}{' '}
-          <a className="underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
-            View
-          </a>
+          Transaction {hash.slice(0, 10)}…{hash.slice(-6)} <TxLink hash={hash} />
         </p>
       )}
     </div>
@@ -210,7 +212,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
         <span>Total</span>
         <span>{plan.total_naira} ({plan.total_usdc})</span>
       </p>
-      {plan.items.every((item) => item.payment_status === 'completed') && <Receipt plan={plan} />}
+      {plan.items.every((item) => item.payment_status === 'completed') && <Receipt hash={plan.items[0]?.tx_hash} paidAt={plan.items[0]?.paid_at} />}
       {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
       {plan.status === 'proposed' && (
         <div className="flex flex-wrap gap-2">
@@ -298,6 +300,11 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
           </li>
         ))}
       </ul>
+      {group.items
+        .filter((item) => item.last_paid_at)
+        .map((item) => (
+          <Receipt key={item.id} hash={item.last_tx_hash} paidAt={item.last_paid_at} />
+        ))}
       {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
       {group.status === 'proposed' && (
         <>
