@@ -195,7 +195,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
               </p>
               {item.payment_status && (
                 <p className={BAD.includes(item.payment_status) ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
-                  {PAYMENT_LABEL[item.payment_status]}
+                  {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : PAYMENT_LABEL[item.payment_status]}
                   {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
                 </p>
@@ -227,7 +227,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
               })
             }
           >
-            {busy ? 'Working…' : 'Approve'}
+            {busy ? 'Processing…' : 'Approve'}
           </button>
           <button className={secondary} disabled={busy} onClick={() => void run(() => api.rejectPlan(plan.id))}>
             Reject
@@ -236,7 +236,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
       )}
       {plan.status === 'approved' && plan.calls.length > 0 && (
         <button className={primary} disabled={busy} onClick={() => void run(() => sign(plan.calls))}>
-          {busy ? 'Working…' : 'Sign'}
+          {busy ? 'Processing…' : 'Sign'}
         </button>
       )}
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -321,7 +321,7 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
                 })
               }
             >
-              {busy ? 'Working…' : 'Approve'}
+              {busy ? 'Processing…' : 'Approve'}
             </button>
             <button className={secondary} disabled={busy} onClick={() => void run(() => api.rejectSchedules(group.group_id))}>
               Reject
@@ -331,7 +331,7 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
       )}
       {group.status === 'awaiting_signature' && group.calls.length > 0 && (
         <button className={primary} disabled={busy} onClick={() => void run(() => sign(group.calls))}>
-          {busy ? 'Working…' : 'Sign'}
+          {busy ? 'Processing…' : 'Sign'}
         </button>
       )}
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -358,7 +358,7 @@ export function CancelScheduleButton({ schedule, api, onChange, label = 'Cancel'
           })
         }
       >
-        {busy ? 'Working…' : label}
+        {busy ? 'Processing…' : label}
       </button>
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </>
