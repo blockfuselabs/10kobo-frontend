@@ -188,16 +188,16 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
   return (
     <div className="welcome min-h-dvh overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
-        <header className="flex items-center justify-between py-5">
+        <header className="flex items-center justify-between py-5 md:py-7">
           <div className="flex items-center gap-2.5">
-            <Logo size={34} />
-            <span className="font-display text-xl font-bold tracking-tight">10kobo</span>
+            <Logo size={42} />
+            <span className="font-display text-2xl font-bold tracking-tight md:text-[1.75rem]">10kobo</span>
           </div>
-          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-white p-1 text-sm font-medium md:flex">
-            <a href="#how" className="rounded-full px-4 py-2 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
-            <a href="#what" className="rounded-full px-4 py-2 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
+          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-white p-1.5 text-base font-medium md:flex">
+            <a href="#how" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
+            <a href="#what" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
           </nav>
-          <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+          <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-[15px] font-semibold md:px-7 md:py-3 md:text-base transition-colors hover:bg-[var(--surface-2)]">
             Sign in
           </button>
         </header>
