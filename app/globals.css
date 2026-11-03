@@ -260,10 +260,10 @@ body {
     transform: scale(1);
   }
   30% {
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   60% {
-    transform: scale(1.09) translateY(-3px);
+    transform: scale(1.04);
   }
   100% {
     transform: scale(1);
@@ -274,35 +274,35 @@ body {
   animation: bubble-send 0.65s ease-out;
 }
 
-@keyframes plane-fly {
+/* The word leaves upward like a sent message, and a fresh one arrives from below. */
+@keyframes text-send {
   0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(-110%);
     opacity: 0;
-    transform: translate(0, 0) scale(0.5);
   }
-  18% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 1;
+  41% {
+    transform: translateY(110%);
+    opacity: 0;
   }
   100% {
-    opacity: 0;
-    transform: translate(85px, -105px) scale(1.05) rotate(6deg);
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
-.plane-fly {
-  pointer-events: none;
-  animation: plane-fly 1.2s cubic-bezier(0.3, 0.1, 0.3, 1) forwards;
+.text-send {
+  animation: text-send 0.8s cubic-bezier(0.3, 0.1, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .float,
-  .bubble-send {
+  .bubble-send,
+  .text-send {
     animation: none;
-  }
-  .plane-fly {
-    display: none;
   }
 }
 

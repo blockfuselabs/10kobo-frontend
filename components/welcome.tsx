@@ -100,7 +100,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
         <span className="mx-auto rounded-lg bg-[var(--surface)] px-16 py-1 text-xs font-medium text-[var(--muted)] md:px-28">10kobo</span>
         <span className="w-[3.25rem]" />
       </div>
-      <div className="grid h-[31rem] grid-cols-1 xl:grid-cols-[12.5rem_minmax(0,1fr)]">
+      <div className="grid h-[27rem] grid-cols-1 xl:grid-cols-[11.5rem_minmax(0,1fr)]">
         <div className="hidden flex-col gap-4 border-r border-[var(--line)] p-3.5 xl:flex">
           <div className="flex items-center gap-2">
             <Logo size={26} />
@@ -120,8 +120,6 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
         </div>
         <div className="flex min-h-0 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5">
-            <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">how much do I have?</p>
-            <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
             {sent && (
               <>
                 <p key={scene.request} className="rise max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">{scene.request}</p>
@@ -220,20 +218,19 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
 
         <main>
           <section className="flex flex-col gap-10 pt-4 pb-8 md:pt-8 md:pb-10">
-            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10">
+            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
               <div className="flex flex-col items-start gap-6">
-                <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[3.25rem] xl:text-[4rem]">
+                <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[3.1rem] xl:text-[4.5rem]">
                   Send money like <br className="hidden sm:block" />
                   sending a{' '}
-                  <span key={phase === 'approve' ? scene.request : 'rest'} className={`relative inline-block rounded-[0.9rem] bg-[var(--accent)] px-[0.28em] pb-[0.08em] text-[var(--accent-text)] ${phase === 'approve' ? 'bubble-send' : ''}`}>
-                    text.
+                  <span className={`relative inline-block rounded-[0.9rem] bg-[var(--accent)] px-[0.28em] pb-[0.08em] text-[var(--accent-text)] ${phase === 'approve' ? 'bubble-send' : ''}`}>
+                    <span className="inline-block overflow-hidden align-bottom">
+                      <span key={phase === 'approve' ? scene.request : 'rest'} className={`inline-block ${phase === 'approve' ? 'text-send' : ''}`}>text.</span>
+                    </span>
                     <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[var(--accent)]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
-                    {phase === 'approve' && (
-                      <svg aria-hidden viewBox="0 0 24 24" className="plane-fly absolute -top-[0.1em] right-[-0.1em] z-20 h-[0.55em] w-[0.55em] fill-[var(--accent)]"><path d="M2.5 11.2 21 3.3c.7-.3 1.4.4 1.1 1.1l-7.9 18.5c-.3.8-1.5.7-1.7-.2l-2-7.6-7.7-2.2c-.9-.2-1-1.4-.2-1.7Z" /></svg>
-                    )}
                   </span>
                 </h1>
-                <p className="text-lg leading-relaxed text-[var(--muted)]">
+                <p className="text-lg leading-relaxed text-[var(--muted)] xl:text-xl">
                   Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
                 </p>
                 <ChatStart onSignIn={onSignIn} typed={typed} />
