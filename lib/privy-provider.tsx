@@ -3,6 +3,7 @@
 import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { SmartWalletsProvider, useSmartWallets } from '@privy-io/react-auth/smart-wallets';
 import { useMemo, type ReactNode } from 'react';
+import type { Address, Hex } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { AuthContext, type Auth } from './auth/auth';
 import { WalletContext, type Wallet } from './wallet/wallet';
@@ -26,7 +27,16 @@ function Bridge({ children }: { children: ReactNode }) {
     [ready, authenticated, login, logout, getAccessToken],
   );
   const address = client?.account?.address ?? null;
-  const wallet = useMemo<Wallet>(() => ({ address }), [address]);
+  const wallet = useMemo<Wallet>(
+    () => ({
+      address,
+      sendCalls: async (calls) => {
+        if (!client) throw new Error('Your wallet is not ready yet. Please try again in a moment.');
+        return client.sendTransaction({ calls: calls.map((call) => ({ to: call.to as Address, data: call.data as Hex })) });
+      },
+    }),
+    [address, client],
+  );
 
   return (
     <AuthContext.Provider value={auth}>

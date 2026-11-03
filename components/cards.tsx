@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { ApiClient, ContactCard, Plan, PlanItem } from '@/lib/api/client';
+import type { ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
+import { useWallet } from '@/lib/wallet/wallet';
 
 const ROUTE_LABEL: Record<PlanItem['route'], string> = {
   airtime: 'Airtime',
@@ -10,7 +11,30 @@ const ROUTE_LABEL: Record<PlanItem['route'], string> = {
   usdc: 'USDC transfer',
 };
 
-const PAYMENT_LABEL = { pending: 'Processing', completed: 'Paid (simulated)', failed: 'Failed' } as const;
+const PAYMENT_LABEL: Record<PaymentStatus, string> = {
+  pending: 'Processing',
+  completed: 'Paid',
+  failed: 'Failed',
+  awaiting_signature: 'Waiting for your signature',
+  funding: 'Confirming on the blockchain',
+  funded: 'Processing',
+  paying: 'Processing',
+  returning: 'Failed. Returning your USDC',
+  returned: 'Failed. Your USDC went back to your wallet',
+  needs_support: 'Failed. Our team is on it',
+};
+const BAD: readonly PaymentStatus[] = ['failed', 'returning', 'returned', 'needs_support'];
+const EXPLORER = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'https://basescan.org/tx/' : 'https://sepolia.basescan.org/tx/';
+
+const SCHEDULE_NOTICE: Partial<Record<Schedule['status'], string>> = {
+  awaiting_signature: 'Waiting for your signature.',
+  active: 'Scheduled. It will run by itself.',
+  completed: 'Done.',
+  cancelled: 'Cancelled. Nothing more will be sent.',
+  failed: 'Stopped after failing several times.',
+  rejected: 'Rejected. Nothing was set up.',
+  expired: 'This expired. Nothing was set up. Ask again for a new one.',
+};
 
 const STATUS_LABEL: Record<Plan['status'], string | null> = {
   proposed: null,
@@ -43,7 +67,21 @@ function useAction(onChange: () => Promise<unknown>) {
 
 export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: ApiClient; onChange: () => Promise<unknown> }) {
   const { busy, error, run } = useAction(onChange);
+  const wallet = useWallet();
   const notice = STATUS_LABEL[plan.status];
+
+  /** Records the approval, then asks the wallet to sign. Declining means nothing moved. */
+  const sign = async (calls: Plan['calls']) => {
+    if (calls.length === 0) return;
+    let hash: string;
+    try {
+      hash = await wallet.sendCalls(calls);
+    } catch {
+      await api.abandonPlan(plan.id);
+      throw new Error('Not signed, so nothing was sent.');
+    }
+    await api.fundPlan(plan.id, hash);
+  };
 
   return (
     <section className={card} aria-label="Payments to approve">
@@ -58,9 +96,18 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
               {item.payment_status && (
-                <p className={item.payment_status === 'failed' ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
+                <p className={BAD.includes(item.payment_status) ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
                   {PAYMENT_LABEL[item.payment_status]}
+                  {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
+                  {item.tx_hash && (
+                    <>
+                      {' '}
+                      <a className="underline" href={`${EXPLORER}${item.tx_hash}`} target="_blank" rel="noreferrer">
+                        View
+                      </a>
+                    </>
+                  )}
                 </p>
               )}
             </div>
@@ -78,7 +125,16 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
       {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
       {plan.status === 'proposed' && (
         <div className="flex gap-2">
-          <button className={primary} disabled={busy} onClick={() => void run(() => api.approvePlan(plan.id))}>
+          <button
+            className={primary}
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const approved = await api.approvePlan(plan.id);
+                await sign(approved.calls);
+              })
+            }
+          >
             {busy ? 'Working…' : 'Approve'}
           </button>
           <button className={secondary} disabled={busy} onClick={() => void run(() => api.rejectPlan(plan.id))}>
@@ -86,7 +142,125 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
           </button>
         </div>
       )}
+      {plan.status === 'approved' && plan.calls.length > 0 && (
+        <button className={primary} disabled={busy} onClick={() => void run(() => sign(plan.calls))}>
+          {busy ? 'Working…' : 'Sign'}
+        </button>
+      )}
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </section>
+  );
+}
+
+export function ScheduleApprovalCard({ group, api, onChange }: { group: ScheduleGroup; api: ApiClient; onChange: () => Promise<unknown> }) {
+  const { busy, error, run } = useAction(onChange);
+  const wallet = useWallet();
+  const notice = SCHEDULE_NOTICE[group.status];
+
+  const sign = async (calls: ScheduleGroup['calls']) => {
+    if (calls.length === 0) return;
+    let hash: string;
+    try {
+      hash = await wallet.sendCalls(calls);
+    } catch {
+      await api.abandonSchedules(group.group_id);
+      throw new Error('Not signed, so nothing was set up.');
+    }
+    await api.activateSchedules(group.group_id, hash);
+  };
+
+  return (
+    <section className={card} aria-label="Scheduled payments to approve">
+      <ul className="flex flex-col gap-3">
+        {group.items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
+            <div className="min-w-0">
+              <p className="font-medium">{item.recipient_name}</p>
+              <p className="break-words text-sm text-[var(--muted)]">{item.recipient_detail}</p>
+              <p className="text-sm text-[var(--muted)]">
+                {ROUTE_LABEL[item.route]}
+                {item.data_plan ? `: ${item.data_plan}` : ''}
+              </p>
+              <p className="text-sm font-medium">{item.when}</p>
+              {item.last_error && <p className="text-sm text-red-600 dark:text-red-400">Last try: {item.last_error}</p>}
+            </div>
+            <p className="shrink-0 font-medium">{item.amount}</p>
+          </li>
+        ))}
+      </ul>
+      {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
+      {group.status === 'proposed' && (
+        <>
+          <p className="text-sm text-[var(--muted)]">You approve once. It then runs by itself, and you can cancel any time.</p>
+          <div className="flex gap-2">
+            <button
+              className={primary}
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  const approved = await api.approveSchedules(group.group_id);
+                  await sign(approved.calls);
+                })
+              }
+            >
+              {busy ? 'Working…' : 'Approve'}
+            </button>
+            <button className={secondary} disabled={busy} onClick={() => void run(() => api.rejectSchedules(group.group_id))}>
+              Reject
+            </button>
+          </div>
+        </>
+      )}
+      {group.status === 'awaiting_signature' && group.calls.length > 0 && (
+        <button className={primary} disabled={busy} onClick={() => void run(() => sign(group.calls))}>
+          {busy ? 'Working…' : 'Sign'}
+        </button>
+      )}
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </section>
+  );
+}
+
+/** Stops it first, then removes the permission from the wallet, so a declined signature still stops the payment. */
+export function CancelScheduleButton({ schedule, api, onChange, label = 'Cancel' }: { schedule: Schedule; api: ApiClient; onChange: () => Promise<unknown>; label?: string }) {
+  const { busy, error, run } = useAction(onChange);
+  const wallet = useWallet();
+  return (
+    <>
+      <button
+        className={secondary}
+        disabled={busy}
+        onClick={() =>
+          void run(async () => {
+            const { calls } = await api.cancelSchedule(schedule.id);
+            if (calls.length === 0) return;
+            await wallet.sendCalls(calls).catch(() => {
+              throw new Error('Stopped in the app. The approval is still on your wallet until you sign. Our server will not use it.');
+            });
+          })
+        }
+      >
+        {busy ? 'Working…' : label}
+      </button>
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </>
+  );
+}
+
+export function CancelScheduleCard({ schedule, api, onChange }: { schedule: Schedule; api: ApiClient; onChange: () => Promise<unknown> }) {
+  return (
+    <section className={card} aria-label="Stop this scheduled payment">
+      <p className="font-medium">
+        {schedule.status === 'cancelled' ? 'Stopped' : 'Stop'}: {schedule.amount} to {schedule.recipient_name}
+      </p>
+      <p className="text-sm text-[var(--muted)]">{schedule.when}</p>
+      {schedule.status === 'active' ? (
+        <div className="flex gap-2">
+          <CancelScheduleButton schedule={schedule} api={api} onChange={onChange} label="Yes, stop it" />
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--muted)]">{SCHEDULE_NOTICE[schedule.status]}</p>
+      )}
     </section>
   );
 }

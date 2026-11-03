@@ -1,13 +1,23 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { createApiClient, type ChatMessage, type Me } from '@/lib/api/client';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
-import { ContactConfirmCard, PlanApprovalCard } from './cards';
+import { CancelScheduleCard, ContactConfirmCard, PlanApprovalCard, ScheduleApprovalCard } from './cards';
+import { ActivityPanel, ReceivePanel, SchedulesPanel } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
+// New messages can arrive with no action from the user: deposits, reminders and scheduled payments.
+const REFRESH_MS = 10000;
+const VIEWS = [
+  ['chat', 'Chat'],
+  ['schedules', 'Scheduled'],
+  ['activity', 'Activity'],
+  ['receive', 'Add USDC'],
+] as const;
+type View = (typeof VIEWS)[number][0];
 
 export function Home() {
   const { getToken, signOut } = useAuth();
@@ -19,6 +29,10 @@ export function Home() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<WalletSummary | null>(null);
+  const [view, setView] = useState<View>('chat');
+  // Shown straight away, until the saved copy comes back with the reply.
+  const [waitingOn, setWaitingOn] = useState<string | null>(null);
   const conversation = useRef<HTMLElement>(null);
 
   // The backend learns the wallet from the provider, which can take a moment after sign-up.
@@ -39,15 +53,27 @@ export function Home() {
     };
   }, [api, walletKnown]);
 
+  const refreshSummary = useCallback(() => api.wallet().then(setSummary, () => undefined), [api]);
+
   useEffect(() => {
     api.messages().then(setMessages, (failure: Error) => setError(failure.message));
-  }, [api]);
+    void refreshSummary();
+    const timer = setInterval(() => {
+      // Only replace the list when it changed, so the view does not jump while someone reads.
+      api.messages().then(
+        (latest) => setMessages((current) => (JSON.stringify(current) === JSON.stringify(latest) ? current : latest)),
+        () => undefined,
+      );
+      void refreshSummary();
+    }, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [api, refreshSummary]);
 
   useEffect(() => {
     // Scroll only the conversation: scrolling the page could push the message box out of view.
     const box = conversation.current;
     if (box) box.scrollTop = box.scrollHeight;
-  }, [messages]);
+  }, [messages, view, waitingOn]);
 
   async function respond(request: () => Promise<unknown>) {
     setSending(true);
@@ -55,6 +81,7 @@ export function Home() {
     try {
       await request();
       setMessages(await api.messages());
+      void refreshSummary();
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -69,16 +96,22 @@ export function Home() {
       void respond(async () => {
         // Cleared at once, so anything typed while this sends is kept. Restored if sending fails.
         setDraft('');
+        setWaitingOn(content);
         try {
           await api.send(content);
         } catch (failure) {
           setDraft((current) => current || content);
           throw failure;
+        } finally {
+          setWaitingOn(null);
         }
       });
   }
 
-  const reload = () => api.messages().then(setMessages);
+  const reload = () => {
+    void refreshSummary();
+    return api.messages().then(setMessages);
+  };
 
   const address = me?.wallet_address ?? wallet.address;
 
@@ -90,15 +123,42 @@ export function Home() {
           <p className="truncate font-mono text-xs text-[var(--muted)]" data-testid="wallet">
             {address ?? 'Creating your wallet…'}
           </p>
+          <p className="truncate text-sm" data-testid="balance">
+            {summary?.balance_usdc ? `${summary.balance_usdc} (about ${summary.balance_naira})` : address ? 'Balance unavailable' : ''}
+            {summary ? ` · ${summary.limit_left} left today` : ''}
+          </p>
         </div>
         <button onClick={() => void signOut()} className="shrink-0 text-sm text-[var(--muted)] underline">
           Sign out
         </button>
       </header>
 
+      <nav className="flex gap-1 border-b border-[var(--line)] py-2 text-sm" aria-label="Sections">
+        {VIEWS.map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            aria-current={view === key ? 'page' : undefined}
+            className={view === key ? 'rounded-lg bg-[var(--surface)] px-3 py-1 font-medium' : 'rounded-lg px-3 py-1 text-[var(--muted)]'}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {view !== 'chat' && (
+        <section className="min-h-0 flex-1 overflow-y-auto">
+          {view === 'schedules' && <SchedulesPanel api={api} />}
+          {view === 'activity' && <ActivityPanel api={api} />}
+          {view === 'receive' && <ReceivePanel summary={summary} />}
+        </section>
+      )}
+
+      {view === 'chat' && (
+      <>
       <section ref={conversation} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
         {messages.length === 0 && (
-          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc. Test version, so no real money moves.</p>
+          <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc in 30 minutes. Test version, so no real money moves.</p>
         )}
         {messages.map((message) => (
           <div key={message.id} className="flex flex-col gap-2">
@@ -112,6 +172,8 @@ export function Home() {
               {message.content}
             </p>
             {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
+            {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
+            {message.cancel_schedule && <CancelScheduleCard schedule={message.cancel_schedule} api={api} onChange={reload} />}
             {message.contact && (
               <ContactConfirmCard
                 contact={message.contact}
@@ -122,6 +184,10 @@ export function Home() {
             )}
           </div>
         ))}
+        {waitingOn && (
+          <p className="max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-[var(--accent)] px-4 py-2 text-[var(--accent-text)]">{waitingOn}</p>
+        )}
+        {sending && <p className="self-start text-sm text-[var(--muted)]">Thinking…</p>}
       </section>
 
       {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -143,6 +209,8 @@ export function Home() {
           {sending ? 'Sending…' : 'Send'}
         </button>
       </form>
+      </>
+      )}
     </main>
   );
 }

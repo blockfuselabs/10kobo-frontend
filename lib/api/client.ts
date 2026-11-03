@@ -4,6 +4,54 @@ export interface Me {
   wallet_address: string | null;
 }
 
+export interface WalletCall {
+  to: string;
+  data: string;
+}
+
+export type PaymentStatus =
+  | 'pending' | 'completed' | 'failed' | 'awaiting_signature' | 'funding' | 'funded' | 'paying' | 'returning' | 'returned' | 'needs_support';
+
+export interface WalletSummary {
+  address: string | null;
+  balance_usdc: string | null;
+  balance_naira: string | null;
+  limit_used: string;
+  limit_left: string;
+  naira_per_usdc: number;
+}
+
+export interface ActivityEntry {
+  kind: 'payment' | 'deposit';
+  created_at: string;
+  description: string;
+  amount_naira: string | null;
+  amount_usdc: string;
+  status: string;
+  tx_hash: string | null;
+}
+
+export interface Schedule {
+  id: string;
+  group_id: string;
+  status: 'proposed' | 'awaiting_signature' | 'active' | 'completed' | 'cancelled' | 'failed' | 'rejected' | 'expired';
+  route: PlanItem['route'];
+  recipient_name: string;
+  recipient_detail: string;
+  data_plan: string | null;
+  amount: string;
+  when: string;
+  next_run_at: string | null;
+  last_error: string | null;
+}
+
+export interface ScheduleGroup {
+  group_id: string;
+  status: Schedule['status'];
+  items: Schedule[];
+  calls: WalletCall[];
+}
+
 export interface PlanItem {
   id: string;
   route: 'airtime' | 'data' | 'bank' | 'usdc';
@@ -12,8 +60,11 @@ export interface PlanItem {
   data_plan: string | null;
   amount_naira: string;
   amount_usdc: string;
-  payment_status: 'pending' | 'completed' | 'failed' | null;
+  payment_status: PaymentStatus | null;
   failure_reason: string | null;
+  tx_hash: string | null;
+  refund_tx_hash: string | null;
+  simulated: boolean;
 }
 
 export interface Plan {
@@ -22,6 +73,7 @@ export interface Plan {
   quote_expires_at: string;
   total_naira: string;
   total_usdc: string;
+  calls: WalletCall[];
   items: PlanItem[];
 }
 
@@ -39,6 +91,8 @@ export interface ChatMessage {
   created_at: string;
   plan: Plan | null;
   contact: ContactCard | null;
+  schedule_group: ScheduleGroup | null;
+  cancel_schedule: Schedule | null;
 }
 
 export class ApiError extends Error {
@@ -89,6 +143,18 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
           body: JSON.stringify({ contact_id: contactId }),
         })
       ).reply,
+    wallet: () => request<WalletSummary>('/v1/wallet'),
+    activity: async () => (await request<{ activity: ActivityEntry[] }>('/v1/activity')).activity,
+    schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
+    fundPlan: (id: string, txHash: string) =>
+      request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
+    abandonPlan: (id: string) => request<Plan>(`/v1/plans/${id}/abandon`, { method: 'POST' }),
+    approveSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/approve`, { method: 'POST' }),
+    activateSchedules: (groupId: string, txHash: string) =>
+      request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/activate`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
+    abandonSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/abandon`, { method: 'POST' }),
+    rejectSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/reject`, { method: 'POST' }),
+    cancelSchedule: (id: string) => request<Schedule & { calls: WalletCall[] }>(`/v1/schedules/${id}/cancel`, { method: 'POST' }),
     approvePlan: (id: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST' }),
     rejectPlan: (id: string) => request<Plan>(`/v1/plans/${id}/reject`, { method: 'POST' }),
     confirmContact: (id: string) => request<null>(`/v1/contacts/${id}/confirm`, { method: 'POST' }),

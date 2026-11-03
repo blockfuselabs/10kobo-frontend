@@ -10,9 +10,9 @@ LOGS=/tmp/10kobo-e2e-logs; mkdir -p "$LOGS"
 
 (cd "$BACKEND" && npm run -s build) || exit 1
 (cd "$BACKEND" && IDENTITY_PROVIDER=test PORT=4011 CORS_ORIGINS=http://localhost:3011 PRIVY_APP_ID=test PRIVY_APP_SECRET=test PRIVY_VERIFICATION_KEY=test \
-  ${E2E_BACKEND_ENV:-} node dist/main >"$LOGS/backend.log" 2>&1) &
+  env ${E2E_BACKEND_ENV:-} node dist/main >"$LOGS/backend.log" 2>&1) &
 BACKEND_JOB=$!
-NEXT_DIST_DIR=.next-e2e NEXT_PUBLIC_IDENTITY=test NEXT_PUBLIC_API_URL=http://localhost:4011 ${E2E_FRONTEND_ENV:-} \
+env NEXT_DIST_DIR=.next-e2e NEXT_PUBLIC_IDENTITY=test NEXT_PUBLIC_API_URL=http://localhost:4011 ${E2E_FRONTEND_ENV:-} \
   npx next dev -p 3011 >"$LOGS/frontend.log" 2>&1 &
 FRONTEND_JOB=$!
 cleanup() { pkill -P "$BACKEND_JOB" 2>/dev/null; kill "$BACKEND_JOB" "$FRONTEND_JOB" 2>/dev/null; fuser -k 4011/tcp 3011/tcp >/dev/null 2>&1; }
