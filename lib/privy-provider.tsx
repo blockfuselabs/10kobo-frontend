@@ -12,6 +12,12 @@ import { WalletContext, type Wallet } from './wallet/wallet';
 const APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '';
 const chain = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? base : baseSepolia;
 
+/** The backend and this page could be started with different settings. Real USDC must not go to a test address. */
+async function assertSameNetwork(chainId: number) {
+  const health = (await fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`).then((r) => r.json()).catch(() => null)) as { chain_id?: number } | null;
+  if (health?.chain_id !== chainId) throw new Error('This app is set up wrongly, so nothing was sent. Please contact support.');
+}
+
 function Bridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout, getAccessToken } = usePrivy();
   const { client } = useSmartWallets();
@@ -32,6 +38,7 @@ function Bridge({ children }: { children: ReactNode }) {
       address,
       sendCalls: async (calls) => {
         if (!client) throw new Error('Your wallet is not ready yet. Please try again in a moment.');
+        await assertSameNetwork(chain.id);
         return client.sendTransaction({ calls: calls.map((call) => ({ to: call.to as Address, data: call.data as Hex })) });
       },
     }),
