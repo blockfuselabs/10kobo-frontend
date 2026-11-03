@@ -88,11 +88,37 @@ const Nav = ({ Icon, label, active = false }: { Icon: () => ReactNode; label: st
   </p>
 );
 
+/** Our own drawn landscape at first light: sky, sun and hills. It needs no photo licence and is only a backdrop. */
+function Landscape() {
+  return (
+    <svg aria-hidden viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffd46b" />
+          <stop offset="0.3" stopColor="#ffe9b0" />
+          <stop offset="0.6" stopColor="#bfe6cf" />
+          <stop offset="1" stopColor="#6cc39e" />
+        </linearGradient>
+        <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#fff3c4" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#fff3c4" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="1440" height="900" fill="url(#sky)" />
+      <circle cx="1190" cy="120" r="300" fill="url(#glow)" />
+      <circle cx="1190" cy="120" r="62" fill="#fff8e0" />
+      <path d="M0 430C180 340 330 370 500 430s300 80 480 10 300-90 460-30v490H0Z" fill="#3fa77f" />
+      <path d="M0 590c200-80 360-50 540 20s340 70 520 0 260-70 380-40v330H0Z" fill="#0f7355" />
+      <path d="M0 740c240-60 420-30 620 20s400 40 560-10 200-40 260-30v180H0Z" fill="#083d2e" />
+    </svg>
+  );
+}
+
 /** The web app in a browser window, built to match the real one. It follows the typing box, so readers see what a request becomes. */
 function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase: Phase }) {
   const sent = phase !== 'typing';
   return (
-    <div aria-hidden className="mx-auto w-full max-w-6xl select-none overflow-hidden rounded-2xl border border-[#d3dfd8] bg-white text-[#0b2a20] shadow-[0_30px_80px_rgb(8_61_46/0.16)] md:rounded-3xl">
+    <div aria-hidden className="relative mx-auto w-full max-w-4xl select-none overflow-hidden rounded-2xl border border-white/40 bg-white text-[#0b2a20] shadow-[0_40px_90px_rgb(3_30_22/0.45)]">
       <div className="flex items-center gap-2 border-b border-[#e6ece9] bg-[#f6f8f7] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ff6159]" />
         <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
@@ -100,7 +126,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
         <span className="mx-auto rounded-lg bg-white px-16 py-1 text-xs font-medium text-[#55695f] md:px-28">10kobo</span>
         <span className="w-[3.25rem]" />
       </div>
-      <div className="grid h-[33rem] grid-cols-1 md:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="grid h-[31rem] grid-cols-1 md:grid-cols-[13.5rem_minmax(0,1fr)]">
         <div className="hidden flex-col gap-4 border-r border-[#e6ece9] p-4 md:flex">
           <div className="flex items-center gap-2">
             <Logo size={26} />
@@ -119,7 +145,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
           </div>
         </div>
         <div className="flex min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5 md:px-10">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5 md:px-7">
             <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-4 py-2.5 text-sm text-white">how much do I have?</p>
             <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
             {sent && (
@@ -154,7 +180,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
               </>
             )}
           </div>
-          <div className="px-4 pb-4 md:px-10 md:pb-5">
+          <div className="px-4 pb-4 md:px-7 md:pb-5">
             <div className="flex items-center gap-2 rounded-2xl border border-[#dbe5df] py-2 pr-2 pl-4 text-sm">
               <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[#66736e]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#0a7f5c] text-white">↑</span>
@@ -186,8 +212,8 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
         </header>
 
         <main>
-          <section className="flex flex-col items-center gap-6 pt-4 pb-14 text-center md:gap-7 md:pt-8 md:pb-20">
-            <h1 className="font-display text-[3.1rem] font-bold leading-[1.06] tracking-[-0.03em] sm:text-[4rem] lg:text-[5.25rem]">
+          <section className="flex flex-col items-center gap-6 pt-4 pb-8 text-center md:gap-6 md:pt-6 md:pb-10">
+            <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[5rem]">
               Send money like <br className="hidden sm:block" />
               sending a{' '}
               <span className="relative inline-block rounded-[1.1rem] bg-[#0a7f5c] px-[0.28em] pb-[0.08em] text-white">
@@ -201,16 +227,22 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
             <div className="flex w-full justify-center text-left">
               <ChatStart onSignIn={onSignIn} typed={typed} />
             </div>
-            <div className="mt-4 w-full text-left md:mt-8">
+            <div className="relative mt-4 w-full overflow-hidden rounded-[1.75rem] px-3 pt-8 pb-8 text-left md:mt-8 md:rounded-[2.5rem] md:px-16 md:pt-28 md:pb-16 lg:px-28">
+              <Landscape />
               <AppWindow scene={scene} typed={typed} phase={phase} />
             </div>
+            <ul className="mt-6 flex w-full flex-wrap items-center justify-center gap-x-10 gap-y-3 text-[15px] font-medium text-[#3d5248] md:mt-8 md:justify-between md:px-4">
+              {['Bank transfers', 'Airtime and data', 'Scheduled payments', 'Naira deposits', 'USDC on Base', 'Receipts in the chat'].map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </section>
         </main>
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
         <section id="how" className="flex scroll-mt-6 flex-col gap-7 py-14 md:py-20">
-          <h2 className="font-display max-w-xl text-4xl font-bold tracking-tight md:text-5xl">Three steps. No forms.</h2>
+          <h2 className="font-display max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Three steps. No forms.</h2>
           <ol className="grid gap-4 md:grid-cols-3">
             {STEPS.map(([title, detail], index) => (
               <li key={title} className="flex flex-col gap-3 rounded-[1.75rem] bg-white p-6 md:p-7">
@@ -223,7 +255,7 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
         </section>
 
         <section id="what" className="flex scroll-mt-6 flex-col gap-7 pb-14 md:pb-20">
-          <h2 className="font-display max-w-2xl text-4xl font-bold tracking-tight md:text-5xl">One chat for all of it.</h2>
+          <h2 className="font-display max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">One chat for all of it.</h2>
           <ul className="grid gap-x-8 sm:grid-cols-2">
             {FEATURES.map(([Icon, title, detail]) => (
               <li key={title} className="flex items-center gap-4 border-t border-[var(--line)] py-5">
