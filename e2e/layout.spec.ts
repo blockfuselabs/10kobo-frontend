@@ -42,7 +42,7 @@ for (const size of [
 }
 
 test('a message shows once while it is sending, even when the reply is slow', async ({ page }) => {
-  await page.route('**/v1/chat/messages', async (route) => {
+  await page.route('**/v1/chat/messages*', async (route) => {
     if (route.request().method() === 'POST') {
       // The server saves the message at once, then takes its time, the way a slow model does.
       const response = await route.fetch();

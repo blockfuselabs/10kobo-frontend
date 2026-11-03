@@ -1,6 +1,6 @@
 'use client';
 
-import { addRpcUrlOverrideToChain, PrivyProvider, usePrivy } from '@privy-io/react-auth';
+import { addRpcUrlOverrideToChain, PrivyProvider, useCreateWallet, useLoginWithEmail, usePrivy } from '@privy-io/react-auth';
 import { SmartWalletsProvider, useSmartWallets } from '@privy-io/react-auth/smart-wallets';
 import { useMemo, type ReactNode } from 'react';
 import type { Address, Hex } from 'viem';
@@ -21,18 +21,29 @@ async function assertSameNetwork(chainId: number) {
 }
 
 function Bridge({ children }: { children: ReactNode }) {
-  const { ready, authenticated, login, logout, getAccessToken } = usePrivy();
+  const { ready, authenticated, logout, getAccessToken } = usePrivy();
+  const { sendCode: sendEmailCode, loginWithCode } = useLoginWithEmail();
+  const { createWallet } = useCreateWallet();
   const { client } = useSmartWallets();
 
   const auth = useMemo<Auth>(
     () => ({
       ready,
       signedIn: authenticated,
-      signIn: () => login(),
+      sendCode: async (email) => {
+        // A session left over in this browser would make the code fail later, so it ends first.
+        if (authenticated) await logout().catch(() => undefined);
+        await sendEmailCode({ email });
+      },
+      verifyCode: async (code) => {
+        await loginWithCode({ code });
+        // Logging in this way does not create a wallet by itself. Someone who has one gets a refusal, which is fine.
+        await createWallet().catch(() => undefined);
+      },
       signOut: logout,
       getToken: getAccessToken,
     }),
-    [ready, authenticated, login, logout, getAccessToken],
+    [ready, authenticated, sendEmailCode, loginWithCode, createWallet, logout, getAccessToken],
   );
   const address = client?.account?.address ?? null;
   const wallet = useMemo<Wallet>(

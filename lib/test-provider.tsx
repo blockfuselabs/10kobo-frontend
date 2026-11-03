@@ -31,10 +31,27 @@ async function sendOnTestChain(calls: Wallet extends { sendCalls: (c: infer C) =
 
 export function TestIdentityProvider({ children }: { children: ReactNode }) {
   if (process.env.NODE_ENV === 'production') throw new Error('The test sign-in cannot run in production');
-  const [signedIn, setSignedIn] = useState(true);
+  // Remembered for the tab, so browser tests can sign out and then visit the login page.
+  const [signedIn, setSignedIn] = useState(() => window.sessionStorage.getItem('e2e-signed-out') !== 'yes');
   const getToken = useCallback(async () => (signedIn ? `test|${EMAIL}|${ADDRESS}` : null), [signedIn]);
   const auth = useMemo<Auth>(
-    () => ({ ready: true, signedIn, signIn: () => setSignedIn(true), signOut: async () => setSignedIn(false), getToken }),
+    () => ({
+      ready: true,
+      signedIn,
+      sendCode: async (email) => {
+        if (email.endsWith('@fail.test')) throw new Error('refused');
+      },
+      verifyCode: async (code) => {
+        if (code !== '123456') throw new Error('wrong code');
+        window.sessionStorage.removeItem('e2e-signed-out');
+        setSignedIn(true);
+      },
+      signOut: async () => {
+        window.sessionStorage.setItem('e2e-signed-out', 'yes');
+        setSignedIn(false);
+      },
+      getToken,
+    }),
     [signedIn, getToken],
   );
   const wallet = useMemo<Wallet>(

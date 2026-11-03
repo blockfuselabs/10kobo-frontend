@@ -83,7 +83,8 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     await page.setViewportSize(size);
     let deposit: Record<string, unknown> = { ...base, status: 'waiting', expires_at: new Date(Date.now() + 30 * 60_000).toISOString() };
     const message = { id: 'a1', role: 'assistant', content: 'The card has the account to pay into and the time left.', notice: false, tx_hash: null, created_at: new Date().toISOString(), plan: null, schedule_group: null, cancel_schedule: null, contact: null };
-    await page.route('**/v1/chat/messages', (route) =>
+    await page.route('**/v1/chat/messages/conversations', (route) => route.fulfill({ json: { conversations: [{ id: 'c1', title: 'deposit', updated_at: new Date().toISOString() }] } }));
+    await page.route('**/v1/chat/messages*', (route) =>
       route.request().method() === 'GET' ? route.fulfill({ json: { messages: [{ ...message, deposit }] } }) : route.fallback(),
     );
     await page.route(`**/v1/deposits/${base.id}`, (route) => route.fulfill({ json: { deposit } }));

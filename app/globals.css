@@ -7,36 +7,22 @@
 }
 
 :root {
-  color-scheme: light dark;
-  --background: #f5f6f5;
+  color-scheme: light;
+  --background: #f6f5f1;
   --sidebar: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f0f2f1;
-  --foreground: #101715;
-  --muted: #66736e;
-  --line: #e4e8e6;
-  --accent: #0f9d74;
-  --accent-strong: #0b8561;
-  --accent-soft: #e0f5ee;
+  --surface-2: #eeede8;
+  --foreground: #111111;
+  --muted: #5a5a54;
+  --line: rgb(0 0 0 / 0.11);
+  --accent: #141414;
+  --accent-strong: #000000;
+  --accent-soft: #e7e6e0;
   --accent-text: #ffffff;
-  --shadow: 0 1px 2px rgb(16 23 21 / 0.04), 0 8px 24px rgb(16 23 21 / 0.05);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0e0d;
-    --sidebar: #0e1312;
-    --surface: #151b19;
-    --surface-2: #1d2522;
-    --foreground: #eef3f1;
-    --muted: #8f9c97;
-    --line: #232c29;
-    --accent: #34d399;
-    --accent-strong: #5ee0b1;
-    --accent-soft: #12332a;
-    --accent-text: #06231a;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px rgb(0 0 0 / 0.25);
-  }
+  --deep: #141414;
+  --deep-hover: #333333;
+  --pop: #c6f135;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
 }
 
 body {
@@ -146,7 +132,8 @@ body {
     padding: 0.7rem 0.95rem;
     transition: border-color 0.15s;
   }
-  .field:focus {
+  .field:focus,
+  .field:focus-visible {
     border-color: var(--accent);
     outline: none;
   }
@@ -201,32 +188,6 @@ body {
     animation: none;
   }
 }
-
-/* The welcome page is always bright, whatever the device's theme. */
-.welcome {
-  color-scheme: light;
-  --background: #f3f8f5;
-  --surface: #ffffff;
-  --surface-2: #eef3f0;
-  --foreground: #0b2a20;
-  --muted: #55695f;
-  --line: #dbe5df;
-  --accent: #0a7f5c;
-  --accent-strong: #086b4d;
-  --accent-soft: #d9f2e6;
-  --accent-text: #ffffff;
-  --deep: #083d2e;
-  --deep-hover: #0a5a43;
-  --pop: #ffc53d;
-  background: var(--background);
-  color: var(--foreground);
-}
-
-/* Options while the page's colours are being chosen. */
-.welcome[data-palette='ink'] { color-scheme: dark; --surface: #1a1a1c; --surface-2: #26262a; --foreground: #f5f5f4; --muted: #a8a8a3; --line: rgb(255 255 255 / 0.13); --accent: #f5f5f4; --accent-strong: #ffffff; --accent-soft: #2c2c30; --accent-text: #111111; --deep: #f5f5f4; --deep-hover: #ffffff; --pop: #c6f135; }
-.welcome[data-palette='start-dark'] { color-scheme: dark; --surface: #171e1b; --surface-2: #1d2522; --foreground: #e8eeeb; --muted: #9aa8a1; --line: #2a3430; --accent: #3fcf9b; --accent-strong: #5ee0b1; --accent-soft: #12332a; --accent-text: #0b1512; --deep: #3fcf9b; --deep-hover: #5ee0b1; --pop: #ffc53d; }
-.welcome[data-palette='start-light'] { --surface: #ffffff; --surface-2: #eef3f0; --foreground: #16201b; --muted: #5d6b64; --line: #dfe5e1; --accent: #0e7259; --accent-strong: #0b5c48; --accent-soft: #dcefe8; --accent-text: #ffffff; --deep: #0e7259; --deep-hover: #0b5c48; --pop: #ffc53d; }
-.welcome[data-palette='black'] { --background: #f6f5f1; --surface-2: #eeede8; --foreground: #111111; --muted: #45453f; --line: rgb(0 0 0 / 0.13); --accent: #141414; --accent-strong: #000000; --accent-soft: #e7e6e0; --deep: #141414; --deep-hover: #333333; --pop: #c6f135; }
 
 @keyframes caret {
   50% {

@@ -9,7 +9,7 @@ describe('createApiClient', () => {
     const fetcher = vi.fn(async () => json(201, { reply }));
     const api = createApiClient('http://api.test', async () => 'token-1', fetcher as unknown as typeof fetch);
 
-    await expect(api.send('hello')).resolves.toEqual(reply);
+    await expect(api.send('hello', null)).resolves.toEqual({ reply });
 
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://api.test/v1/chat/messages');
@@ -36,7 +36,7 @@ describe('createApiClient', () => {
   it('shows the server message on failure', async () => {
     const fetcher = vi.fn(async () => json(400, { message: 'A message needs 1 to 2000 characters' }));
     const api = createApiClient('http://api.test', async () => 't', fetcher as unknown as typeof fetch);
-    await expect(api.send('')).rejects.toThrow('A message needs 1 to 2000 characters');
+    await expect(api.send('', null)).rejects.toThrow('A message needs 1 to 2000 characters');
   });
 
   it('gives a plain error when the network fails', async () => {

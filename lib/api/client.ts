@@ -110,6 +110,12 @@ export interface ContactCard {
   detail: string;
 }
 
+export interface Chat {
+  id: string;
+  title: string;
+  updated_at: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -162,14 +168,20 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
 
   return {
     me: () => request<Me>('/v1/me'),
-    messages: async () => (await request<{ messages: ChatMessage[] }>('/v1/chat/messages')).messages,
-    send: async (content: string) =>
-      (await request<{ reply: ChatMessage }>('/v1/chat/messages', { method: 'POST', body: JSON.stringify({ content }) })).reply,
-    contactConfirmed: async (contactId: string) =>
+    conversations: async () => (await request<{ conversations: Chat[] }>('/v1/chat/messages/conversations')).conversations,
+    messages: async (conversationId?: string) =>
+      (await request<{ messages: ChatMessage[] }>(`/v1/chat/messages${conversationId ? `?conversation=${conversationId}` : ''}`)).messages,
+    /** Without a chat, this starts a new one. Returns which chat it went into. */
+    send: (content: string, conversationId: string | null) =>
+      request<{ reply: ChatMessage; conversation_id: string }>('/v1/chat/messages', {
+        method: 'POST',
+        body: JSON.stringify(conversationId ? { content, conversation_id: conversationId } : { content, new_chat: true }),
+      }),
+    contactConfirmed: async (contactId: string, conversationId: string | null) =>
       (
         await request<{ reply: ChatMessage }>('/v1/chat/messages/contact-confirmed', {
           method: 'POST',
-          body: JSON.stringify({ contact_id: contactId }),
+          body: JSON.stringify(conversationId ? { contact_id: contactId, conversation_id: conversationId } : { contact_id: contactId }),
         })
       ).reply,
     wallet: () => request<WalletSummary>('/v1/wallet'),

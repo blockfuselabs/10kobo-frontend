@@ -71,7 +71,7 @@ function ChatStart({ onSignIn, typed }: { onSignIn: () => void; typed: string })
         {typed}
         <span className="caret ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] bg-[var(--accent)]" />
       </p>
-      <button onClick={onSignIn} aria-label="Get started with email" className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--deep)] py-2 pr-2 pl-4 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--deep-hover)] md:pl-5 md:text-[15px]">
+      <button onClick={onSignIn} aria-label="Get started" className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--deep)] py-2 pr-2 pl-4 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--deep-hover)] md:pl-5 md:text-[15px]">
         Get started
         <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-[var(--pop)] text-[#111]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
@@ -166,43 +166,10 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
   );
 }
 
-const BACKGROUNDS = [
-  ['Dark', '#0f0f10', 'ink'],
-  ['Original dark', '#0f1412', 'start-dark'],
-  ['Original light', '#f7f8f6', 'start-light'],
-  ['Pure white', '#ffffff', 'black'],
-  ['Warm white', '#f6f5f1', 'black'],
-  ['Butter', '#fff0b3', 'black'],
-  ['Yellow', '#ffdf6e', 'black'],
-  ['Peach', '#ffd9c2', 'black'],
-  ['Pink', '#ffd6e4', 'black'],
-  ['Lilac', '#e2d9ff', 'black'],
-  ['Sky', '#cfe6ff', 'black'],
-  ['Mint', '#c8f2dc', 'black'],
-  ['Lime', '#dcf58f', 'black'],
-] as const;
-
-/** Only here while the background is being chosen. Delete this once one is picked. */
-function ColourPicker({ value, onChange }: { value: string; onChange: (label: string) => void }) {
-  return (
-    <div className="fixed right-4 bottom-4 z-20 flex max-w-[15.5rem] flex-col gap-2 rounded-2xl border border-black/10 bg-white p-3 shadow-xl">
-      <p className="text-xs font-semibold text-[#333]">Try a background</p>
-      <div className="flex flex-wrap gap-2">
-        {BACKGROUNDS.map(([label, colour]) => (
-          <button key={label} onClick={() => onChange(label)} aria-label={`${label} background`} aria-pressed={value === label} title={label} className={`h-8 w-8 cursor-pointer rounded-full border border-black/15 ${value === label ? 'ring-2 ring-[#111] ring-offset-2' : ''}`} style={{ background: colour }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Welcome({ onSignIn }: { onSignIn: () => void }) {
-  const [choice, setChoice] = useState<string>('Warm white');
-  const [, background, palette] = BACKGROUNDS.find(([label]) => label === choice) ?? BACKGROUNDS[4];
   const { scene, typed, phase } = useDemo();
   return (
-    <div className="welcome min-h-dvh overflow-x-hidden" data-palette={palette} style={{ background }}>
-      <ColourPicker value={choice} onChange={setChoice} />
+    <div className="min-h-dvh overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
         <header className="flex items-center justify-between py-5 md:py-7">
           <div className="flex items-center gap-2.5">

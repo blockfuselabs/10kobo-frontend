@@ -4,7 +4,10 @@ import { createContext, useContext } from 'react';
 export interface Auth {
   ready: boolean;
   signedIn: boolean;
-  signIn(): void;
+  /** Emails a six-digit code to this address. */
+  sendCode(email: string): Promise<void>;
+  /** Signs in with the code, and sets up a wallet for a new user. */
+  verifyCode(code: string): Promise<void>;
   signOut(): Promise<void>;
   getToken(): Promise<string | null>;
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
+import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, Logo, PlusIcon, SendIcon, SignOutIcon } from './icons';
+import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -36,6 +36,32 @@ const VIEWS = [
   ['receive', 'Add USDC', PlusIcon],
 ] as const;
 type View = (typeof VIEWS)[number][0];
+
+function ChatList({ chats, active, onOpen }: { chats: Chat[]; active: string | null; onOpen: (id: string | null) => void }) {
+  return (
+    <>
+      <button onClick={() => onOpen(null)} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+        <PencilIcon />
+        New chat
+      </button>
+      {chats.length > 0 && <p className="px-3 pt-2 pb-0.5 text-xs font-medium text-[var(--muted)]">Recent chats</p>}
+      <ul aria-label="Your chats" className="flex flex-col gap-0.5">
+        {chats.map((chat) => (
+          <li key={chat.id}>
+            <button
+              onClick={() => onOpen(chat.id)}
+              aria-current={chat.id === active ? 'true' : undefined}
+              title={chat.title}
+              className={`w-full cursor-pointer truncate rounded-xl px-3 py-2 text-left text-sm transition-colors ${chat.id === active ? 'bg-[var(--surface-2)] font-medium' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'}`}
+            >
+              {chat.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
 
 export function Home() {
   const { getToken, signOut } = useAuth();
@@ -75,23 +101,55 @@ export function Home() {
 
   const refreshSummary = useCallback(() => api.wallet().then(setSummary, () => undefined), [api]);
 
+  // Null means a new chat, which only exists once its first message is sent.
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [chatsOpen, setChatsOpen] = useState(false);
+  const activeChatRef = useRef<string | null>(null);
+  const startedNew = useRef(false);
+
+  const loadMessages = useCallback(async () => {
+    const id = activeChatRef.current;
+    if (!id) return setMessages([]);
+    const latest = await api.messages(id);
+    // Only replace the list when it changed, so the view does not jump while someone reads.
+    if (activeChatRef.current === id && !sendingNow.current) setMessages((current) => (JSON.stringify(current) === JSON.stringify(latest) ? current : latest));
+  }, [api]);
+
+  const loadChats = useCallback(async () => {
+    const list = await api.conversations();
+    setChats(list);
+    // Opens on the latest chat, unless someone has just asked for a new one.
+    if (!activeChatRef.current && !startedNew.current && list[0]) {
+      activeChatRef.current = list[0].id;
+      setActiveChat(list[0].id);
+      await loadMessages();
+    }
+  }, [api, loadMessages]);
+
+  const openChat = (id: string | null) => {
+    activeChatRef.current = id;
+    startedNew.current = id === null;
+    setActiveChat(id);
+    setMessages([]);
+    setError(null);
+    setView('chat');
+    setChatsOpen(false);
+    void loadMessages().catch((failure: Error) => setError(failure.message));
+  };
+
   useEffect(() => {
-    api.messages().then(setMessages, (failure: Error) => setError(failure.message));
+    void loadChats().catch((failure: Error) => setError(failure.message));
     void refreshSummary();
     const timer = setInterval(() => {
       void refreshSummary();
       // Not while sending: the saved copy of the message would appear beside the one already on screen.
       if (sendingNow.current) return;
-      // Only replace the list when it changed, so the view does not jump while someone reads.
-      api.messages().then(
-        (latest) => {
-          if (!sendingNow.current) setMessages((current) => (JSON.stringify(current) === JSON.stringify(latest) ? current : latest));
-        },
-        () => undefined,
-      );
+      void loadChats().catch(() => undefined);
+      void loadMessages().catch(() => undefined);
     }, REFRESH_MS);
     return () => clearInterval(timer);
-  }, [api, refreshSummary]);
+  }, [loadChats, loadMessages, refreshSummary]);
 
   useEffect(() => {
     // Scroll only the conversation: scrolling the page could push the message box out of view.
@@ -105,7 +163,9 @@ export function Home() {
     setError(null);
     try {
       await request();
-      setMessages(await api.messages());
+      sendingNow.current = false;
+      await loadMessages();
+      await loadChats();
       void refreshSummary();
     } catch (failure) {
       setError((failure as Error).message);
@@ -124,7 +184,10 @@ export function Home() {
         setDraft('');
         setWaitingOn(content);
         try {
-          await api.send(content);
+          const { conversation_id: id } = await api.send(content, activeChatRef.current);
+          activeChatRef.current = id;
+          startedNew.current = false;
+          setActiveChat(id);
         } catch (failure) {
           setDraft((current) => current || content);
           throw failure;
@@ -136,7 +199,7 @@ export function Home() {
 
   const reload = () => {
     void refreshSummary();
-    return api.messages().then(setMessages);
+    return loadMessages();
   };
 
   const address = me?.wallet_address ?? wallet.address;
@@ -187,24 +250,29 @@ export function Home() {
         </div>
       </header>
 
+      <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">
       <nav
-        aria-label="Sections"
-        className="row-start-3 grid grid-cols-4 gap-1 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:flex md:min-h-0 md:flex-col md:gap-0.5 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1"
-      >
-        {VIEWS.map(([key, label, ViewIcon]) => (
-          <button
-            key={key}
-            onClick={() => setView(key)}
-            aria-current={view === key ? 'page' : undefined}
-            className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
-              view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <ViewIcon />
-            {label}
-          </button>
-        ))}
-      </nav>
+          aria-label="Sections"
+          className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-0.5"
+        >
+          {VIEWS.map(([key, label, ViewIcon]) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              aria-current={view === key ? 'page' : undefined}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
+                view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <ViewIcon />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="hidden min-h-0 flex-col gap-1 border-t border-[var(--line)] pt-3 md:flex">
+          <ChatList chats={chats} active={activeChat} onOpen={openChat} />
+        </div>
+      </div>
 
       <footer className="hidden flex-col gap-1 border-t border-r border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-3 md:flex">
         <div className="flex items-center gap-2 px-1 py-1" title={address ?? undefined}>
@@ -248,6 +316,17 @@ export function Home() {
 
         {view === 'chat' && (
           <>
+            <div className="relative flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-2 md:hidden">
+              <button onClick={() => setChatsOpen((open) => !open)} aria-expanded={chatsOpen} className="min-w-0 truncate text-sm font-semibold">
+                {chats.find((chat) => chat.id === activeChat)?.title ?? 'New chat'} ▾
+              </button>
+              <button onClick={() => openChat(null)} className="shrink-0 rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-sm font-semibold">+ New</button>
+              {chatsOpen && (
+                <div className="absolute inset-x-2 top-full z-20 mt-1 flex max-h-[60dvh] flex-col gap-1 overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 shadow-[var(--shadow)]">
+                  <ChatList chats={chats} active={activeChat} onOpen={openChat} />
+                </div>
+              )}
+            </div>
             <section ref={conversation} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
               <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col gap-3 px-4 py-5 md:px-8 md:py-8">
                 {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
@@ -305,7 +384,7 @@ export function Home() {
                         contact={message.contact}
                         api={api}
                         onChange={reload}
-                        onConfirmed={(contactId) => respond(() => api.contactConfirmed(contactId))}
+                        onConfirmed={(contactId) => respond(() => api.contactConfirmed(contactId, activeChatRef.current))}
                       />
                     )}
                   </div>
