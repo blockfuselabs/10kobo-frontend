@@ -56,7 +56,8 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         loginMethods: ['email'],
         defaultChain: chain,
         supportedChains: [chain],
-        embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } },
+        // The approval card in the app is the one confirmation, so Privy's own prompt stays hidden, as in Tokkenly.
+        embeddedWallets: { showWalletUIs: false, ethereum: { createOnLogin: 'users-without-wallets' } },
       }}
     >
       <SmartWalletsProvider>

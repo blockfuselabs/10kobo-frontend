@@ -70,6 +70,7 @@ test('sends USDC by chat: it needs my approval, then really moves', async () => 
   expect(await usdc(WALLET)).toBe(50_000_000n);
   await approve(card);
   await expect(card).toContainText('Paid', { timeout: 60_000 });
+  await expect(card.getByLabel('Receipt')).toContainText('Transaction');
   expect(await usdc(WALLET)).toBe(48_000_000n);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/1-usdc.png' });
 });

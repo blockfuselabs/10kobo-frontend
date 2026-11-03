@@ -65,6 +65,7 @@ export interface PlanItem {
   payment_status: PaymentStatus | null;
   failure_reason: string | null;
   tx_hash: string | null;
+  paid_at: string | null;
   refund_tx_hash: string | null;
   simulated: boolean;
 }

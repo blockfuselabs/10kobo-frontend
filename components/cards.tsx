@@ -120,6 +120,29 @@ function useAction(onChange: () => Promise<unknown>) {
   return { busy, error, run };
 }
 
+/** Shown once everything has gone through, in place of a second step. */
+function Receipt({ plan }: { plan: Plan }) {
+  const first = plan.items[0];
+  const hash = first?.tx_hash;
+  const when = first?.paid_at
+    ? new Date(first.paid_at).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+  return (
+    <div className="flex flex-col gap-1 border-t border-[var(--line)] pt-3 text-sm" aria-label="Receipt">
+      <p className="font-medium">Receipt</p>
+      {when && <p className="text-[var(--muted)]">{when}</p>}
+      {hash && (
+        <p className="break-all text-[var(--muted)]">
+          Transaction {hash.slice(0, 10)}…{hash.slice(-6)}{' '}
+          <a className="underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
+            View
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: ApiClient; onChange: () => Promise<unknown> }) {
   const { busy, error, run } = useAction(onChange);
   const wallet = useWallet();
@@ -173,14 +196,6 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                   {PAYMENT_LABEL[item.payment_status]}
                   {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
-                  {item.tx_hash && (
-                    <>
-                      {' '}
-                      <a className="underline" href={`${EXPLORER}${item.tx_hash}`} target="_blank" rel="noreferrer">
-                        View
-                      </a>
-                    </>
-                  )}
                 </p>
               )}
             </div>
@@ -195,6 +210,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
         <span>Total</span>
         <span>{plan.total_naira} ({plan.total_usdc})</span>
       </p>
+      {plan.items.every((item) => item.payment_status === 'completed') && <Receipt plan={plan} />}
       {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
       {plan.status === 'proposed' && (
         <div className="flex flex-wrap gap-2">
