@@ -12,6 +12,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
 // New messages can arrive with no action from the user: deposits, reminders and scheduled payments.
 const REFRESH_MS = 10000;
+const wholeNaira = (amount: string) => amount.replace(/\.\d+$/, '');
+
+/** How much of today's limit is left. The two figures are formatted naira, such as ₦1,250.50. */
+function limitLeftPercent(summary: WalletSummary): number {
+  const value = (amount: string) => Number(amount.replace(/[^\d.]/g, ''));
+  const left = value(summary.limit_left);
+  const total = left + value(summary.limit_used);
+  return total > 0 ? Math.round((left / total) * 100) : 0;
+}
+
 const SUGGESTIONS = [
   ['Deposit ₦5,000', 'Deposit 5000'],
   ['Buy ₦500 airtime', 'Buy N500 airtime for '],
@@ -133,60 +143,53 @@ export function Home() {
 
   return (
     <PinContext.Provider value={Boolean(me?.has_pin)}>
-    <main className="fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]">
-      <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:gap-5 md:border-r md:border-b-0 md:px-5 md:pt-6 md:pb-4">
-        <div className="flex items-center justify-between gap-3">
+    <main className="fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto]">
+      <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:gap-6 md:border-r md:border-b-0 md:px-4 md:pt-6 md:pb-3">
+        <div className="flex items-center justify-between gap-3 md:px-1">
           <div className="flex items-center gap-2.5">
             <Logo />
             <span className="font-semibold tracking-tight">10kobo</span>
           </div>
-          <button onClick={() => void signOut()} aria-label="Sign out" title={me?.email ?? undefined} className="flex items-center gap-1.5 rounded-lg p-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+          <button onClick={() => void signOut()} aria-label="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)] md:hidden">
             <SignOutIcon />
-            <span className="hidden md:inline">Sign out</span>
           </button>
         </div>
-        <div className="inset flex flex-col gap-0.5 px-3.5 py-3 md:gap-1 md:p-4">
-          <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Balance</p>
-          <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2">
-            {summary?.balance_usdc ? (
-              <>
-                <span className="text-lg font-semibold tracking-tight md:text-2xl">{summary.balance_usdc}</span>
-                {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
-              </>
-            ) : (
-              <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
-            )}
-          </p>
-          {summary && <p className="amount text-xs text-[var(--muted)]">{summary.limit_left} left to send today</p>}
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
+          <div className="flex flex-col gap-0.5">
+            <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Your balance</p>
+            <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2 md:flex-col md:gap-0.5">
+              {summary?.balance_usdc ? (
+                <>
+                  <span className="text-xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">{summary.balance_usdc}</span>
+                  {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
+                </>
+              ) : (
+                <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
+              )}
+            </p>
+          </div>
           {summary?.deposit_on_the_way && (
-            <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-[var(--accent)]" data-testid="deposit-on-the-way">
+            <p className="flex items-center gap-2 text-sm font-medium text-[var(--accent-strong)]" data-testid="deposit-on-the-way">
               <Spinner /> {summary.deposit_on_the_way} on its way
             </p>
           )}
-          <div className="mt-2 hidden items-center gap-2 border-t border-[var(--line)] pt-2.5 md:flex">
-            <p className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--muted)]" data-testid="wallet" title={address ?? undefined}>
-              {address ?? 'Creating your wallet…'}
-            </p>
-            {address && (
-              <button
-                aria-label="Copy wallet address"
-                title="Copy wallet address"
-                className="text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
-                onClick={() => void navigator.clipboard?.writeText(address).then(() => {
-                  setCopiedWallet(true);
-                  setTimeout(() => setCopiedWallet(false), 1500);
-                })}
-              >
-                {copiedWallet ? <CheckIcon /> : <CopyIcon />}
-              </button>
-            )}
-          </div>
+          {summary && (
+            <div className="hidden flex-col gap-1.5 md:flex">
+              <div className="flex justify-between gap-2 text-xs">
+                <span className="text-[var(--muted)]">Left to send today</span>
+                <span className="amount font-medium">{wholeNaira(summary.limit_left)}</span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]" aria-hidden>
+                <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${limitLeftPercent(summary)}%` }} />
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
       <nav
         aria-label="Sections"
-        className="row-start-3 grid grid-cols-4 gap-1 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:flex md:flex-col md:content-start md:border-t-0 md:border-r md:px-3 md:py-1"
+        className="row-start-3 grid grid-cols-4 gap-1 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:flex md:min-h-0 md:flex-col md:gap-0.5 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1"
       >
         {VIEWS.map(([key, label, ViewIcon]) => (
           <button
@@ -203,7 +206,36 @@ export function Home() {
         ))}
       </nav>
 
-      <div className="row-start-2 flex min-h-0 flex-col md:col-start-2 md:row-span-2 md:row-start-1">
+      <footer className="hidden flex-col gap-1 border-t border-r border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-3 md:flex">
+        <div className="flex items-center gap-2 px-1 py-1" title={address ?? undefined}>
+          <span className="flex-1 text-xs text-[var(--muted)]">Wallet</span>
+          <span className="font-mono text-xs" data-testid="wallet">{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Creating your wallet…'}</span>
+          {address && (
+            <button
+              aria-label="Copy wallet address"
+              title="Copy wallet address"
+              className="rounded p-0.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+              onClick={() => void navigator.clipboard?.writeText(address).then(() => {
+                setCopiedWallet(true);
+                setTimeout(() => setCopiedWallet(false), 1500);
+              })}
+            >
+              {copiedWallet ? <CheckIcon /> : <CopyIcon />}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
+          <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--surface-2)] text-xs font-semibold uppercase">
+            {(me?.email ?? '?').slice(0, 1)}
+          </span>
+          <p className="min-w-0 flex-1 truncate text-sm" title={me?.email ?? undefined}>{me?.email ?? '…'}</p>
+          <button onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+            <SignOutIcon />
+          </button>
+        </div>
+      </footer>
+
+      <div className="row-start-2 flex min-h-0 flex-col md:col-start-2 md:row-span-3 md:row-start-1">
         {view !== 'chat' && (
           <section className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
