@@ -34,6 +34,20 @@ async function isOurWallet(address: string): Promise<boolean> {
   return ((await response.json()) as { known?: boolean }).known === true;
 }
 
+/** A refused operation still answers 200, so its reason would otherwise be lost. Method names and error text only. */
+function logRefusals(requests: RpcRequest[], answer: string) {
+  try {
+    const parsed = JSON.parse(answer) as { id?: unknown; error?: { code?: unknown; message?: unknown } } | { id?: unknown; error?: { code?: unknown; message?: unknown } }[];
+    for (const item of Array.isArray(parsed) ? parsed : [parsed]) {
+      if (!item.error) continue;
+      const method = requests.find((req) => req.id === item.id)?.method ?? 'unknown';
+      console.warn(`Gas route: ${String(method)} refused: ${String(item.error.code)} ${String(item.error.message).slice(0, 300)}`);
+    }
+  } catch {
+    console.warn('Gas route: the answer could not be read');
+  }
+}
+
 export async function POST(request: Request) {
   const upstream = process.env.AA_UPSTREAM_URL;
   if (!upstream || !process.env.BACKEND_URL || !process.env.SPONSORSHIP_TOKEN) return rpcError(null, -32603, 'Sponsorship is not configured.', 503);
@@ -69,7 +83,10 @@ export async function POST(request: Request) {
       body: JSON.stringify(parsed),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    return new Response(await response.text(), { status: response.status, headers: { 'content-type': 'application/json' } });
+    const answer = await response.text();
+    console.log(`Gas route: ${requests.map((item) => String(item.method)).join(', ')}`);
+    logRefusals(requests, answer);
+    return new Response(answer, { status: response.status, headers: { 'content-type': 'application/json' } });
   } catch {
     return rpcError(null, -32603, 'The gas service could not be reached. Please try again.', 502);
   }
