@@ -14,7 +14,7 @@ describe('createApiClient', () => {
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://api.test/v1/chat/messages');
     expect(init.headers).toMatchObject({ authorization: 'Bearer token-1' });
-    expect(init.body).toBe(JSON.stringify({ content: 'hello' }));
+    expect(init.body).toBe(JSON.stringify({ content: 'hello', new_chat: true }));
   });
 
   it('accepts an empty success response', async () => {
