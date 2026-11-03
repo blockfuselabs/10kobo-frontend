@@ -200,3 +200,40 @@ body {
     animation: none;
   }
 }
+
+/* The welcome page is always bright, whatever the device's theme. */
+.welcome {
+  color-scheme: light;
+  --background: #f3f8f5;
+  --surface: #ffffff;
+  --surface-2: #eef3f0;
+  --foreground: #0b2a20;
+  --muted: #55695f;
+  --line: #dbe5df;
+  --accent: #0a7f5c;
+  --accent-strong: #086b4d;
+  --accent-soft: #d9f2e6;
+  --accent-text: #ffffff;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@keyframes drift {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.drift {
+  animation: drift 5s ease-in-out infinite;
+}
+.drift-late {
+  animation: drift 6s ease-in-out 1.2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drift,
+  .drift-late {
+    animation: none;
+  }
+}
