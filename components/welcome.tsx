@@ -66,14 +66,14 @@ function useDemo(): { scene: Scene; typed: string; phase: Phase } {
 /** The signature of the page: the way in is itself a chat box, already typing what people ask for. */
 function ChatStart({ onSignIn, typed }: { onSignIn: () => void; typed: string }) {
   return (
-    <div className="flex w-full max-w-xl items-center gap-2 rounded-full border border-[var(--line)] bg-white p-2 pl-5 shadow-[0_14px_40px_rgb(8_61_46/0.12)]">
+    <div className="flex w-full max-w-xl items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] p-2 pl-5 shadow-[0_14px_40px_rgb(8_61_46/0.12)]">
       <p aria-hidden className="min-w-0 flex-1 truncate text-[15px] md:text-base">
         {typed}
         <span className="caret ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] bg-[var(--accent)]" />
       </p>
-      <button onClick={onSignIn} aria-label="Get started with email" className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[#083d2e] py-2 pr-2 pl-4 text-sm font-semibold text-white transition-colors hover:bg-[#0a5a43] md:pl-5 md:text-[15px]">
+      <button onClick={onSignIn} aria-label="Get started with email" className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--deep)] py-2 pr-2 pl-4 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--deep-hover)] md:pl-5 md:text-[15px]">
         Get started
-        <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-[#ffc53d] text-[#083d2e]">
+        <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-[var(--pop)] text-[#111]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </span>
       </button>
@@ -82,7 +82,7 @@ function ChatStart({ onSignIn, typed }: { onSignIn: () => void; typed: string })
 }
 
 const Nav = ({ Icon, label, active = false }: { Icon: () => ReactNode; label: string; active?: boolean }) => (
-  <p className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${active ? 'bg-[#d9f2e6] text-[#086b4d]' : 'text-[#55695f]'}`}>
+  <p className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${active ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)]'}`}>
     <Icon />
     {label}
   </p>
@@ -92,24 +92,24 @@ const Nav = ({ Icon, label, active = false }: { Icon: () => ReactNode; label: st
 function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase: Phase }) {
   const sent = phase !== 'typing';
   return (
-    <div aria-hidden className="relative mx-auto w-full max-w-5xl select-none overflow-hidden rounded-2xl border border-[#d3dfd8] bg-white text-[#0b2a20] shadow-[0_24px_70px_rgb(8_61_46/0.14)]">
-      <div className="flex items-center gap-2 border-b border-[#e6ece9] bg-[#f6f8f7] px-4 py-3">
+    <div aria-hidden className="relative mx-auto w-full max-w-5xl select-none overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] text-[var(--foreground)] shadow-[0_34px_80px_rgb(0_0_0/0.18),0_8px_20px_rgb(0_0_0/0.06)]">
+      <div className="flex items-center gap-2 border-b border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ff6159]" />
         <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
         <span className="h-3 w-3 rounded-full bg-[#28c941]" />
-        <span className="mx-auto rounded-lg bg-white px-16 py-1 text-xs font-medium text-[#55695f] md:px-28">10kobo</span>
+        <span className="mx-auto rounded-lg bg-[var(--surface)] px-16 py-1 text-xs font-medium text-[var(--muted)] md:px-28">10kobo</span>
         <span className="w-[3.25rem]" />
       </div>
-      <div className="grid h-[31rem] grid-cols-1 md:grid-cols-[13.5rem_minmax(0,1fr)]">
-        <div className="hidden flex-col gap-4 border-r border-[#e6ece9] p-4 md:flex">
+      <div className="grid h-[31rem] grid-cols-1 xl:grid-cols-[12.5rem_minmax(0,1fr)]">
+        <div className="hidden flex-col gap-4 border-r border-[var(--line)] p-3.5 xl:flex">
           <div className="flex items-center gap-2">
             <Logo size={26} />
             <span className="font-semibold tracking-tight">10kobo</span>
           </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-[#e6ece9] bg-gradient-to-br from-[#d9f2e6] to-white p-3.5">
-            <p className="text-xs font-medium text-[#55695f]">Your balance</p>
-            <p className="amount text-2xl font-semibold tracking-tight">48.20 USDC</p>
-            <p className="amount text-xs text-[#55695f]">≈ ₦66,300</p>
+          <div className="flex flex-col gap-1 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5">
+            <p className="text-xs font-medium text-[var(--muted)]">Your balance</p>
+            <p className="amount text-xl font-semibold tracking-tight">48.20 USDC</p>
+            <p className="amount text-xs text-[var(--muted)]">≈ ₦66,300</p>
           </div>
           <div className="flex flex-col gap-0.5">
             <Nav Icon={ChatIcon} label="Chat" active />
@@ -119,45 +119,45 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
           </div>
         </div>
         <div className="flex min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5 md:px-7">
-            <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-4 py-2.5 text-sm text-white">how much do I have?</p>
-            <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5">
+            <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">how much do I have?</p>
+            <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
             {sent && (
               <>
-                <p key={scene.request} className="rise max-w-[80%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-4 py-2.5 text-sm text-white">{scene.request}</p>
-                <p className="rise self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-4 py-2.5 text-sm">Please check the details and approve.</p>
-                <div className="rise flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[#dbe5df] p-4">
-                  <div className="flex justify-between gap-4 border-b border-[#e6ece9] pb-3">
+                <p key={scene.request} className="rise max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">{scene.request}</p>
+                <p className="rise self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5 text-sm">Please check the details and approve.</p>
+                <div className="rise flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[var(--line)] p-4">
+                  <div className="flex justify-between gap-4 border-b border-[var(--line)] pb-3">
                     <div className="min-w-0">
                       <p className="font-semibold">{scene.name}</p>
-                      <p className="truncate text-sm text-[#66736e]">{scene.detail}</p>
-                      <p className="text-sm text-[#66736e]">{scene.kind}</p>
-                      {phase === 'done' && <p className="rise mt-1 text-sm font-semibold text-[#0a7f5c]">{scene.doneLabel}</p>}
+                      <p className="truncate text-sm text-[var(--muted)]">{scene.detail}</p>
+                      <p className="text-sm text-[var(--muted)]">{scene.kind}</p>
+                      {phase === 'done' && <p className="rise mt-1 text-sm font-semibold text-[var(--accent)]">{scene.doneLabel}</p>}
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="amount font-semibold">{scene.amount}</p>
-                      <p className="amount text-sm text-[#66736e]">{scene.second}</p>
+                      <p className="amount text-sm text-[var(--muted)]">{scene.second}</p>
                     </div>
                   </div>
                   {phase === 'done' ? (
-                    <p className="rise flex items-center gap-2 text-sm text-[#66736e]">
-                      <span className="text-[#0a7f5c]"><CheckIcon /></span>
+                    <p className="rise flex items-center gap-2 text-sm text-[var(--muted)]">
+                      <span className="text-[var(--accent)]"><CheckIcon /></span>
                       {scene.doneNote}
                     </p>
                   ) : (
                     <div className="flex gap-2 text-sm font-semibold">
-                      <span className="flex-1 rounded-xl bg-[#0a7f5c] py-2.5 text-center text-white">Approve</span>
-                      <span className="rounded-xl border border-[#dbe5df] px-5 py-2.5">Reject</span>
+                      <span className="flex-1 rounded-xl bg-[var(--accent)] py-2.5 text-center text-[var(--accent-text)]">Approve</span>
+                      <span className="rounded-xl border border-[var(--line)] px-5 py-2.5">Reject</span>
                     </div>
                   )}
                 </div>
               </>
             )}
           </div>
-          <div className="px-4 pb-4 md:px-7 md:pb-5">
-            <div className="flex items-center gap-2 rounded-2xl border border-[#dbe5df] py-2 pr-2 pl-4 text-sm">
-              <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[#66736e]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#0a7f5c] text-white">↑</span>
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] py-2 pr-2 pl-4 text-sm">
+              <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[var(--muted)]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-text)]">↑</span>
             </div>
           </div>
         </div>
@@ -166,49 +166,82 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
   );
 }
 
+const BACKGROUNDS = [
+  ['Dark', '#0f0f10', 'ink'],
+  ['Original dark', '#0f1412', 'start-dark'],
+  ['Original light', '#f7f8f6', 'start-light'],
+  ['Pure white', '#ffffff', 'black'],
+  ['Warm white', '#f6f5f1', 'black'],
+  ['Butter', '#fff0b3', 'black'],
+  ['Yellow', '#ffdf6e', 'black'],
+  ['Peach', '#ffd9c2', 'black'],
+  ['Pink', '#ffd6e4', 'black'],
+  ['Lilac', '#e2d9ff', 'black'],
+  ['Sky', '#cfe6ff', 'black'],
+  ['Mint', '#c8f2dc', 'black'],
+  ['Lime', '#dcf58f', 'black'],
+] as const;
+
+/** Only here while the background is being chosen. Delete this once one is picked. */
+function ColourPicker({ value, onChange }: { value: string; onChange: (label: string) => void }) {
+  return (
+    <div className="fixed right-4 bottom-4 z-20 flex max-w-[15.5rem] flex-col gap-2 rounded-2xl border border-black/10 bg-white p-3 shadow-xl">
+      <p className="text-xs font-semibold text-[#333]">Try a background</p>
+      <div className="flex flex-wrap gap-2">
+        {BACKGROUNDS.map(([label, colour]) => (
+          <button key={label} onClick={() => onChange(label)} aria-label={`${label} background`} aria-pressed={value === label} title={label} className={`h-8 w-8 cursor-pointer rounded-full border border-black/15 ${value === label ? 'ring-2 ring-[#111] ring-offset-2' : ''}`} style={{ background: colour }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Welcome({ onSignIn }: { onSignIn: () => void }) {
+  const [choice, setChoice] = useState<string>('Warm white');
+  const [, background, palette] = BACKGROUNDS.find(([label]) => label === choice) ?? BACKGROUNDS[4];
   const { scene, typed, phase } = useDemo();
   return (
-    <div className="welcome min-h-dvh overflow-x-hidden">
+    <div className="welcome min-h-dvh overflow-x-hidden" data-palette={palette} style={{ background }}>
+      <ColourPicker value={choice} onChange={setChoice} />
       <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
         <header className="flex items-center justify-between py-5 md:py-7">
           <div className="flex items-center gap-2.5">
             <Logo size={42} />
             <span className="font-display text-2xl font-bold tracking-tight md:text-[1.75rem]">10kobo</span>
           </div>
-          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-white p-1.5 text-base font-medium md:flex">
+          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5 text-base font-medium md:flex">
             <a href="#how" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
             <a href="#what" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
           </nav>
-          <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-[15px] font-semibold md:px-7 md:py-3 md:text-base transition-colors hover:bg-[var(--surface-2)]">
+          <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 py-2.5 text-[15px] font-semibold md:px-7 md:py-3 md:text-base transition-colors hover:bg-[var(--surface-2)]">
             Sign in
           </button>
         </header>
 
         <main>
-          <section className="flex flex-col items-center gap-6 pt-2 pb-8 text-center md:gap-7 md:pb-10">
-            <div className="w-full text-left">
-              <AppWindow scene={scene} typed={typed} phase={phase} />
+          <section className="flex flex-col gap-10 pt-4 pb-8 md:pt-8 md:pb-10">
+            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10">
+              <div className="flex flex-col items-start gap-6">
+                <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[3.25rem] xl:text-[4rem]">
+                  Send money like <br className="hidden sm:block" />
+                  sending a{' '}
+                  <span key={phase === 'approve' ? scene.request : 'rest'} className={`relative inline-block rounded-[0.9rem] bg-[var(--accent)] px-[0.28em] pb-[0.08em] text-[var(--accent-text)] ${phase === 'approve' ? 'bubble-send' : ''}`}>
+                    text.
+                    <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[var(--accent)]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
+                    {phase === 'approve' && (
+                      <svg aria-hidden viewBox="0 0 24 24" className="plane-fly absolute -top-[0.1em] right-[-0.1em] z-20 h-[0.55em] w-[0.55em] fill-[var(--accent)]"><path d="M2.5 11.2 21 3.3c.7-.3 1.4.4 1.1 1.1l-7.9 18.5c-.3.8-1.5.7-1.7-.2l-2-7.6-7.7-2.2c-.9-.2-1-1.4-.2-1.7Z" /></svg>
+                    )}
+                  </span>
+                </h1>
+                <p className="text-lg leading-relaxed text-[var(--muted)]">
+                  Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
+                </p>
+                <ChatStart onSignIn={onSignIn} typed={typed} />
+              </div>
+              <div className="float min-w-0 text-left">
+                <AppWindow scene={scene} typed={typed} phase={phase} />
+              </div>
             </div>
-            <h1 className="font-display mt-6 text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] md:mt-10 lg:text-[5rem]">
-              Send money like <br className="hidden sm:block" />
-              sending a{' '}
-              <span className="relative inline-block rounded-[1.1rem] bg-[#0a7f5c] px-[0.28em] pb-[0.08em] text-white">
-                text.
-                <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[#0a7f5c]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
-              </span>
-            </h1>
-            <p className="max-w-2xl text-lg leading-relaxed text-[var(--muted)] md:text-xl">
-              Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
-            </p>
-            <div className="flex w-full justify-center text-left">
-              <ChatStart onSignIn={onSignIn} typed={typed} />
-            </div>
-            <ul className="mt-6 flex w-full flex-wrap items-center justify-center gap-x-10 gap-y-3 text-[15px] font-medium text-[#3d5248] md:mt-8 md:justify-between md:px-4">
-              {['Bank transfers', 'Airtime and data', 'Scheduled payments', 'Naira deposits', 'USDC on Base', 'Receipts in the chat'].map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
           </section>
         </main>
       </div>
@@ -218,8 +251,8 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           <h2 className="font-display max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Three steps. No forms.</h2>
           <ol className="grid gap-4 md:grid-cols-3">
             {STEPS.map(([title, detail], index) => (
-              <li key={title} className="flex flex-col gap-3 rounded-[1.75rem] bg-white p-6 md:p-7">
-                <span className="font-display text-5xl font-bold text-[#0a7f5c]">{index + 1}</span>
+              <li key={title} className="flex flex-col gap-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 md:p-7">
+                <span className="font-display text-5xl font-bold text-[var(--accent)]">{index + 1}</span>
                 <p className="font-display text-2xl font-bold tracking-tight">{title}</p>
                 <p className="text-[var(--muted)]">{detail}</p>
               </li>
