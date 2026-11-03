@@ -219,16 +219,6 @@ body {
   color: var(--foreground);
 }
 
-@keyframes marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.marquee {
-  animation: marquee 32s linear infinite;
-}
-
 @keyframes caret {
   50% {
     opacity: 0;
@@ -240,7 +230,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marquee,
   .caret {
     animation: none;
   }
