@@ -83,14 +83,14 @@ function DepositProgress({
   const waiting = deposit.status === 'waiting' && !timedOut && !lookingLate;
   const step = lookingLate ? 0 : STEP_OF[deposit.status];
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-  const labels = sent ? ['Looking for your transfer', STEPS[1]!, STEPS[2]!] : STEPS;
+  const labels = sent ? ['Confirming your transfer', STEPS[1]!, STEPS[2]!] : STEPS;
   return (
     <div className="flex flex-col gap-3" aria-label="Naira deposit">
       {(sent && (waiting || lookingLate)) || deposit.status === 'processing' ? (
         <div className="rounded-lg border border-[var(--accent)] p-3" role="status" data-testid="deposit-coming">
           <p className="font-medium"><Spinner /> Your {deposit.amount} is on its way</p>
           <p className="text-sm text-[var(--muted)]">
-            {deposit.status === 'processing' ? 'We have your naira and are sending your USDC.' : 'We are looking for your transfer.'} This usually takes about 2 minutes, and you can leave this page. We will tell you here when it arrives.
+            {deposit.status === 'processing' ? 'We have your naira and are sending your USDC.' : 'We are confirming your transfer with the bank.'} This usually takes about 2 minutes, and you can leave this page. We will tell you here when it arrives.
           </p>
           {slow && <p className="mt-2 text-sm">This is taking longer than usual. If your bank shows the money left, please keep the receipt and contact support.</p>}
         </div>
@@ -122,7 +122,7 @@ function DepositProgress({
       {timedOut && (
         <div className="rounded-lg border border-[var(--line)] p-3">
           <p className="font-medium">This account has expired</p>
-          <p className="text-sm text-[var(--muted)]">Please do not send money to it. If you already did, we keep watching for a day and will tell you here if it arrives.</p>
+          <p className="text-sm text-[var(--muted)]">Please do not send money to it. If you already did, we will tell you here as soon as it is confirmed.</p>
         </div>
       )}
       {deposit.status === 'failed' && (

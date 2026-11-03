@@ -50,7 +50,7 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     });
     await page.getByRole('button', { name: 'I have sent the money' }).click();
     await expect(page.getByTestId('deposit-coming')).toContainText('Your ₦2,000 is on its way');
-    await expect(page.getByRole('list', { name: 'Progress' })).toContainText('Looking for your transfer');
+    await expect(page.getByRole('list', { name: 'Progress' })).toContainText('Confirming your transfer');
     await expect(page.getByTestId('deposit-account')).toHaveCount(0);
     await page.getByRole('button', { name: 'Show account details' }).click();
     await expect(page.getByTestId('deposit-account')).toHaveText('6010681891');

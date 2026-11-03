@@ -29,7 +29,7 @@ const EXPLORER = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'https://base
 const SCHEDULE_NOTICE: Partial<Record<Schedule['status'], string>> = {
   awaiting_signature: 'Waiting for your signature.',
   active: 'Scheduled. It will run by itself.',
-  completed: 'Done.',
+  completed: 'Sent. We will tell you here once it is delivered.',
   cancelled: 'Cancelled. Nothing more will be sent.',
   failed: 'Stopped after failing several times.',
   rejected: 'Rejected. Nothing was set up.',
