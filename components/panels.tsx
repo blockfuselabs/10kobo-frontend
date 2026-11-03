@@ -45,7 +45,7 @@ function CopyRow({ label, value, copy, testId }: { label: string; value: string;
 const STEPS = ['Waiting for your transfer', 'Naira received, sending your USDC', 'USDC in your wallet'];
 const STEP_OF: Partial<Record<NairaDeposit['status'], number>> = { waiting: 0, processing: 1, completed: 2 };
 
-function DepositProgress({ deposit, onDone, onClose, busy }: { deposit: NairaDeposit; onDone: () => void; onClose: () => void; busy: boolean }) {
+function DepositProgress({ deposit, onDone, onClose, busy, inChat = false }: { deposit: NairaDeposit; onDone: () => void; onClose: () => void; busy: boolean; inChat?: boolean }) {
   const seconds = useSecondsLeft(deposit.status === 'waiting' ? deposit.expires_at : null);
   const closing = seconds > 0 && seconds < 300;
   const timedOut = deposit.status === 'expired' || (deposit.status === 'waiting' && seconds === 0);
@@ -92,12 +92,57 @@ function DepositProgress({ deposit, onDone, onClose, busy }: { deposit: NairaDep
       {deposit.status === 'waiting' && !timedOut && <p className="text-sm text-[var(--muted)]">Stay on this page or come back later. It updates by itself, usually within 2 minutes of your transfer.</p>}
       {deposit.status === 'processing' && <p className="text-sm text-[var(--muted)]">We have your naira. Your USDC usually arrives within 2 minutes.</p>}
       {deposit.status === 'completed' && <p className="font-medium">About {deposit.usdc} added to your wallet.</p>}
-      {deposit.status !== 'processing' && (
-        <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? onDone : onClose}>
-          {deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? 'Make a new deposit' : 'Cancel and start again'}
-        </button>
-      )}
+      {deposit.status === 'cancelled' && <p className="text-sm text-[var(--muted)]">You closed this deposit for {deposit.amount}. Please do not send money to its account.</p>}
+      {inChat
+        ? deposit.status === 'waiting' && !timedOut && (
+            <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={onClose}>
+              Cancel deposit
+            </button>
+          )
+        : deposit.status !== 'processing' && (
+            <button className="self-start rounded-lg border border-[var(--line)] px-4 py-2 text-sm" disabled={busy} onClick={deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? onDone : onClose}>
+              {deposit.status === 'completed' || timedOut || deposit.status === 'failed' ? 'Make a new deposit' : 'Cancel and start again'}
+            </button>
+          )}
     </div>
+  );
+}
+
+/** The same details as the tab, on a card in the conversation, and it keeps itself up to date. */
+export function DepositCard({ deposit: first, api, onChanged }: { deposit: NairaDeposit; api: ApiClient; onChanged: () => void }) {
+  const [deposit, setDeposit] = useState(first);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const status = deposit.status;
+  useEffect(() => {
+    if (status !== 'waiting' && status !== 'processing' && status !== 'expired') return;
+    const timer = setInterval(() => {
+      api.getDeposit(deposit.id).then((fresh) => {
+        if (!fresh) return;
+        if (fresh.status === 'completed') onChanged();
+        setDeposit(fresh);
+      }, () => undefined);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [api, deposit.id, status, onChanged]);
+  const close = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.closeDeposit(deposit.id);
+      setDeposit({ ...deposit, status: 'cancelled' });
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-label="Deposit card">
+      <p className="font-medium">Deposit {deposit.amount}</p>
+      <DepositProgress deposit={deposit} busy={busy} onDone={() => undefined} onClose={() => void close()} inChat />
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </section>
   );
 }
 

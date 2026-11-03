@@ -5,7 +5,7 @@ import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityPanel, ReceivePanel, SchedulesPanel } from './panels';
+import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -196,6 +196,7 @@ export function Home() {
             {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
             {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
             {message.cancel_schedule && <CancelScheduleCard schedule={message.cancel_schedule} api={api} onChange={reload} />}
+            {message.deposit && <DepositCard deposit={message.deposit} api={api} onChanged={refreshSummary} />}
             {message.contact && (
               <ContactConfirmCard
                 contact={message.contact}

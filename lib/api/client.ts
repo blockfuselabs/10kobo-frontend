@@ -119,6 +119,7 @@ export interface ChatMessage {
   contact: ContactCard | null;
   schedule_group: ScheduleGroup | null;
   cancel_schedule: Schedule | null;
+  deposit: NairaDeposit | null;
 }
 
 export class ApiError extends Error {
@@ -174,6 +175,7 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     currentDeposit: async () => (await request<{ deposit: NairaDeposit | null }>('/v1/deposits/current')).deposit,
     startDeposit: async (amountNaira: number) =>
       (await request<{ deposit: NairaDeposit }>('/v1/deposits', { method: 'POST', body: JSON.stringify({ amount_naira: amountNaira }) })).deposit,
+    getDeposit: async (id: string) => (await request<{ deposit: NairaDeposit | null }>(`/v1/deposits/${id}`)).deposit,
     closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
     activity: async () => (await request<{ activity: ActivityEntry[] }>('/v1/activity')).activity,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,

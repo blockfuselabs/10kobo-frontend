@@ -65,4 +65,23 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     await expect(page.getByText('This account has expired')).toBeVisible();
     await expect(page.getByTestId('deposit-account')).toHaveCount(0);
   });
+
+  test(`a deposit card in the chat counts down and updates by itself, at ${size.width}px`, async ({ page }) => {
+    await page.setViewportSize(size);
+    let deposit: Record<string, unknown> = { ...base, status: 'waiting', expires_at: new Date(Date.now() + 30 * 60_000).toISOString() };
+    const message = { id: 'a1', role: 'assistant', content: 'The card has the account to pay into and the time left.', notice: false, tx_hash: null, created_at: new Date().toISOString(), plan: null, schedule_group: null, cancel_schedule: null, contact: null };
+    await page.route('**/v1/chat/messages', (route) =>
+      route.request().method() === 'GET' ? route.fulfill({ json: { messages: [{ ...message, deposit }] } }) : route.fallback(),
+    );
+    await page.route(`**/v1/deposits/${base.id}`, (route) => route.fulfill({ json: { deposit } }));
+    await page.goto('/');
+    const card = page.getByRole('region', { name: 'Deposit card' });
+    await expect(card.getByTestId('deposit-account')).toHaveText('6010681891');
+    await expect(card.getByTestId('deposit-timer')).toHaveText(/^(30:00|29:5\d)$/);
+    await expect(card.getByRole('button', { name: 'Cancel deposit' })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/deposit-chat-${size.width}.png` });
+    deposit = { ...deposit, status: 'completed' };
+    await expect(card.getByText('About 1.44 USDC added to your wallet.')).toBeVisible({ timeout: 8000 });
+    await expect(card.getByRole('button', { name: 'Make a new deposit' })).toHaveCount(0);
+  });
 }
