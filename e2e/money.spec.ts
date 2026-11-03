@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { createPublicClient, http, parseAbi, type Address } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
@@ -22,15 +22,20 @@ async function say(page: Page, text: string) {
 }
 const lastPlan = (page: Page) => page.getByRole('region', { name: 'Payments to approve' }).last();
 const lastSchedule = (page: Page) => page.getByRole('region', { name: 'Scheduled payments to approve' }).last();
+const approve = async (card: Locator) => {
+  await card.getByLabel('PIN').fill('4829');
+  await card.getByRole('button', { name: 'Approve' }).click();
+};
 async function confirmContact(page: Page) {
   const card = page.getByRole('region', { name: 'Confirm this recipient' }).last();
   await expect(card).toBeVisible({ timeout: 60_000 });
+  await card.getByLabel('PIN').fill('4829');
   await card.getByRole('button', { name: 'Yes, save' }).click();
   await expect(page.getByRole('button', { name: 'Sending…' })).toBeHidden({ timeout: 90_000 });
 }
 
 test.describe.configure({ mode: 'serial' });
-test.setTimeout(300_000);
+test.setTimeout(240_000);
 
 let page: Page;
 test.beforeAll(async ({ browser }) => {
@@ -39,13 +44,31 @@ test.beforeAll(async ({ browser }) => {
   await expect(page.getByTestId('balance')).toContainText('50.00 USDC', { timeout: 60_000 });
 });
 
-test('sends USDC by chat: it needs my approval, then really moves', async () => {
+test('asks for a PIN first when required', async () => {
+  const card = page.getByRole('region', { name: 'Set your PIN' });
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await card.getByLabel('PIN').fill('4829');
+  await card.getByRole('button', { name: 'Save PIN' }).click();
+  await expect(card).toBeHidden({ timeout: 20_000 });
+});
+
+test('a wrong PIN stops an approval, the right one lets it through', async () => {
   await say(page, `Save Ada's wallet ${DEAD} and send her 2 usdc`);
+  const contact = page.getByRole('region', { name: 'Confirm this recipient' }).last();
+  await expect(contact).toBeVisible({ timeout: 60_000 });
+  await expect(contact.getByRole('button', { name: 'Yes, save' })).toBeDisabled();
+  await contact.getByLabel('PIN').fill('0001');
+  await contact.getByRole('button', { name: 'Yes, save' }).click();
+  await expect(contact.getByRole('alert')).toContainText('PIN is not right', { timeout: 15_000 });
+  await contact.getByLabel('PIN').fill('4829');
   await confirmContact(page);
+  await expect(lastPlan(page)).toContainText('Ada', { timeout: 60_000 });
+});
+
+test('sends USDC by chat: it needs my approval, then really moves', async () => {
   const card = lastPlan(page);
-  await expect(card).toContainText('Ada', { timeout: 60_000 });
   expect(await usdc(WALLET)).toBe(50_000_000n);
-  await card.getByRole('button', { name: 'Approve' }).click();
+  await approve(card);
   await expect(card).toContainText('Paid', { timeout: 60_000 });
   expect(await usdc(WALLET)).toBe(48_000_000n);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/1-usdc.png' });
@@ -63,7 +86,7 @@ test('schedules airtime for 1 minute later: one approval, then it runs with no s
   await confirmContact(page);
   const card = lastSchedule(page);
   await expect(card).toContainText('In 1 minute', { timeout: 60_000 });
-  await card.getByRole('button', { name: 'Approve' }).click();
+  await approve(card);
   await expect(card).toContainText('Scheduled', { timeout: 60_000 });
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/2-scheduled.png' });
   const after = await usdc(WALLET);
@@ -76,7 +99,7 @@ test('sets up a monthly payment, shows it, and cancels it', async () => {
   await say(page, 'send Ada 1 usdc every month');
   const card = lastSchedule(page);
   await expect(card).toContainText('Every month on the 28th', { timeout: 60_000 });
-  await card.getByRole('button', { name: 'Approve' }).click();
+  await approve(card);
   await expect(card).toContainText('Scheduled', { timeout: 60_000 });
 
   await page.getByRole('button', { name: 'Scheduled', exact: true }).click();
@@ -98,12 +121,12 @@ test('rejecting moves nothing', async () => {
   expect(await usdc(WALLET)).toBe(before);
 });
 
-test('refuses more than the wallet holds, before asking to sign', async () => {
+test('does not offer to send more than the wallet holds', async () => {
+  const before = await usdc(WALLET);
   await say(page, 'send Ada 300 usdc');
-  const card = lastPlan(page);
-  await expect(card).toBeVisible({ timeout: 60_000 });
-  await card.getByRole('button', { name: 'Approve' }).click();
-  await expect(card.getByRole('alert')).toContainText('You need 300.00 USDC', { timeout: 20_000 });
+  // The agent may refuse from the balance, or the approval may refuse it. The chain tests cover the second. Either way nothing moves.
+  await expect(page.locator('main')).toContainText(/more than your balance|You need 300.00 USDC|only have/i, { timeout: 60_000 });
+  expect(await usdc(WALLET)).toBe(before);
 });
 
 test('activity and the add-USDC address are there', async () => {

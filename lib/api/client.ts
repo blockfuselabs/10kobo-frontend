@@ -2,6 +2,8 @@ export interface Me {
   id: string;
   email: string | null;
   wallet_address: string | null;
+  has_pin: boolean;
+  pin_required: boolean;
 }
 
 export interface WalletCall {
@@ -149,15 +151,18 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
     abandonPlan: (id: string) => request<Plan>(`/v1/plans/${id}/abandon`, { method: 'POST' }),
-    approveSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/approve`, { method: 'POST' }),
+    approveSchedules: (groupId: string, pin?: string) =>
+      request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/approve`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
     activateSchedules: (groupId: string, txHash: string) =>
       request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/activate`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
     abandonSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/abandon`, { method: 'POST' }),
     rejectSchedules: (groupId: string) => request<ScheduleGroup>(`/v1/schedules/groups/${groupId}/reject`, { method: 'POST' }),
     cancelSchedule: (id: string) => request<Schedule & { calls: WalletCall[] }>(`/v1/schedules/${id}/cancel`, { method: 'POST' }),
-    approvePlan: (id: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST' }),
+    setPin: (pin: string, currentPin?: string) =>
+      request<{ has_pin: boolean }>('/v1/pin', { method: 'POST', body: JSON.stringify({ pin, ...(currentPin ? { current_pin: currentPin } : {}) }) }),
+    approvePlan: (id: string, pin?: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
     rejectPlan: (id: string) => request<Plan>(`/v1/plans/${id}/reject`, { method: 'POST' }),
-    confirmContact: (id: string) => request<null>(`/v1/contacts/${id}/confirm`, { method: 'POST' }),
+    confirmContact: (id: string, pin?: string) => request<null>(`/v1/contacts/${id}/confirm`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
     discardContact: (id: string) => request<null>(`/v1/contacts/${id}/discard`, { method: 'POST' }),
   };
 }

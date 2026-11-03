@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
 import { useWallet } from '@/lib/wallet/wallet';
 
@@ -47,6 +47,31 @@ const primary = 'rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-[var(-
 const secondary = 'rounded-lg border border-[var(--line)] px-4 py-2 disabled:opacity-50';
 const card = 'flex max-w-[85%] flex-col gap-3 self-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
 
+/** Whether this user has a PIN to enter. Set once, for all the cards. */
+export const PinContext = createContext(false);
+
+function PinField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <input
+      type="password"
+      inputMode="numeric"
+      autoComplete="off"
+      maxLength={4}
+      aria-label="PIN"
+      placeholder="PIN"
+      value={value}
+      onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
+      className="w-24 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+    />
+  );
+}
+
+function usePin() {
+  const needed = useContext(PinContext);
+  const [pin, setPin] = useState('');
+  return { needed, pin, setPin, ready: !needed || pin.length === 4, value: needed ? pin : undefined };
+}
+
 function useAction(onChange: () => Promise<unknown>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +93,7 @@ function useAction(onChange: () => Promise<unknown>) {
 export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: ApiClient; onChange: () => Promise<unknown> }) {
   const { busy, error, run } = useAction(onChange);
   const wallet = useWallet();
+  const pin = usePin();
   const notice = STATUS_LABEL[plan.status];
 
   /** Records the approval, then asks the wallet to sign. Declining means nothing moved. */
@@ -124,13 +150,14 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
       </p>
       {notice && <p className="text-sm text-[var(--muted)]">{notice}</p>}
       {plan.status === 'proposed' && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {pin.needed && <PinField value={pin.pin} onChange={pin.setPin} />}
           <button
             className={primary}
-            disabled={busy}
+            disabled={busy || !pin.ready}
             onClick={() =>
               void run(async () => {
-                const approved = await api.approvePlan(plan.id);
+                const approved = await api.approvePlan(plan.id, pin.value);
                 await sign(approved.calls);
               })
             }
@@ -152,9 +179,29 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
   );
 }
 
+/** Shown until a PIN exists, when PINs are required. */
+export function SetPinCard({ api, onChange }: { api: ApiClient; onChange: () => Promise<unknown> }) {
+  const { busy, error, run } = useAction(onChange);
+  const [pin, setPin] = useState('');
+  return (
+    <section className={card} aria-label="Set your PIN">
+      <p className="font-medium">Set a 4-digit PIN</p>
+      <p className="text-sm text-[var(--muted)]">You will enter it to approve payments and save new recipients.</p>
+      <div className="flex gap-2">
+        <PinField value={pin} onChange={setPin} />
+        <button className={primary} disabled={busy || pin.length !== 4} onClick={() => void run(() => api.setPin(pin))}>
+          Save PIN
+        </button>
+      </div>
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </section>
+  );
+}
+
 export function ScheduleApprovalCard({ group, api, onChange }: { group: ScheduleGroup; api: ApiClient; onChange: () => Promise<unknown> }) {
   const { busy, error, run } = useAction(onChange);
   const wallet = useWallet();
+  const pin = usePin();
   const notice = SCHEDULE_NOTICE[group.status];
 
   const sign = async (calls: ScheduleGroup['calls']) => {
@@ -192,13 +239,14 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
       {group.status === 'proposed' && (
         <>
           <p className="text-sm text-[var(--muted)]">You approve once. It then runs by itself, and you can cancel any time.</p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {pin.needed && <PinField value={pin.pin} onChange={pin.setPin} />}
             <button
               className={primary}
-              disabled={busy}
+              disabled={busy || !pin.ready}
               onClick={() =>
                 void run(async () => {
-                  const approved = await api.approveSchedules(group.group_id);
+                  const approved = await api.approveSchedules(group.group_id, pin.value);
                   await sign(approved.calls);
                 })
               }
@@ -277,6 +325,7 @@ export function ContactConfirmCard({
   onConfirmed: (contactId: string) => Promise<unknown>;
 }) {
   const { busy, error, run } = useAction(onChange);
+  const pin = usePin();
 
   if (contact.status === 'confirmed') {
     return <p className="self-start text-sm text-[var(--muted)]">Saved {contact.name}: {contact.detail}</p>;
@@ -285,13 +334,14 @@ export function ContactConfirmCard({
     <section className={card} aria-label="Confirm this recipient">
       <p>Is this {contact.name}?</p>
       <p className="break-words font-medium">{contact.detail}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        {pin.needed && <PinField value={pin.pin} onChange={pin.setPin} />}
         <button
           className={primary}
-          disabled={busy}
+          disabled={busy || !pin.ready}
           onClick={() =>
             void run(async () => {
-              await api.confirmContact(contact.id);
+              await api.confirmContact(contact.id, pin.value);
               await onConfirmed(contact.id);
             })
           }

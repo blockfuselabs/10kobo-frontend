@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { createApiClient, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
-import { CancelScheduleCard, ContactConfirmCard, PlanApprovalCard, ScheduleApprovalCard } from './cards';
+import { CancelScheduleCard, ContactConfirmCard, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
 import { ActivityPanel, ReceivePanel, SchedulesPanel } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -116,6 +116,7 @@ export function Home() {
   const address = me?.wallet_address ?? wallet.address;
 
   return (
+    <PinContext.Provider value={Boolean(me?.has_pin)}>
     <main className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-2xl flex-col px-4">
       <header className="flex items-center justify-between gap-4 border-b border-[var(--line)] py-3">
         <div className="min-w-0">
@@ -157,6 +158,7 @@ export function Home() {
       {view === 'chat' && (
       <>
       <section ref={conversation} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-4" aria-live="polite">
+        {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
         {messages.length === 0 && (
           <p className="m-auto text-sm text-[var(--muted)]">Try: send N50 airtime to Kc in 30 minutes. Test version, so no real money moves.</p>
         )}
@@ -212,5 +214,6 @@ export function Home() {
       </>
       )}
     </main>
+    </PinContext.Provider>
   );
 }
