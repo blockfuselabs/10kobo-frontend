@@ -81,104 +81,87 @@ function ChatStart({ onSignIn, typed }: { onSignIn: () => void; typed: string })
   );
 }
 
-function PhoneFrame({ children, className }: { children: ReactNode; className: string }) {
-  return (
-    <div className={`absolute overflow-hidden rounded-[2.75rem] border-[7px] border-[#0d1311] bg-white text-[#0b2a20] shadow-[0_30px_70px_rgb(8_40_30/0.25)] ${className}`}>
-      <div className="flex items-center justify-between px-7 pt-3 text-[11px] font-semibold">
-        <span className="amount">18:12</span>
-        <span className="h-[1.1rem] w-[4.5rem] rounded-full bg-[#0d1311]" />
-        <span className="amount">5G</span>
-      </div>
-      {children}
-      <div className="mx-auto mt-1 mb-2 h-1 w-28 rounded-full bg-[#0b2a20]/25" />
-    </div>
-  );
-}
+const Nav = ({ Icon, label, active = false }: { Icon: () => ReactNode; label: string; active?: boolean }) => (
+  <p className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${active ? 'bg-[#d9f2e6] text-[#086b4d]' : 'text-[#55695f]'}`}>
+    <Icon />
+    {label}
+  </p>
+);
 
-function PhoneHeader() {
-  return (
-    <div className="flex items-center justify-between gap-2 border-b border-[#e6ece9] px-4 py-3">
-      <div className="flex items-center gap-2">
-        <Logo size={24} />
-        <span className="text-sm font-semibold">10kobo</span>
-      </div>
-      <span className="amount text-[13px] font-semibold">48.20 USDC</span>
-    </div>
-  );
-}
-
-const ACTIVITY = [
-  ['Bank to Mum', '3 Nov · completed', '₦5,000'],
-  ['Airtime to Tunde', '3 Nov · completed', '₦500'],
-  ['Deposit received', '3 Nov · completed', '14.40 USDC'],
-  ['USDC to Ada', '2 Nov · completed', '₦2,750'],
-  ['Bank to Landlord', '28 Oct · completed', '₦80,000'],
-] as const;
-
-/** Two phones showing how the app looks. The front one follows the typing box, so readers can see what a request becomes. */
-function Phones({ scene, typed, phase }: { scene: Scene; typed: string; phase: Phase }) {
+/** The web app in a browser window, built to match the real one. It follows the typing box, so readers see what a request becomes. */
+function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase: Phase }) {
   const sent = phase !== 'typing';
   return (
-    <div aria-hidden className="relative h-[37rem] select-none md:h-[39rem]">
-      <PhoneFrame className="top-6 right-[calc(20rem+0.5rem)] hidden w-[16.5rem] -rotate-[4deg] xl:block">
-        <PhoneHeader />
-        <div className="flex h-[28rem] flex-col gap-2 p-3">
-          <p className="px-1 text-[17px] font-semibold tracking-tight">Activity</p>
-          {ACTIVITY.map(([title, when, amount]) => (
-            <div key={title} className="flex justify-between gap-2 rounded-2xl border border-[#e6ece9] p-3">
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-medium">{title}</p>
-                <p className="text-[10.5px] text-[#66736e]">{when}</p>
-              </div>
-              <p className="amount shrink-0 text-[13px] font-semibold">{amount}</p>
-            </div>
-          ))}
-        </div>
-      </PhoneFrame>
-
-      <PhoneFrame className="top-2 right-1/2 z-10 w-[19rem] translate-x-1/2 rotate-[3deg] md:w-[20rem] lg:right-1 lg:translate-x-0">
-        <PhoneHeader />
-        <div className="flex h-[29rem] flex-col justify-end gap-2.5 overflow-hidden p-3.5">
-          <p className="self-center rounded-full bg-[#eef3f0] px-3 py-1 text-[11px] text-[#55695f]">You received 14.40 USDC. <span className="font-medium text-[#0a7f5c]">View</span></p>
-          <p className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-3.5 py-2 text-[13.5px] text-white">how much do I have?</p>
-          <p className="max-w-[88%] self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-3.5 py-2 text-[13.5px]">You have 48.20 USDC, about ₦66,300.</p>
-          {sent && (
-            <>
-              <p key={scene.request} className="rise max-w-[85%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-3.5 py-2 text-[13.5px] text-white">{scene.request}</p>
-              <p className="rise self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-3.5 py-2 text-[13.5px]">Please check the details and approve.</p>
-              <div className="rise flex flex-col gap-2.5 rounded-2xl border border-[#dbe5df] p-3.5">
-                <div className="flex justify-between gap-3 border-b border-[#e6ece9] pb-2.5">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{scene.name}</p>
-                    <p className="truncate text-[11.5px] text-[#66736e]">{scene.detail}</p>
-                    <p className="text-[11.5px] text-[#66736e]">{scene.kind}</p>
-                    {phase === 'done' && <p className="rise mt-0.5 text-[13px] font-semibold text-[#0a7f5c]">{scene.doneLabel}</p>}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="amount text-sm font-semibold">{scene.amount}</p>
-                    <p className="amount text-[11.5px] text-[#66736e]">{scene.second}</p>
-                  </div>
-                </div>
-                {phase === 'done' ? (
-                  <p className="rise flex items-center gap-1.5 text-[11.5px] text-[#66736e]">
-                    <span className="text-[#0a7f5c]"><CheckIcon /></span>
-                    {scene.doneNote}
-                  </p>
-                ) : (
-                  <div className="flex gap-2 text-[13px] font-semibold">
-                    <span className="flex-1 rounded-xl bg-[#0a7f5c] py-2 text-center text-white">Approve</span>
-                    <span className="rounded-xl border border-[#dbe5df] px-3 py-2">Reject</span>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-          <div className="mt-0.5 flex shrink-0 items-center gap-2 rounded-2xl border border-[#dbe5df] py-1.5 pr-1.5 pl-3.5 text-[13px]">
-            <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[#66736e]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-[#0a7f5c] text-white">↑</span>
+    <div aria-hidden className="mx-auto w-full max-w-6xl select-none overflow-hidden rounded-2xl border border-[#d3dfd8] bg-white text-[#0b2a20] shadow-[0_30px_80px_rgb(8_61_46/0.16)] md:rounded-3xl">
+      <div className="flex items-center gap-2 border-b border-[#e6ece9] bg-[#f6f8f7] px-4 py-3">
+        <span className="h-3 w-3 rounded-full bg-[#ff6159]" />
+        <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+        <span className="h-3 w-3 rounded-full bg-[#28c941]" />
+        <span className="mx-auto rounded-lg bg-white px-16 py-1 text-xs font-medium text-[#55695f] md:px-28">10kobo</span>
+        <span className="w-[3.25rem]" />
+      </div>
+      <div className="grid h-[33rem] grid-cols-1 md:grid-cols-[15rem_minmax(0,1fr)]">
+        <div className="hidden flex-col gap-4 border-r border-[#e6ece9] p-4 md:flex">
+          <div className="flex items-center gap-2">
+            <Logo size={26} />
+            <span className="font-semibold tracking-tight">10kobo</span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-2xl border border-[#e6ece9] bg-gradient-to-br from-[#d9f2e6] to-white p-3.5">
+            <p className="text-xs font-medium text-[#55695f]">Your balance</p>
+            <p className="amount text-2xl font-semibold tracking-tight">48.20 USDC</p>
+            <p className="amount text-xs text-[#55695f]">≈ ₦66,300</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <Nav Icon={ChatIcon} label="Chat" active />
+            <Nav Icon={CalendarIcon} label="Scheduled" />
+            <Nav Icon={ActivityIcon} label="Activity" />
+            <Nav Icon={PlusIcon} label="Add USDC" />
           </div>
         </div>
-      </PhoneFrame>
+        <div className="flex min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5 md:px-10">
+            <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-4 py-2.5 text-sm text-white">how much do I have?</p>
+            <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
+            {sent && (
+              <>
+                <p key={scene.request} className="rise max-w-[80%] self-end rounded-2xl rounded-br-md bg-[#0a7f5c] px-4 py-2.5 text-sm text-white">{scene.request}</p>
+                <p className="rise self-start rounded-2xl rounded-bl-md bg-[#eef3f0] px-4 py-2.5 text-sm">Please check the details and approve.</p>
+                <div className="rise flex w-full max-w-md flex-col gap-3 self-start rounded-2xl border border-[#dbe5df] p-4">
+                  <div className="flex justify-between gap-4 border-b border-[#e6ece9] pb-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{scene.name}</p>
+                      <p className="truncate text-sm text-[#66736e]">{scene.detail}</p>
+                      <p className="text-sm text-[#66736e]">{scene.kind}</p>
+                      {phase === 'done' && <p className="rise mt-1 text-sm font-semibold text-[#0a7f5c]">{scene.doneLabel}</p>}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="amount font-semibold">{scene.amount}</p>
+                      <p className="amount text-sm text-[#66736e]">{scene.second}</p>
+                    </div>
+                  </div>
+                  {phase === 'done' ? (
+                    <p className="rise flex items-center gap-2 text-sm text-[#66736e]">
+                      <span className="text-[#0a7f5c]"><CheckIcon /></span>
+                      {scene.doneNote}
+                    </p>
+                  ) : (
+                    <div className="flex gap-2 text-sm font-semibold">
+                      <span className="flex-1 rounded-xl bg-[#0a7f5c] py-2.5 text-center text-white">Approve</span>
+                      <span className="rounded-xl border border-[#dbe5df] px-5 py-2.5">Reject</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="px-4 pb-4 md:px-10 md:pb-5">
+            <div className="flex items-center gap-2 rounded-2xl border border-[#dbe5df] py-2 pr-2 pl-4 text-sm">
+              <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[#66736e]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#0a7f5c] text-white">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -203,30 +186,24 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
         </header>
 
         <main>
-          <section className="grid items-center gap-8 pt-4 pb-6 lg:grid-cols-[1fr_1.05fr] lg:gap-6 md:pt-4 md:pb-10">
-            <div className="flex flex-col items-start gap-6 md:gap-7">
-              <h1 className="font-display text-[3.1rem] font-bold leading-[1.06] tracking-[-0.03em] sm:text-[4rem] lg:text-[3.4rem] xl:text-[4.4rem]">
-                Send money like <br className="hidden sm:block" />
-                sending a{' '}
-                <span className="relative inline-block rounded-[1.1rem] bg-[#0a7f5c] px-[0.28em] pb-[0.08em] text-white">
-                  text.
-                  <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[#0a7f5c]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
-                </span>
-              </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-[var(--muted)] md:text-xl">
-                Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
-              </p>
+          <section className="flex flex-col items-center gap-6 pt-4 pb-14 text-center md:gap-7 md:pt-8 md:pb-20">
+            <h1 className="font-display text-[3.1rem] font-bold leading-[1.06] tracking-[-0.03em] sm:text-[4rem] lg:text-[5.25rem]">
+              Send money like <br className="hidden sm:block" />
+              sending a{' '}
+              <span className="relative inline-block rounded-[1.1rem] bg-[#0a7f5c] px-[0.28em] pb-[0.08em] text-white">
+                text.
+                <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[#0a7f5c]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
+              </span>
+            </h1>
+            <p className="max-w-2xl text-lg leading-relaxed text-[var(--muted)] md:text-xl">
+              Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
+            </p>
+            <div className="flex w-full justify-center text-left">
               <ChatStart onSignIn={onSignIn} typed={typed} />
-              <ul className="flex flex-wrap gap-x-6 gap-y-2 pl-1 text-sm font-medium text-[#3d5248]">
-                {['You approve every payment', 'Pay in naira or USDC', 'A receipt every time'].map((point) => (
-                  <li key={point} className="flex items-center gap-1.5">
-                    <span className="text-[#0a7f5c]"><CheckIcon /></span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
             </div>
-            <Phones scene={scene} typed={typed} phase={phase} />
+            <div className="mt-4 w-full text-left md:mt-8">
+              <AppWindow scene={scene} typed={typed} phase={phase} />
+            </div>
           </section>
         </main>
       </div>
