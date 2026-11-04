@@ -14,12 +14,17 @@ test('starts new chats, lists them, and goes back to an old one', async ({ page 
   await page.goto('/');
   const list = page.getByRole('list', { name: 'Your chats' });
 
-  await page.getByRole('button', { name: 'New chat' }).click();
+  // A new chat opens by itself, with the box in the middle of the screen until the first message.
   await expect(page.getByRole('heading', { name: 'What would you like to do?' })).toBeVisible();
+  const middle = await page.getByLabel('Message').boundingBox();
+  expect(middle!.y).toBeLessThan(500);
   await say(page, first);
+  await expect(page.getByRole('heading', { name: 'What would you like to do?' })).toHaveCount(0);
+  const bottom = await page.getByLabel('Message').boundingBox();
+  expect(bottom!.y).toBeGreaterThan(650);
   await expect(list.getByRole('button', { name: first })).toBeVisible();
 
-  await page.getByRole('button', { name: 'New chat' }).click();
+  await page.getByRole('button', { name: 'New chat', exact: true }).click();
   await expect(page.getByText(first, { exact: true }).locator('visible=true')).toHaveCount(1);
   await say(page, second);
   await expect(list.getByRole('button').first()).toHaveText(second);
@@ -37,7 +42,7 @@ test('the chat list opens on a phone', async ({ page }) => {
   await page.getByRole('button', { name: /▾/ }).click();
   await expect(page.getByRole('list', { name: 'Your chats' })).toBeVisible();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/chats-phone.png' });
-  await page.getByRole('button', { name: 'New chat' }).click();
+  await page.getByRole('button', { name: 'New chat', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'What would you like to do?' })).toBeVisible();
 });
 
@@ -45,7 +50,7 @@ test('renames and deletes a chat from its menu', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const name = `to delete ${Date.now()}`;
   await page.goto('/');
-  await page.getByRole('button', { name: 'New chat' }).click();
+  await page.getByRole('button', { name: 'New chat', exact: true }).click();
   await say(page, name);
   const list = page.getByRole('list', { name: 'Your chats' });
   const row = list.getByRole('listitem').filter({ hasText: name });
@@ -79,6 +84,7 @@ test('dark mode can be switched on, and stays after a reload', async ({ page }) 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
   await expect(page.getByLabel('Message')).toBeVisible();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/new-chat.png' });
   const box = await page.getByLabel('Message').evaluate((node) => ({ outline: getComputedStyle(node).outlineStyle }));
   expect(box.outline).toBe('none');
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();

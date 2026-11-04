@@ -56,8 +56,9 @@ test('a message shows once while it is sending, even when the reply is slow', as
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   for (let second = 0; second < 13; second += 1) {
     await page.waitForTimeout(1000);
-    expect(await page.getByText(text, { exact: true }).count()).toBe(1);
+    expect(await page.locator('section[aria-live]').getByText(text, { exact: true }).count()).toBe(1);
   }
   await expect(page.getByRole('button', { name: 'Sending…' })).toBeHidden({ timeout: 30_000 });
-  expect(await page.getByText(text, { exact: true }).count()).toBe(1);
+  // The sidebar names a chat after its first message, so only the conversation is counted.
+  expect(await page.locator('section[aria-live]').getByText(text, { exact: true }).count()).toBe(1);
 });

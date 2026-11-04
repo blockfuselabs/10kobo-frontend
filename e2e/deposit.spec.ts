@@ -89,6 +89,8 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     );
     await page.route(`**/v1/deposits/${base.id}`, (route) => route.fulfill({ json: { deposit } }));
     await page.goto('/');
+    if (size.width < 768) await page.getByRole('button', { name: /▾/ }).click();
+    await page.getByRole('list', { name: 'Your chats' }).getByRole('button', { name: 'deposit' }).click();
     const card = page.getByRole('region', { name: 'Deposit card' });
     await expect(card.getByTestId('deposit-account')).toHaveText('6010681891');
     await expect(card.getByTestId('deposit-timer')).toHaveText(/^(30:00|29:5\d)$/);

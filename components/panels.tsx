@@ -384,7 +384,7 @@ function ActivityRow({ entry, onReceipt }: { entry: ActivityEntry; onReceipt: ()
           {entry.direction === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium" title={entry.description}>{entry.description}</p>
+          <p className="truncate font-medium first-letter:uppercase" title={entry.description}>{entry.description}</p>
           <p className="flex flex-wrap items-center gap-x-3 text-sm text-[var(--muted)]">
             <span>{entry.type_label} · {dateOf(entry.created_at)}</span>
             <button onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer hover:text-[var(--foreground)]">{open ? '▾' : '▸'} Details</button>

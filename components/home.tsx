@@ -5,7 +5,7 @@ import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSumma
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
+import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -13,14 +13,6 @@ const WALLET_POLL_MS = 3000;
 // New messages can arrive with no action from the user: deposits, reminders and scheduled payments.
 const REFRESH_MS = 10000;
 const wholeNaira = (amount: string) => amount.replace(/\.\d+$/, '');
-
-/** How much of today's limit is left. The two figures are formatted naira, such as ₦1,250.50. */
-function limitLeftPercent(summary: WalletSummary): number {
-  const value = (amount: string) => Number(amount.replace(/[^\d.]/g, ''));
-  const left = value(summary.limit_left);
-  const total = left + value(summary.limit_used);
-  return total > 0 ? Math.round((left / total) * 100) : 0;
-}
 
 const SUGGESTIONS = [
   ['Deposit ₦5,000', 'Deposit 5000'],
@@ -191,6 +183,7 @@ export function Home() {
 
   const [me, setMe] = useState<Me | null>(null);
   const [copiedWallet, setCopiedWallet] = useState(false);
+  const [balanceHidden, setBalanceHidden] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -227,7 +220,8 @@ export function Home() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [chatsOpen, setChatsOpen] = useState(false);
   const activeChatRef = useRef<string | null>(null);
-  const startedNew = useRef(false);
+  // Opens on a new chat. Past ones wait in the list.
+  const startedNew = useRef(true);
 
   const loadMessages = useCallback(async () => {
     const id = activeChatRef.current;
@@ -343,11 +337,42 @@ export function Home() {
   };
 
   const address = me?.wallet_address ?? wallet.address;
+  // A new chat with nothing in it yet: the box sits in the middle until the first message.
+  const fresh = activeChat === null && messages.length === 0 && !waitingOn && !sending;
+  const errorLine = error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>;
+  const composer = (
+    <form
+                  onSubmit={send}
+                  autoComplete="off"
+                  className="flex w-full items-center gap-2 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-2.5 pl-6 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--muted)]"
+                >
+                  <input
+                    id="message"
+                    aria-label="Message"
+                    // Chrome would otherwise offer old messages, including account numbers, as suggestions.
+                    name="chat-message-no-history"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    maxLength={2000}
+                    placeholder="Tell me what to pay"
+                    className="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none md:text-[17px] placeholder:text-[var(--muted)]"
+                  />
+                  <button
+                    aria-label={sending ? 'Sending…' : 'Send'}
+                    disabled={sending || !draft.trim()}
+                    className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {sending ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-text)] border-t-transparent" /> : <SendIcon />}
+                  </button>
+                </form>
+  );
 
   return (
     <PinContext.Provider value={Boolean(me?.has_pin)}>
     <main className="fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto]">
-      <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:gap-6 md:border-r md:border-b-0 md:px-4 md:pt-6 md:pb-3">
+      <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:border-r md:border-b-0 md:px-4 md:pt-6 md:pb-4">
         <div className="flex items-center justify-between gap-3 md:px-1">
           <div className="flex items-center gap-2.5">
             <Logo />
@@ -360,69 +385,6 @@ export function Home() {
           </button>
           </div>
         </div>
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
-          <div className="flex flex-col gap-0.5">
-            <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Your balance</p>
-            <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2 md:flex-col md:gap-0.5">
-              {summary?.balance_usdc ? (
-                <>
-                  <span className="text-xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">{summary.balance_usdc}</span>
-                  {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
-                </>
-              ) : (
-                <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
-              )}
-            </p>
-          </div>
-          {summary?.deposit_on_the_way && (
-            <p className="flex items-center gap-2 text-sm font-medium text-[var(--accent-strong)]" data-testid="deposit-on-the-way">
-              <Spinner /> {summary.deposit_on_the_way} on its way
-            </p>
-          )}
-          {summary && (
-            <div className="hidden flex-col gap-1.5 md:flex">
-              <div className="flex justify-between gap-2 text-xs">
-                <span className="text-[var(--muted)]">Left to send today</span>
-                <span className="amount font-medium">{wholeNaira(summary.limit_left)}</span>
-              </div>
-              <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]" aria-hidden>
-                <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${limitLeftPercent(summary)}%` }} />
-              </div>
-            </div>
-          )}
-          {summary?.naira_per_usdc && (
-            <p className="amount hidden justify-between gap-2 border-t border-[var(--line)] pt-2.5 text-xs md:flex" data-testid="rate">
-              <span className="text-[var(--muted)]">Today&apos;s rate</span>
-              <span className="font-medium">₦{summary.naira_per_usdc.toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1</span>
-            </p>
-          )}
-        </div>
-        <div className="hidden grid-cols-2 gap-2 md:grid">
-          <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)]">
-            <ArrowInIcon />
-            Deposit
-          </button>
-          <button
-            onClick={() => {
-              setView('chat');
-              setDraft((current) => current || 'Send ');
-              setTimeout(() => document.getElementById('message')?.focus(), 0);
-            }}
-            className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
-          >
-            <ArrowOutIcon />
-            Send money
-          </button>
-        </div>
-        {summary?.latest && (
-          <button onClick={() => setView('activity')} data-testid="latest" title="See all activity" className="hidden min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg px-1 text-left text-xs md:flex">
-            <span className="min-w-0 truncate text-[var(--muted)]">{summary.latest.description}</span>
-            <span className="amount shrink-0 font-semibold">
-              {summary.latest.direction === 'in' ? '+' : '−'}
-              {summary.latest.amount_naira ?? summary.latest.amount_usdc} ›
-            </span>
-          </button>
-        )}
       </header>
 
       <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">
@@ -480,6 +442,56 @@ export function Home() {
       </footer>
 
       <div className="row-start-2 flex min-h-0 flex-col md:col-start-2 md:row-span-3 md:row-start-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-[var(--line)] px-4 py-2.5 md:px-8 md:py-3">
+          <div className="flex min-w-0 items-center gap-x-6 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2">
+                {balanceHidden ? (
+                  <span className="text-lg font-semibold tracking-tight">••••••</span>
+                ) : summary?.balance_usdc ? (
+                  <>
+                    <span className="text-lg font-semibold tracking-tight">{summary.balance_usdc}</span>
+                    {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
+                  </>
+                ) : (
+                  <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
+                )}
+              </p>
+              <button onClick={() => setBalanceHidden(!balanceHidden)} aria-label={balanceHidden ? 'Show balance' : 'Hide balance'} title={balanceHidden ? 'Show balance' : 'Hide balance'} className="shrink-0 cursor-pointer rounded p-1 text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+                {balanceHidden ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            {summary?.naira_per_usdc && (
+              <p className="amount hidden border-l border-[var(--line)] pl-6 text-sm text-[var(--muted)] lg:block" data-testid="rate">
+                ₦{summary.naira_per_usdc.toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1
+              </p>
+            )}
+            {summary && <p className="amount hidden border-l border-[var(--line)] pl-6 text-sm text-[var(--muted)] xl:block">{wholeNaira(summary.limit_left)} left today</p>}
+            {summary?.deposit_on_the_way && (
+              <p className="flex items-center gap-2 text-sm font-medium" data-testid="deposit-on-the-way">
+                <Spinner /> {summary.deposit_on_the_way} on its way
+              </p>
+            )}
+          </div>
+          <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <button onClick={() => setView('receive')} className="flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)]">
+              <ArrowInIcon />
+              Deposit
+            </button>
+            <button
+              aria-label="Send money"
+              onClick={() => {
+                setView('chat');
+                setDraft((current) => current || 'Send ');
+                setTimeout(() => document.getElementById('message')?.focus(), 0);
+              }}
+              className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
+            >
+              <ArrowOutIcon />
+              Send
+            </button>
+          </div>
+        </div>
         {view !== 'chat' && (
           <section className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
@@ -503,34 +515,46 @@ export function Home() {
                 </div>
               )}
             </div>
-            <section ref={conversation} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
-              <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col gap-3 px-4 py-5 md:px-8 md:py-8">
+            {fresh && (
+              <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-4 py-6 md:px-8">
                 {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
-                {messages.length === 0 && (
-                  <div className="m-auto flex flex-col items-center gap-5 py-6 text-center">
-                    <div className="flex flex-col gap-1.5">
-                      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">What would you like to do?</h1>
-                      <p className="text-sm text-[var(--muted)]">
-                        Type it the way you would say it.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? '' : ' Test version, so no real money moves.'}
-                      </p>
-                    </div>
-                    <div className="flex max-w-md flex-wrap justify-center gap-2">
-                      {SUGGESTIONS.map(([label, text]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            setDraft(text);
-                            document.getElementById('message')?.focus();
-                          }}
-                          className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-sm transition-colors hover:border-[var(--accent)]"
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex flex-col gap-1.5 text-center">
+                  <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">What would you like to do?</h1>
+                  <p className="text-sm text-[var(--muted)]">Type it the way you would say it.{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? '' : ' Test version, so no real money moves.'}</p>
+                </div>
+                <div className="flex w-full max-w-3xl flex-col gap-3">
+                  {errorLine}
+                  {composer}
+                </div>
+                <div className="flex max-w-xl flex-wrap justify-center gap-2">
+                  {SUGGESTIONS.map(([label, text]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => {
+                        setDraft(text);
+                        document.getElementById('message')?.focus();
+                      }}
+                      className="cursor-pointer rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-sm transition-colors hover:bg-[var(--surface-2)]"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {summary?.latest && (
+                  <button onClick={() => setView('activity')} data-testid="latest" title="See all activity" className="flex max-w-full cursor-pointer items-center gap-3 text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+                    <span className="min-w-0 truncate">Last: {summary.latest.description}</span>
+                    <span className="amount shrink-0 font-medium">
+                      {summary.latest.direction === 'in' ? '+' : '−'}
+                      {summary.latest.amount_naira ?? summary.latest.amount_usdc} ›
+                    </span>
+                  </button>
                 )}
+              </section>
+            )}
+            {!fresh && <section ref={conversation} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+              <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-3 px-4 py-5 md:px-8 md:py-8">
+                {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
                 {messages.map((message) => (
                   <div key={message.id} className="rise flex flex-col gap-2">
                     <p
@@ -576,37 +600,14 @@ export function Home() {
                   </p>
                 )}
               </div>
-            </section>
+            </section>}
 
-            <div className="mx-auto w-full max-w-2xl px-4 pb-3 md:px-8 md:pb-6">
-              {error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
-              <form
-                onSubmit={send}
-                autoComplete="off"
-                className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 pl-4 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--accent)]"
-              >
-                <input
-                  id="message"
-                  aria-label="Message"
-                  // Chrome would otherwise offer old messages, including account numbers, as suggestions.
-                  name="chat-message-no-history"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  maxLength={2000}
-                  placeholder="Tell me what to pay"
-                  className="min-w-0 flex-1 bg-transparent py-1.5 outline-none placeholder:text-[var(--muted)] focus-visible:outline-none"
-                />
-                <button
-                  aria-label={sending ? 'Sending…' : 'Send'}
-                  disabled={sending || !draft.trim()}
-                  className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {sending ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-text)] border-t-transparent" /> : <SendIcon />}
-                </button>
-              </form>
-            </div>
+            {!fresh && (
+              <div className="mx-auto w-full max-w-3xl px-4 pb-3 md:px-8 md:pb-6">
+                {errorLine}
+                {composer}
+              </div>
+            )}
           </>
         )}
       </div>

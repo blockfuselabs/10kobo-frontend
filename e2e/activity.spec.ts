@@ -78,13 +78,14 @@ test('the sidebar shows the rate, Deposit, Send money and the latest transaction
   await page.goto('/');
   await expect(page.getByTestId('rate')).toContainText('₦1,375.36 per $1');
   await expect(page.getByTestId('latest')).toContainText('−₦1,376.36');
+  await page.waitForTimeout(300);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/sidebar.png' });
   await page.getByRole('button', { name: 'Send money' }).click();
   await expect(page.getByLabel('Message')).toHaveValue('Send ');
-  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
-  await expect(page.getByText('Deposit naira')).toBeVisible();
   await page.getByTestId('latest').click();
   await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible();
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
+  await expect(page.getByText('Deposit naira')).toBeVisible();
 });
 
 test('dark mode settles to dark colours', async ({ page }) => {
