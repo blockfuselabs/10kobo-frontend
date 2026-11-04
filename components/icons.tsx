@@ -21,8 +21,6 @@ export const ArrowInIcon = () => <Icon size={16}><path d="M17 7 7 17M7 8v9h9" />
 export const ArrowOutIcon = () => <Icon size={16}><path d="M7 17 17 7M8 7h9v9" /></Icon>;
 export const DownloadIcon = () => <Icon size={16}><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></Icon>;
 export const SearchIcon = () => <Icon size={16}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4-4" /></Icon>;
-export const EyeIcon = () => <Icon size={16}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></Icon>;
-export const EyeOffIcon = () => <Icon size={16}><path d="M3 3l18 18M10 6a9 9 0 0 1 2-.5C18 5.5 21.5 12 21.5 12a16 16 0 0 1-3 3.8M6.2 7.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.3-1.1" /></Icon>;
 export const SunIcon = () => <Icon><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" /></Icon>;
 export const MoonIcon = () => <Icon><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></Icon>;
 export const DotsIcon = () => <Icon><circle cx="5" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="19" cy="12" r="1.2" fill="currentColor" /></Icon>;

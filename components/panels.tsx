@@ -438,12 +438,14 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
 
   // Waits for a pause in typing, so it does not ask the server on every letter.
   useEffect(() => {
+    // Only a real change goes back to page one, so opening the page cannot undo a click on Next.
+    if (typed.trim() === search) return;
     const timer = setTimeout(() => {
       setSearch(typed.trim());
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [typed]);
+  }, [typed, search]);
 
   useEffect(() => {
     let current = true;
