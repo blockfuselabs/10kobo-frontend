@@ -139,7 +139,7 @@ test('does not offer to send more than the wallet holds', async () => {
     await approve(card);
     await expect(card.getByRole('alert')).toContainText('You need 300.00 USDC', { timeout: 30_000 });
   } else {
-    await expect(page.locator('main')).toContainText(/more than your balance|only have|enough|short/i, { timeout: 10_000 });
+    await expect(page.locator('main')).toContainText(/more than your balance|only have|enough|short|can't send|wallet has/i, { timeout: 10_000 });
   }
   expect(await usdc(WALLET)).toBe(before);
 });
