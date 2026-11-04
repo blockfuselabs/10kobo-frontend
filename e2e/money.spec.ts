@@ -146,9 +146,10 @@ test('does not offer to send more than the wallet holds', async () => {
 
 test('activity and the add-USDC address are there', async () => {
   await page.getByRole('button', { name: 'Activity', exact: true }).click();
+  await page.getByRole('list', { name: 'Activity' }).getByRole('button', { name: 'Details' }).first().click();
   await expect(page.getByRole('list', { name: 'Activity' }).getByRole('link', { name: 'View' }).first()).toHaveAttribute('href', /basescan/);
-  await expect(page.getByRole('list', { name: 'Activity' })).toContainText('usdc to Ada');
-  await expect(page.getByRole('list', { name: 'Activity' })).toContainText('airtime to Obinna');
+  await expect(page.getByRole('list', { name: 'Activity' })).toContainText('Sent USDC to Ada');
+  await expect(page.getByRole('list', { name: 'Activity' })).toContainText('Airtime for Obinna');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/5-activity.png' });
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
   await expect(page.getByTestId('receive-address')).toContainText(WALLET);

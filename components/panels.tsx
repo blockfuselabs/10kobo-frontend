@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, DepositTerms, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
+import { ArrowInIcon, ArrowOutIcon, DownloadIcon, SearchIcon } from './icons';
 import { ReceiptDialog } from './receipt-dialog';
 
 const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
@@ -353,19 +354,101 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   );
 }
 
-const STATUS_LABEL: Record<string, string> = { paying: 'processing', funded: 'processing', funding: 'confirming', awaiting_signature: 'waiting for you', needs_support: 'being checked' };
-const readable = (text: string) => text.replace(/0x[0-9a-fA-F]{40}/g, (address) => `${address.slice(0, 6)}…${address.slice(-4)}`);
+const STATUS_LABEL: Record<string, string> = { completed: 'Done', paying: 'Processing', funded: 'Processing', funding: 'Confirming', awaiting_signature: 'Waiting for you', needs_support: 'Being checked', failed: 'Failed', returning: 'Returning', returned: 'Returned', pending: 'Processing' };
+const NOT_MOVED = ['failed', 'returned'];
+const TYPES = [
+  ['', 'All types'],
+  ['bank', 'Bank transfers'],
+  ['airtime', 'Airtime'],
+  ['data', 'Data'],
+  ['usdc', 'USDC transfers'],
+  ['deposit', 'Money received'],
+] as const;
+const TABS = [
+  [undefined, 'All'],
+  ['in', 'Money in'],
+  ['out', 'Money out'],
+] as const;
+
+function ActivityRow({ entry, onReceipt }: { entry: ActivityEntry; onReceipt: () => void }) {
+  const [open, setOpen] = useState(false);
+  const moved = !NOT_MOVED.includes(entry.status);
+  const main = entry.amount_naira ?? entry.amount_usdc;
+  const sign = !moved ? '' : entry.direction === 'in' ? '+' : '−';
+  const done = entry.status === 'completed';
+  const statusTone = entry.status === 'failed' || entry.status === 'needs_support' ? 'text-red-600 dark:text-red-400' : done ? 'text-[var(--muted)]' : 'text-amber-700 dark:text-amber-400';
+  return (
+    <li className="border-b border-[var(--line)] px-4 py-2.5 last:border-0">
+      <div className="flex items-center gap-3">
+        <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${entry.direction === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
+          {entry.direction === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium" title={entry.description}>{entry.description}</p>
+          <p className="flex flex-wrap items-center gap-x-3 text-sm text-[var(--muted)]">
+            <span>{entry.type_label} · {dateOf(entry.created_at)}</span>
+            <button onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer hover:text-[var(--foreground)]">{open ? '▾' : '▸'} Details</button>
+            {entry.has_receipt && <button onClick={onReceipt} className="cursor-pointer font-medium text-[var(--foreground)] underline-offset-2 hover:underline">Receipt</button>}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className={`amount font-semibold ${!moved ? 'text-[var(--muted)] line-through' : ''}`}>{sign}{main}</p>
+          <p className={`text-sm ${statusTone}`}>{STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, ' ')}</p>
+        </div>
+      </div>
+      {open && (
+        <dl className="mt-2 ml-12 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 rounded-xl bg-[var(--surface-2)] p-3 text-sm">
+          {entry.detail && (
+            <>
+              <dt className="text-[var(--muted)]">To</dt>
+              <dd className="break-words">{entry.detail}</dd>
+            </>
+          )}
+          {entry.amount_naira && (
+            <>
+              <dt className="text-[var(--muted)]">Paid with</dt>
+              <dd className="amount">{entry.amount_usdc}</dd>
+            </>
+          )}
+          {entry.tx_hash && (
+            <>
+              <dt className="text-[var(--muted)]">Transaction</dt>
+              <dd className="break-all">{entry.tx_hash.slice(0, 10)}…{entry.tx_hash.slice(-6)} <TxLink hash={entry.tx_hash} /></dd>
+            </>
+          )}
+        </dl>
+      )}
+    </li>
+  );
+}
 
 export function ActivityPanel({ api }: { api: ApiClient }) {
   const [result, setResult] = useState<ActivityPage | null>(null);
   const [page, setPage] = useState(1);
+  const [direction, setDirection] = useState<'in' | 'out' | undefined>(undefined);
+  const [type, setType] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [typed, setTyped] = useState('');
+  const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [open, setOpen] = useState<ActivityEntry | null>(null);
   const closeReceipt = useCallback(() => setOpen(null), []);
+
+  // Waits for a pause in typing, so it does not ask the server on every letter.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(typed.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [typed]);
+
   useEffect(() => {
     let current = true;
     setError(null);
-    api.activity(page).then(
+    api.activity(page, { direction, type, search, from, to }).then(
       (found) => {
         if (current) setResult(found);
       },
@@ -376,42 +459,102 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
     return () => {
       current = false;
     };
-  }, [api, page]);
-  if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
-  if (!result) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
-  if (result.total === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Activity</h1><p className="text-sm text-[var(--muted)]">Nothing yet. Your payments and deposits will show here.</p></div>;
-  const pages = Math.max(1, Math.ceil(result.total / result.per_page));
+  }, [api, page, direction, type, search, from, to]);
+
+  const download = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      const blob = await api.activityFile({ direction, type, search, from, to });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '10kobo-activity.csv';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const filtering = Boolean(direction || type || search || from || to);
+  const pages = result ? Math.max(1, Math.ceil(result.total / result.per_page)) : 1;
+  const control = 'rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm';
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <h1 className="page-title">Activity</h1>
-      <ul aria-label="Activity" className="flex flex-col gap-2">
-        {result.activity.map((entry) => (
-          <li key={`${entry.kind}-${entry.id}`} className={row}>
-            <div className="min-w-0">
-              <p className="break-words font-medium first-letter:uppercase">{readable(entry.description)}</p>
-              <p className="text-sm text-[var(--muted)]">
-                {dateOf(entry.created_at)} · {STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, ' ')}
-                {entry.tx_hash && (
-                  <>
-                    {' · '}
-                    <TxLink hash={entry.tx_hash} />
-                  </>
-                )}
-                {entry.has_receipt && (
-                  <>
-                    {' · '}
-                    <button onClick={() => setOpen(entry)} className="cursor-pointer font-medium text-[var(--foreground)] underline-offset-2 hover:underline">Receipt</button>
-                  </>
-                )}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="amount font-semibold">{entry.amount_naira ?? entry.amount_usdc}</p>
-              {entry.amount_naira && <p className="text-sm text-[var(--muted)]">{entry.amount_usdc}</p>}
-            </div>
-          </li>
+      <div role="tablist" aria-label="Filter by direction" className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1">
+        {TABS.map(([value, label]) => (
+          <button
+            key={label}
+            role="tab"
+            aria-selected={direction === value}
+            onClick={() => {
+              setDirection(value);
+              setPage(1);
+            }}
+            className={`cursor-pointer rounded-xl py-2 text-sm font-medium transition-colors ${direction === value ? 'bg-[var(--surface-2)]' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
+          >
+            {label}
+          </button>
         ))}
-      </ul>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className={`${control} flex min-w-44 flex-1 items-center gap-2`}>
+          <SearchIcon />
+          <input aria-label="Search transactions" name="activity-search" autoComplete="off" value={typed} onChange={(event) => setTyped(event.target.value)} placeholder="Search by name" className="min-w-0 flex-1 bg-transparent outline-none" />
+        </label>
+        <select
+          aria-label="Filter by type"
+          value={type}
+          onChange={(event) => {
+            setType(event.target.value);
+            setPage(1);
+          }}
+          className={control}
+        >
+          {TYPES.map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          aria-label="From date"
+          value={from}
+          max={to || undefined}
+          onChange={(event) => {
+            setFrom(event.target.value);
+            setPage(1);
+          }}
+          className={control}
+        />
+        <input
+          type="date"
+          aria-label="To date"
+          value={to}
+          min={from || undefined}
+          onChange={(event) => {
+            setTo(event.target.value);
+            setPage(1);
+          }}
+          className={control}
+        />
+        <button disabled={downloading || result?.total === 0} onClick={() => void download()} className={`${control} flex cursor-pointer items-center gap-2 font-medium disabled:cursor-not-allowed disabled:opacity-50`}>
+          <DownloadIcon />
+          {downloading ? 'Preparing…' : 'Download list'}
+        </button>
+      </div>
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {!result && !error && <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>}
+      {result?.total === 0 && <p className="py-6 text-center text-sm text-[var(--muted)]">{filtering ? 'Nothing matches those filters.' : 'Nothing yet. Your payments and deposits will show here.'}</p>}
+      {result && result.total > 0 && (
+        <ul aria-label="Activity" className="rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+          {result.activity.map((entry) => (
+            <ActivityRow key={`${entry.kind}-${entry.id}`} entry={entry} onReceipt={() => setOpen(entry)} />
+          ))}
+        </ul>
+      )}
       {pages > 1 && (
         <nav aria-label="Activity pages" className="flex items-center justify-between gap-3">
           <button className="btn-secondary px-4 py-2 text-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Previous</button>

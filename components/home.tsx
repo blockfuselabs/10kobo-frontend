@@ -5,7 +5,7 @@ import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSumma
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
+import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -390,7 +390,39 @@ export function Home() {
               </div>
             </div>
           )}
+          {summary?.naira_per_usdc && (
+            <p className="amount hidden justify-between gap-2 border-t border-[var(--line)] pt-2.5 text-xs md:flex" data-testid="rate">
+              <span className="text-[var(--muted)]">Today&apos;s rate</span>
+              <span className="font-medium">₦{summary.naira_per_usdc.toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1</span>
+            </p>
+          )}
         </div>
+        <div className="hidden grid-cols-2 gap-2 md:grid">
+          <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)]">
+            <ArrowInIcon />
+            Deposit
+          </button>
+          <button
+            onClick={() => {
+              setView('chat');
+              setDraft((current) => current || 'Send ');
+              setTimeout(() => document.getElementById('message')?.focus(), 0);
+            }}
+            className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
+          >
+            <ArrowOutIcon />
+            Send money
+          </button>
+        </div>
+        {summary?.latest && (
+          <button onClick={() => setView('activity')} data-testid="latest" title="See all activity" className="hidden min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg px-1 text-left text-xs md:flex">
+            <span className="min-w-0 truncate text-[var(--muted)]">{summary.latest.description}</span>
+            <span className="amount shrink-0 font-semibold">
+              {summary.latest.direction === 'in' ? '+' : '−'}
+              {summary.latest.amount_naira ?? summary.latest.amount_usdc} ›
+            </span>
+          </button>
+        )}
       </header>
 
       <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">

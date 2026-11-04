@@ -42,6 +42,7 @@ export interface WalletSummary {
   limit_left: string;
   naira_per_usdc: number | null;
   deposit_on_the_way?: string | null;
+  latest?: ActivityEntry | null;
 }
 
 export interface Receipt {
@@ -68,13 +69,32 @@ export interface ActivityEntry {
   id: string;
   has_receipt: boolean;
   kind: 'payment' | 'deposit';
+  direction: 'in' | 'out';
+  type: string;
+  type_label: string;
   created_at: string;
   description: string;
+  detail: string | null;
   amount_naira: string | null;
   amount_usdc: string;
   status: string;
   tx_hash: string | null;
 }
+
+export interface ActivityFilters {
+  direction?: 'in' | 'out' | undefined;
+  type?: string | undefined;
+  search?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+}
+
+const activityQuery = (filters: ActivityFilters, page?: number) => {
+  const query = new URLSearchParams();
+  if (page) query.set('page', String(page));
+  for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+  return query.toString();
+};
 
 export interface Schedule {
   id: string;
@@ -217,7 +237,17 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     getDeposit: async (id: string) => (await request<{ deposit: NairaDeposit | null }>(`/v1/deposits/${id}`)).deposit,
     depositSent: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/sent`, { method: 'POST' }),
     closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
-    activity: (page: number) => request<ActivityPage>(`/v1/activity?page=${page}`),
+    activity: (page: number, filters: ActivityFilters = {}) => request<ActivityPage>(`/v1/activity?${activityQuery(filters, page)}`),
+    /** The filtered list as a spreadsheet file, fetched with the sign-in token. */
+    activityFile: async (filters: ActivityFilters = {}): Promise<Blob> => {
+      const token = await getToken();
+      if (!token) throw new ApiError('Sign in to continue', 401);
+      const response = await fetcher(`${baseUrl}/v1/activity/export?${activityQuery(filters)}`, { headers: { authorization: `Bearer ${token}` } }).catch(() => {
+        throw new ApiError('We could not reach the server. Check your connection and try again.', 0);
+      });
+      if (!response.ok) throw new ApiError('We could not make that file. Please try again.', response.status);
+      return response.blob();
+    },
     receipt: async (kind: 'payment' | 'deposit', id: string) => (await request<{ receipt: Receipt }>(`/v1/receipts/${kind}/${id}`)).receipt,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
     fundPlan: (id: string, txHash: string) =>

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function boxFullyVisible(page: Page) {
   const box = await page.getByLabel('Message').boundingBox();
-  const send = await page.getByRole('button', { name: /send/i }).boundingBox();
+  const send = await page.getByRole('button', { name: 'Send', exact: true }).boundingBox();
   const height = page.viewportSize()!.height;
   expect(box, 'message box exists').not.toBeNull();
   expect(box!.y + box!.height, 'box bottom inside the window').toBeLessThanOrEqual(height);
