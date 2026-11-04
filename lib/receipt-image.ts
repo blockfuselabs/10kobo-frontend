@@ -26,6 +26,7 @@ function rows(receipt: Receipt): [string, string][] {
   if (receipt.recipient) list.push(['To', receipt.recipient]);
   if (receipt.recipient_detail) list.push(['Details', receipt.recipient_detail]);
   list.push(['Type', receipt.kind]);
+  if (receipt.network) list.push(['Network', receipt.network]);
   if (receipt.second_amount) list.push(['Paid with', receipt.second_amount]);
   list.push(['Date', when(receipt.completed_at)]);
   list.push(['Reference', receipt.reference.slice(0, 8).toUpperCase()]);
@@ -35,9 +36,13 @@ function rows(receipt: Receipt): [string, string][] {
 
 /** Draws the receipt as an image. Always light, whatever the app's theme, so it reads the same for whoever receives it. */
 export async function drawReceipt(receipt: Receipt): Promise<Blob> {
-  await document.fonts?.ready;
   const sans = getComputedStyle(document.body).fontFamily || 'sans-serif';
   const font = (weight: number, size: number) => `${weight} ${size}px ${sans}`;
+  // The naira sign comes from a second font, which may not have loaded yet. This call rejects
+  // when any font in the list fails, such as a fallback the device lacks, and that must not stop
+  // the receipt: the image can still be drawn.
+  await document.fonts?.load(font(700, 58), '₦').catch(() => undefined);
+  await document.fonts?.ready;
   const measure = document.createElement('canvas').getContext('2d')!;
   const valueWidth = WIDTH - PAD * 2 - 190;
 
