@@ -71,6 +71,9 @@ test('a wrong PIN stops an approval, the right one lets it through', async () =>
 test('sends USDC by chat: it needs my approval, then really moves', async () => {
   const card = lastPlan(page);
   expect(await usdc(WALLET)).toBe(50_000_000n);
+  await expect(card.getByTestId('network')).toContainText('Base');
+  await expect(card.getByTestId('address-check')).toBeVisible();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/1-usdc-approve.png' });
   await approve(card);
   await expect(card).toContainText('Paid', { timeout: 60_000 });
   await expect(card.getByLabel('Receipt')).toContainText('Transaction');

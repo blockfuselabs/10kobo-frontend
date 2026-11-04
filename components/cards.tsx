@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useState } from 'react';
 import { ReceiptDialog } from './receipt-dialog';
-import type { ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
+import type { AddressCheck, ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
 import { useWallet } from '@/lib/wallet/wallet';
 
 const ROUTE_LABEL: Record<PlanItem['route'], string> = {
@@ -25,6 +25,27 @@ const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   needs_support: 'Failed. Our team is on it',
 };
 const BAD: readonly PaymentStatus[] = ['failed', 'returning', 'returned', 'needs_support'];
+const ADDRESS_NOTE: Record<AddressCheck, { text: string; warn: boolean }> = {
+  used: { text: 'Valid address, already used on this network. This does not prove who owns it.', warn: false },
+  contract: { text: 'This address is a smart contract, not a regular wallet. Some wallets are contracts, so check it is the right one.', warn: true },
+  new: { text: 'This address has no history on this network. Check every character, or send a small amount first.', warn: true },
+  unknown: { text: 'We could not check this address just now. Check every character before you approve.', warn: true },
+};
+
+/** The network and what we know about the address, because crypto sent to the wrong place cannot come back. */
+function CryptoDetails({ network, check, deciding }: { network?: string | null; check?: AddressCheck | null; deciding: boolean }) {
+  const note = check ? ADDRESS_NOTE[check] : null;
+  return (
+    <>
+      {network && <p className="text-sm font-medium" data-testid="network">Network: {network}</p>}
+      {deciding && note && (
+        <p data-testid="address-check" className={`text-sm ${note.warn ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--muted)]'}`}>{note.text}</p>
+      )}
+      {deciding && network && <p className="text-sm text-[var(--muted)]">The receiver must accept USDC on {network}. Crypto sent to a wrong address or network cannot be returned.</p>}
+    </>
+  );
+}
+
 const EXPLORER = process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'https://basescan.org/tx/' : 'https://sepolia.basescan.org/tx/';
 
 const SCHEDULE_NOTICE: Partial<Record<Schedule['status'], string>> = {
@@ -191,12 +212,13 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
         {plan.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
             <div className="min-w-0">
-              <p className="font-medium">{item.recipient_name}</p>
-              <p className="break-words text-sm text-[var(--muted)]">{item.recipient_detail}</p>
+              <p className="break-words font-medium">{item.recipient_name}</p>
+              {item.recipient_detail !== item.recipient_name && <p className="break-words text-sm text-[var(--muted)]">{item.recipient_detail}</p>}
               <p className="text-sm text-[var(--muted)]">
                 {ROUTE_LABEL[item.route]}
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
+              {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} />}
               {item.payment_status && (
                 <p className={BAD.includes(item.payment_status) ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
                   {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : PAYMENT_LABEL[item.payment_status]}
@@ -294,12 +316,13 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
         {group.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
             <div className="min-w-0">
-              <p className="font-medium">{item.recipient_name}</p>
-              <p className="break-words text-sm text-[var(--muted)]">{item.recipient_detail}</p>
+              <p className="break-words font-medium">{item.recipient_name}</p>
+              {item.recipient_detail !== item.recipient_name && <p className="break-words text-sm text-[var(--muted)]">{item.recipient_detail}</p>}
               <p className="text-sm text-[var(--muted)]">
                 {ROUTE_LABEL[item.route]}
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
+              {item.route === 'usdc' && <CryptoDetails network={group.network} check={item.address_check} deciding={group.status === 'proposed'} />}
               <p className="text-sm font-medium">{item.when}</p>
               {item.last_error && <p className="text-sm text-red-600 dark:text-red-400">Last try: {item.last_error}</p>}
             </div>

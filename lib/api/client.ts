@@ -45,12 +45,16 @@ export interface WalletSummary {
   latest?: ActivityEntry | null;
 }
 
+/** What the chain said about a wallet address. It cannot say who owns it. */
+export type AddressCheck = 'used' | 'contract' | 'new' | 'unknown';
+
 export interface Receipt {
   reference: string;
   kind: string;
   title: string;
   recipient: string | null;
   recipient_detail: string | null;
+  network?: string | null;
   amount: string;
   second_amount: string | null;
   note: string | null;
@@ -103,6 +107,7 @@ export interface Schedule {
   route: PlanItem['route'];
   recipient_name: string;
   recipient_detail: string;
+  address_check?: AddressCheck | null;
   data_plan: string | null;
   amount: string;
   when: string;
@@ -115,6 +120,7 @@ export interface Schedule {
 export interface ScheduleGroup {
   group_id: string;
   status: Schedule['status'];
+  network?: string;
   items: Schedule[];
   calls: WalletCall[];
 }
@@ -124,6 +130,8 @@ export interface PlanItem {
   route: 'airtime' | 'data' | 'bank' | 'usdc';
   recipient_name: string;
   recipient_detail: string;
+  network?: string | null;
+  address_check?: AddressCheck | null;
   data_plan: string | null;
   amount_naira: string;
   amount_usdc: string;
