@@ -71,3 +71,31 @@ test('the page fits a phone with no sideways scrolling', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-phone.png' });
 });
+
+test('works as an invoice: items and due date show, and it offers USDT only where it can be used', async ({ page }) => {
+  let sent: unknown;
+  await serve(page, () => ({ ...base, due_date: '2099-01-31', overdue: false, line_items: [{ description: 'Generator repair', amount_naira: 3000 }, { description: 'Parts', amount_naira: 2000 }] }));
+  await page.route(`**/v1/public/pay-links/${ID}/pay`, async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ json: { ...base, payment: { ...payment, pay_from: 'solana', pay_token: 'USDT' } } });
+  });
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByTestId('line-items')).toContainText('Generator repair');
+  await expect(page.getByTestId('line-items')).toContainText('₦3,000');
+  await expect(page.getByTestId('due-date')).toContainText('2099');
+  await expect(page.getByRole('button', { name: 'USDT' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Solana' }).click();
+  await page.getByRole('button', { name: 'USDT' }).click();
+  await page.getByLabel(/Your Solana address/).fill('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('region', { name: 'Pay this link' })).toContainText('Send exactly, in USDT');
+  expect(sent).toMatchObject({ pay_from: 'solana', pay_token: 'USDT' });
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-invoice.png' });
+});
+
+test('shows proof links once paid, and says plainly when USDC goes to NEAR', async ({ page }) => {
+  await serve(page, () => ({ ...base, to: 'ada.near', account_number: null, receives: 'USDC on NEAR', open: false, paid: true, payment: { ...payment, status: 'paid', deposit_address: null, links: [{ label: 'NEAR Intents settlement', url: 'https://nearblocks.io/txns/abc' }] } }));
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByTestId('link-paid')).toContainText('The USDC went to ada.near on NEAR');
+  await expect(page.getByRole('link', { name: 'NEAR Intents settlement' })).toHaveAttribute('href', 'https://nearblocks.io/txns/abc');
+});

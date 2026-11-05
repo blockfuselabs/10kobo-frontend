@@ -18,6 +18,8 @@ interface LinkPayment {
   status: string;
   pay_from: string;
   pay_usdc: string;
+  pay_token?: string;
+  links?: { label: string; url: string }[];
   deposit_address: string | null;
   deposit_deadline: string | null;
   failure_reason: string | null;
@@ -29,12 +31,19 @@ interface PublicLink {
   amount_naira: number;
   to: string;
   bank_name: string;
-  account_number: string;
+  account_number: string | null;
   note: string | null;
+  receives?: string;
+  due_date?: string | null;
+  overdue?: boolean;
+  line_items?: { description: string; amount_naira: number }[] | null;
   open: boolean;
   paid: boolean;
   payment: LinkPayment | null;
 }
+
+const USDT_FROM = new Set(['near', 'ethereum', 'solana']);
+const dueText = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'long' });
 
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const chainName = (id: string) => CHAINS.find((chain) => chain.id === id)?.name ?? id;
@@ -83,6 +92,7 @@ export function PayLinkPage({ id }: { id: string }) {
   const [missing, setMissing] = useState(false);
   const [chain, setChain] = useState<string>('base');
   const [refundTo, setRefundTo] = useState('');
+  const [token, setToken] = useState<'USDC' | 'USDT'>('USDC');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,7 +120,7 @@ export function PayLinkPage({ id }: { id: string }) {
       const response = await fetch(`${API}/v1/public/pay-links/${id}/pay`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pay_from: chain, refund_to: refundTo.trim() }),
+        body: JSON.stringify({ pay_from: chain, pay_token: USDT_FROM.has(chain) ? token : 'USDC', refund_to: refundTo.trim() }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.message ?? 'We could not set this up. Nothing was sent.');
@@ -137,14 +147,27 @@ export function PayLinkPage({ id }: { id: string }) {
             <div>
               <p className="text-sm text-[var(--muted)]">Pay</p>
               <p className="amount text-4xl font-semibold tracking-tight" data-testid="link-amount">{naira(link.amount_naira)}</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">to {link.to}, {link.bank_name} {link.account_number}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">to {link.to}{link.account_number ? `, ${link.bank_name} ${link.account_number}` : ''}{link.receives === 'USDC on NEAR' ? ', paid as USDC on NEAR' : ''}</p>
               {link.note && <p className="mt-2 text-sm">For: {link.note}</p>}
+              {link.due_date && !link.paid && (
+                <p className={`mt-1 text-sm ${link.overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-[var(--muted)]'}`} data-testid="due-date">{link.overdue ? 'Was due' : 'Due'} {dueText(link.due_date)}</p>
+              )}
             </div>
+            {link.line_items?.length ? (
+              <ul className="inset flex flex-col gap-1.5 p-3.5 text-sm" aria-label="Invoice items" data-testid="line-items">
+                {link.line_items.map((item, index) => (
+                  <li key={index} className="flex justify-between gap-3"><span className="min-w-0 break-words">{item.description}</span><span className="amount shrink-0">{naira(item.amount_naira)}</span></li>
+                ))}
+              </ul>
+            ) : null}
 
             {link.paid && (
               <div className="inset p-4" data-testid="link-paid">
-                <p className="font-semibold">Paid. The bank payment was sent.</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">{naira(link.amount_naira)} went to the {link.bank_name} account above.</p>
+                <p className="font-semibold">{link.receives === 'USDC on NEAR' ? 'Paid. The USDC was delivered.' : 'Paid. The bank payment was sent.'}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{link.receives === 'USDC on NEAR' ? `The USDC went to ${link.to} on NEAR.` : `${naira(link.amount_naira)} went to the ${link.bank_name} account above.`}</p>
+                {payment?.links?.map((proof) => (
+                  <a key={proof.url} className="mt-1 mr-3 inline-block text-sm font-medium underline underline-offset-2" href={proof.url} target="_blank" rel="noreferrer">{proof.label}</a>
+                ))}
               </div>
             )}
 
@@ -154,7 +177,7 @@ export function PayLinkPage({ id }: { id: string }) {
               <>
                 {payment?.failure_reason && <p className="text-sm text-[var(--muted)]">Your last try ended: {payment.failure_reason}</p>}
                 <fieldset>
-                  <legend className="mb-2 text-sm font-medium">Pay in USDC from</legend>
+                  <legend className="mb-2 text-sm font-medium">Pay from</legend>
                   <div className="flex flex-wrap gap-2">
                     {CHAINS.map((item) => (
                       <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => setChain(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
@@ -163,6 +186,16 @@ export function PayLinkPage({ id }: { id: string }) {
                     ))}
                   </div>
                 </fieldset>
+                {USDT_FROM.has(chain) && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-medium">Pay with</legend>
+                    <div className="flex gap-2">
+                      {(['USDC', 'USDT'] as const).map((item) => (
+                        <button key={item} type="button" aria-pressed={token === item} onClick={() => setToken(item)} className={`btn-small rounded-full border ${token === item ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>{item}</button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
                 <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Your {chosen.name} address, for any refund
                   <input className="field font-normal" value={refundTo} onChange={(event) => setRefundTo(event.target.value)} placeholder={chosen.hint} autoComplete="off" spellCheck={false} />
@@ -180,10 +213,10 @@ export function PayLinkPage({ id }: { id: string }) {
                   <p className="font-mono text-xl font-semibold">{payment.deposit_deadline ? <Countdown until={payment.deposit_deadline} /> : ''}</p>
                 </div>
                 <div className="inset px-3.5 py-1">
-                  <CopyRow label="Send exactly, in USDC" value={payment.pay_usdc} testId="link-usdc" />
+                  <CopyRow label={`Send exactly, in ${payment.pay_token ?? 'USDC'}`} value={payment.pay_usdc} testId="link-usdc" />
                   <CopyRow label={`To this ${chainName(payment.pay_from)} address`} value={payment.deposit_address!} testId="link-address" />
                 </div>
-                <p className="text-sm text-[var(--muted)]">Send only USDC, only on {chainName(payment.pay_from)}. Crypto sent on another network cannot be returned. Sending too little returns your USDC to your refund address.</p>
+                <p className="text-sm text-[var(--muted)]">Send only {payment.pay_token ?? 'USDC'}, only on {chainName(payment.pay_from)}. Crypto sent on another network cannot be returned. Sending too little returns it to your refund address.</p>
                 <p className="text-sm font-medium">Waiting for your payment…</p>
               </>
             )}
