@@ -127,7 +127,7 @@ export function PayLinkPage({ id }: { id: string }) {
   const chosen = CHAINS.find((item) => item.id === chain)!;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center bg-[var(--bg)] px-4 py-10 text-[var(--ink)]">
+    <main className="flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10">
       <p className="font-display mb-8 text-2xl font-bold tracking-tight">10kobo</p>
       <section className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm" aria-label="Pay this link">
         {missing && <p className="font-medium">This pay link does not exist. Please check it with the person who sent it.</p>}
@@ -157,7 +157,7 @@ export function PayLinkPage({ id }: { id: string }) {
                   <legend className="mb-2 text-sm font-medium">Pay in USDC from</legend>
                   <div className="flex flex-wrap gap-2">
                     {CHAINS.map((item) => (
-                      <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => setChain(item.id)} className={chain === item.id ? 'btn-small border-[var(--accent)] font-semibold' : 'btn-small'}>
+                      <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => setChain(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
                         {item.name}
                       </button>
                     ))}
