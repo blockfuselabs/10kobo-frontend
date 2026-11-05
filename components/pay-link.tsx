@@ -95,7 +95,7 @@ function CopyRow({ label, value, testId }: { label: string; value: string; testI
   );
 }
 
-export function PayLinkPage({ id }: { id: string }) {
+export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const [link, setLink] = useState<PublicLink | null>(null);
   const [missing, setMissing] = useState(false);
   const [chain, setChain] = useState<string>('base');
@@ -143,6 +143,23 @@ export function PayLinkPage({ id }: { id: string }) {
   };
 
   const payment = link?.payment ?? null;
+
+  // Inside a shop's page, tells the page how the payment is going, so it can react at once. It is told nothing
+  // the payer cannot see here, and the shop's server still confirms with 10kobo before handing anything over.
+  const reported = link ? (link.paid ? 'paid' : link.cancelled ? 'cancelled' : (payment?.status ?? 'open')) : null;
+  useEffect(() => {
+    if (embedded && reported && window.parent !== window) window.parent.postMessage({ source: '10kobo', type: 'status', invoice: id, status: reported }, '*');
+  }, [embedded, reported, id]);
+  const closeBox = () => window.parent.postMessage({ source: '10kobo', type: 'close', invoice: id }, '*');
+  // Keys pressed inside the box reach this page, not the shop's, so Esc is handled here.
+  useEffect(() => {
+    if (!embedded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') window.parent.postMessage({ source: '10kobo', type: 'close', invoice: id }, '*');
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [embedded, id]);
   const waiting = payment?.status === 'awaiting_deposit' && payment.deposit_address;
   const chosen = CHAINS.find((item) => item.id === chain)!;
 
@@ -175,8 +192,10 @@ export function PayLinkPage({ id }: { id: string }) {
               <div className="inset p-4" data-testid="link-paid">
                 <p className="font-semibold">{link.receives?.startsWith('USDC') ? 'Paid. The USDC was delivered.' : 'Paid. The bank payment was sent.'}</p>
                 <p className="mt-1 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">{link.receives?.startsWith('USDC') ? `The USDC went to ${link.to} on ${link.receives.replace('USDC on ', '')}.` : `${naira(link.amount_naira)} went to the ${link.bank_name} account above.`}</p>
-                {link.return_url && (
-                  <a className="btn-primary mt-3 block text-center" href={link.return_url} data-testid="link-return">Back to {link.merchant ?? 'the shop'}</a>
+                {embedded ? (
+                  <button type="button" className="btn-primary mt-3 w-full" onClick={closeBox} data-testid="link-done">Done, back to {link.merchant ?? 'the shop'}</button>
+                ) : (
+                  link.return_url && <a className="btn-primary mt-3 block text-center" href={link.return_url} data-testid="link-return">Back to {link.merchant ?? 'the shop'}</a>
                 )}
                 {payment?.links?.map((proof) => (
                   <a key={proof.url} className="mt-1 mr-3 inline-block text-sm font-medium underline underline-offset-2" href={proof.url} target="_blank" rel="noreferrer">{proof.label}</a>

@@ -3,29 +3,79 @@ import { expect, test } from '@playwright/test';
 const ID = '11111111-1111-4111-8111-111111111111';
 const link = { id: ID, merchant: 'Mama Put Kitchen', return_url: 'http://localhost:3011/shop?order=order-1', amount_naira: 1400, to: 'Yi**** Di***', bank_name: 'OPay', account_number: '****4108', receives: 'naira', note: 'Mama Put Kitchen order-1', line_items: [{ description: 'Jollof rice and chicken', amount_naira: 900 }], open: true, paid: false, payment: null };
 
-test('a shop puts the button on any page with one line, and it opens 10kobo checkout in a new tab', async ({ page, context }) => {
-  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
-  await page.setContent(`<html><body><h1>Some other shop</h1><script src="http://localhost:3011/checkout.js" data-invoice="${ID}"></script></body></html>`);
-  const button = page.getByRole('button', { name: /Pay with crypto/ });
-  await expect(button).toBeVisible();
-  await page.screenshot({ path: '/tmp/10kobo-e2e-results/checkout-button.png' });
-  const [checkout] = await Promise.all([context.waitForEvent('page'), button.click()]);
-  await checkout.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
-  await expect(checkout).toHaveURL(`http://localhost:3011/pay/${ID}`);
-  expect(await checkout.evaluate(() => window.opener)).toBeNull();
-  await expect(checkout.getByTestId('link-payee')).toHaveText('Pay Mama Put Kitchen');
+const PAID = { ...link, open: false, paid: true, payment: { id: 'p', status: 'paid', pay_from: 'near', pay_token: 'USDC', pay_usdc: '1.0', deposit_address: null, deposit_deadline: null, failure_reason: null, paid_at: new Date().toISOString(), links: [] } };
+const outsideShop = (id = ID) => `<html><body><h1>Some other shop</h1><script src="http://localhost:3011/checkout.js" data-invoice="${id}"></script></body></html>`;
 
+test('the button opens 10kobo checkout over the shop page, and Esc or the close button shuts it', async ({ page }) => {
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
+  await page.setContent(outsideShop());
+  await page.getByRole('button', { name: /Pay with crypto/ }).click();
+  const box = page.getByRole('dialog', { name: '10kobo checkout' });
+  await expect(box).toBeVisible();
+  const checkout = page.frameLocator('iframe[title="10kobo checkout"]');
+  await expect(checkout.getByTestId('link-payee')).toHaveText('Pay Mama Put Kitchen');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/checkout-popup.png' });
+  await checkout.getByTestId('link-payee').click();
+  await page.keyboard.press('Escape');
+  await expect(box).toHaveCount(0);
+  await page.getByRole('button', { name: /Pay with crypto/ }).click();
+  await page.getByRole('button', { name: 'Close checkout' }).click();
+  await expect(box).toHaveCount(0);
   expect(await page.evaluate(() => { try { (window as unknown as { TenKobo: { open: (id: string) => void } }).TenKobo.open('javascript:alert(1)'); return 'opened'; } catch { return 'refused'; } })).toBe('refused');
 });
 
-test('once paid, the checkout offers a way back to the shop', async ({ page }) => {
-  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: { ...link, open: false, paid: true, payment: { id: 'p', status: 'paid', pay_from: 'near', pay_token: 'USDC', pay_usdc: '1.0', deposit_address: null, deposit_deadline: null, failure_reason: null, paid_at: new Date().toISOString(), links: [] } } }));
+test('the shop page hears at once when the payment is done, and Done closes the box', async ({ page }) => {
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: PAID }));
+  await page.setContent('<html><body><script src="http://localhost:3011/checkout.js"></script></body></html>');
+  await page.waitForFunction(() => Boolean((window as unknown as { TenKobo?: unknown }).TenKobo));
+  await page.evaluate((id) => {
+    const w = window as unknown as { TenKobo: { open: (id: string, options: object) => void }; heard: string[] };
+    w.heard = [];
+    w.TenKobo.open(id, { onPaid: () => w.heard.push('paid'), onClose: (result: { paid: boolean }) => w.heard.push(`closed ${result.paid}`) });
+  }, ID);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { heard: string[] }).heard)).toEqual(['paid']);
+  await page.frameLocator('iframe[title="10kobo checkout"]').getByTestId('link-done').click();
+  await expect(page.getByRole('dialog', { name: '10kobo checkout' })).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { heard: string[] }).heard)).toEqual(['paid', 'closed true']);
+});
+
+test('a message pretending to be the checkout is ignored', async ({ page }) => {
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
+  await page.setContent('<html><body><script src="http://localhost:3011/checkout.js"></script></body></html>');
+  await page.waitForFunction(() => Boolean((window as unknown as { TenKobo?: unknown }).TenKobo));
+  await page.evaluate((id) => {
+    const w = window as unknown as { TenKobo: { open: (id: string, options: object) => void }; heard: string[] };
+    w.heard = [];
+    w.TenKobo.open(id, { onPaid: () => w.heard.push('paid') });
+    window.postMessage({ source: '10kobo', type: 'status', invoice: id, status: 'paid' }, '*');
+  }, ID);
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => (window as unknown as { heard: string[] }).heard)).toEqual([]);
+});
+
+test('a shop can still ask for a new tab instead', async ({ page, context }) => {
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
+  await page.setContent('<html><body><script src="http://localhost:3011/checkout.js"></script></body></html>');
+  await page.waitForFunction(() => Boolean((window as unknown as { TenKobo?: unknown }).TenKobo));
+  const [tab] = await Promise.all([context.waitForEvent('page'), page.evaluate((id) => (window as unknown as { TenKobo: { open: (id: string, options: object) => void } }).TenKobo.open(id, { mode: 'tab' }), ID)]);
+  expect(tab.url()).toBe(`http://localhost:3011/pay/${ID}`);
+  expect(await tab.evaluate(() => window.opener)).toBeNull();
+});
+
+test('only the checkout may be shown inside another website', async ({ request }) => {
+  expect((await request.get('/')).headers()['x-frame-options']).toBe('DENY');
+  expect((await request.get('/agent')).headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  expect((await request.get(`/pay/${ID}`)).headers()['x-frame-options']).toBeUndefined();
+});
+
+test('opened as a plain page, a paid checkout offers a link back to the shop', async ({ page }) => {
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: PAID }));
   await page.goto(`/pay/${ID}`);
   await expect(page.getByTestId('link-return')).toHaveText('Back to Mama Put Kitchen');
   await expect(page.getByTestId('link-return')).toHaveAttribute('href', 'http://localhost:3011/shop?order=order-1');
 });
 
-test('the demo shop makes the order on its server, opens checkout, and shows paid with the signed notice', async ({ page, context }) => {
+test('the demo shop makes the order on its server, opens checkout over the page, and shows paid with the signed notice', async ({ page }) => {
   let status = 'unpaid';
   let basket: unknown = null;
   await page.route('**/shop/api/order*', async (route) => {
@@ -41,8 +91,11 @@ test('the demo shop makes the order on its server, opens checkout, and shows pai
   await expect(page.getByTestId('shop-total')).toHaveText('₦1,600');
   await page.getByRole('button', { name: 'One less Zobo drink' }).click();
   await page.waitForFunction(() => Boolean((window as unknown as { TenKobo?: unknown }).TenKobo));
-  const [checkout] = await Promise.all([context.waitForEvent('page'), page.getByRole('button', { name: /Pay with crypto/ }).click()]);
-  expect(checkout.url()).toBe(`http://localhost:3011/pay/${ID}`);
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
+  await page.getByRole('button', { name: /Pay with crypto/ }).click();
+  await expect(page.frameLocator('iframe[title="10kobo checkout"]').getByTestId('link-payee')).toHaveText('Pay Mama Put Kitchen');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/shop-popup.png' });
+  await page.getByRole('button', { name: 'Close checkout' }).click();
   expect(basket).toEqual({ items: { jollof: 1, puff: 1, zobo: 1 } });
   await expect(page.getByTestId('order-status')).toHaveText('Waiting for payment');
   status = 'paid';

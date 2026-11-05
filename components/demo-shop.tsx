@@ -16,7 +16,7 @@ type State = { status: string; amount_naira: number; order: string; notice: { ty
 
 declare global {
   interface Window {
-    TenKobo?: { open: (invoiceId: string) => void };
+    TenKobo?: { open: (invoiceId: string, options?: { onPaid?: () => void; onClose?: () => void }) => void };
   }
 }
 
@@ -79,7 +79,7 @@ export function DemoShop() {
       remember(made);
       setState(null);
       setOrder(made);
-      window.TenKobo?.open(made.invoice_id);
+      window.TenKobo?.open(made.invoice_id, { onPaid: () => void check(made.invoice_id), onClose: () => void check(made.invoice_id) });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'We could not start the payment.');
     } finally {
@@ -140,13 +140,14 @@ export function DemoShop() {
               {state?.notice ? `Signed notice from 10kobo received and checked: ${state.notice.type}` : 'No notice from 10kobo yet. This shop also checks the order itself every few seconds.'}
             </p>
             {state && !['paid', 'cancelled', 'expired'].includes(state.status) && (
-              <button type="button" className="mt-3 text-sm font-medium underline" onClick={() => window.TenKobo?.open(order.invoice_id)}>Open the checkout again</button>
+              <button type="button" className="mt-3 text-sm font-medium underline" onClick={() => window.TenKobo?.open(order.invoice_id, { onPaid: () => void check(order.invoice_id), onClose: () => void check(order.invoice_id) })}>Open the checkout again</button>
             )}
           </section>
         )}
 
         <footer className="text-xs opacity-60">
-          A shop adds this with one line: <code className="font-mono">&lt;script src=&quot;…/checkout.js&quot;&gt;</code>, then calls <code className="font-mono">TenKobo.open(invoiceId)</code>.
+          How a shop adds this: its server asks 10kobo for an invoice using its secret key, then its page loads{' '}
+          <code className="font-mono">checkout.js</code> and calls <code className="font-mono">TenKobo.open(invoiceId)</code>. The checkout opens over the page.
         </footer>
       </div>
     </main>

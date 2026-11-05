@@ -48,6 +48,8 @@ test('a message can be copied', async ({ page, context }) => {
   await page.getByLabel('Message').press('Enter');
   const bubble = page.getByText(text, { exact: true });
   await expect(bubble).toBeVisible();
+  // The bubble shown while sending is replaced by the saved message, which has the copy button.
+  await expect(page.getByRole('button', { name: 'Copy this text' })).toHaveCount(1);
   await bubble.selectText();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/message-selected.png' });
   await bubble.hover();
