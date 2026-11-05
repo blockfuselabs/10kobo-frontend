@@ -40,6 +40,8 @@ interface PublicLink {
   line_items?: { description: string; amount_naira: number }[] | null;
   open: boolean;
   cancelled?: boolean;
+  merchant?: string | null;
+  return_url?: string | null;
   paid: boolean;
   payment: LinkPayment | null;
 }
@@ -153,7 +155,7 @@ export function PayLinkPage({ id }: { id: string }) {
         {link && (
           <>
             <div>
-              <p className="text-sm text-[var(--muted)]">Pay</p>
+              <p className="text-sm text-[var(--muted)]" data-testid="link-payee">{link.merchant ? `Pay ${link.merchant}` : 'Pay'}</p>
               <p className="amount text-4xl font-semibold tracking-tight" data-testid="link-amount">{naira(link.amount_naira)}</p>
               <p className="mt-1 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">to {link.to}{link.account_number ? `, ${link.bank_name} ${link.account_number}` : ''}{link.receives?.startsWith('USDC') ? `, paid as ${link.receives}` : ''}</p>
               {link.note && <p className="mt-2 text-sm">For: {link.note}</p>}
@@ -173,6 +175,9 @@ export function PayLinkPage({ id }: { id: string }) {
               <div className="inset p-4" data-testid="link-paid">
                 <p className="font-semibold">{link.receives?.startsWith('USDC') ? 'Paid. The USDC was delivered.' : 'Paid. The bank payment was sent.'}</p>
                 <p className="mt-1 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">{link.receives?.startsWith('USDC') ? `The USDC went to ${link.to} on ${link.receives.replace('USDC on ', '')}.` : `${naira(link.amount_naira)} went to the ${link.bank_name} account above.`}</p>
+                {link.return_url && (
+                  <a className="btn-primary mt-3 block text-center" href={link.return_url} data-testid="link-return">Back to {link.merchant ?? 'the shop'}</a>
+                )}
                 {payment?.links?.map((proof) => (
                   <a key={proof.url} className="mt-1 mr-3 inline-block text-sm font-medium underline underline-offset-2" href={proof.url} target="_blank" rel="noreferrer">{proof.label}</a>
                 ))}
