@@ -132,6 +132,10 @@ export interface PlanItem {
   recipient_detail: string;
   network?: string | null;
   address_check?: AddressCheck | null;
+  /** Set when the USDC goes to another chain: what the receiver should get, as quoted. */
+  receiver_gets?: string | null;
+  delivery_seconds?: number | null;
+  fee_warning?: boolean;
   data_plan: string | null;
   amount_naira: string;
   amount_usdc: string;

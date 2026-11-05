@@ -33,11 +33,18 @@ const ADDRESS_NOTE: Record<AddressCheck, { text: string; warn: boolean }> = {
 };
 
 /** The network and what we know about the address, because crypto sent to the wrong place cannot come back. */
-function CryptoDetails({ network, check, deciding }: { network?: string | null; check?: AddressCheck | null; deciding: boolean }) {
+function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWarning }: { network?: string | null; check?: AddressCheck | null; deciding: boolean; receiverGets?: string | null; seconds?: number | null; feeWarning?: boolean }) {
   const note = check ? ADDRESS_NOTE[check] : null;
   return (
     <>
       {network && <p className="text-sm font-medium" data-testid="network">Network: {network}</p>}
+      {receiverGets && (
+        <p className="amount text-sm font-medium" data-testid="receiver-gets">
+          Receiver gets about {receiverGets}{deciding && seconds ? `, in about ${seconds} seconds` : ''}
+        </p>
+      )}
+      {deciding && feeWarning && <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="fee-warning">The network fee is high for this amount. Sending more, or to another network, costs less.</p>}
+      {deciding && receiverGets && <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="chain-warning">Check this is their address on {network}. An address on one network may not belong to the same person on another.</p>}
       {deciding && note && (
         <p data-testid="address-check" className={`text-sm ${note.warn ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--muted)]'}`}>{note.text}</p>
       )}
@@ -218,10 +225,10 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                 {ROUTE_LABEL[item.route]}
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
-              {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} />}
+              {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} receiverGets={item.receiver_gets} seconds={item.delivery_seconds} feeWarning={item.fee_warning} />}
               {item.payment_status && (
                 <p className={BAD.includes(item.payment_status) ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
-                  {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : PAYMENT_LABEL[item.payment_status]}
+                  {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : item.receiver_gets && item.payment_status === 'paying' ? `On its way to ${item.network}` : PAYMENT_LABEL[item.payment_status]}
                   {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
                 </p>
