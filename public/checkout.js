@@ -63,7 +63,8 @@
     frame.title = '10kobo checkout';
     frame.setAttribute('allow', 'clipboard-write');
     frame.style.cssText =
-      'border:0;background:#f5f3ee;width:' + (small ? '100%' : '480px') + ';height:' + (small ? '100%' : 'min(860px, 100%)') + ';' +
+      'border:0;background:#f5f3ee;width:' + (small ? '100%' : 'min(560px, 100%)') + ';height:' + (small ? '100%' : 'min(640px, 100%)') + ';' +
+      'transition:height .15s ease;' +
       'border-radius:' + (small ? '0' : '24px') + ';box-shadow:0 20px 60px rgba(0,0,0,.35);';
 
     var shut = document.createElement('button');
@@ -91,6 +92,10 @@
         }
       }
       if (event.data.type === 'close') close();
+      // The checkout says how tall it is, so the box fits it. A phone keeps the full screen.
+      if (event.data.type === 'height' && !small && typeof event.data.height === 'number') {
+        frame.style.height = 'min(' + Math.max(320, Math.round(event.data.height)) + 'px, 100%)';
+      }
     };
     state.onKey = function (event) {
       if (event.key === 'Escape') close();

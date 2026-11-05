@@ -16,7 +16,7 @@ type State = { status: string; amount_naira: number; order: string; notice: { ty
 
 declare global {
   interface Window {
-    TenKobo?: { open: (invoiceId: string, options?: { onPaid?: () => void; onClose?: () => void }) => void };
+    TenKobo?: { open: (invoiceId: string, options?: { onPaid?: () => void; onClose?: (result: { paid: boolean }) => void }) => void };
   }
 }
 
@@ -47,6 +47,8 @@ export function DemoShop() {
   const [order, setOrder] = useState<Order | null>(null);
   const [state, setState] = useState<State | null>(null);
   const [busy, setBusy] = useState(false);
+  // The customer shut the checkout before paying. Nothing was charged, and they can open it again.
+  const [closedUnpaid, setClosedUnpaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const total = MENU.reduce((sum, item) => sum + item.naira * basket[item.id], 0);
 
@@ -69,6 +71,17 @@ export function DemoShop() {
     return () => clearInterval(timer);
   }, [order, check]);
 
+  const openCheckout = (invoiceId: string) => {
+    setClosedUnpaid(false);
+    window.TenKobo?.open(invoiceId, {
+      onPaid: () => void check(invoiceId),
+      onClose: ({ paid }) => {
+        if (!paid) setClosedUnpaid(true);
+        void check(invoiceId);
+      },
+    });
+  };
+
   const pay = async () => {
     setBusy(true);
     setError(null);
@@ -79,7 +92,7 @@ export function DemoShop() {
       remember(made);
       setState(null);
       setOrder(made);
-      window.TenKobo?.open(made.invoice_id, { onPaid: () => void check(made.invoice_id), onClose: () => void check(made.invoice_id) });
+      openCheckout(made.invoice_id);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'We could not start the payment.');
     } finally {
@@ -134,13 +147,18 @@ export function DemoShop() {
         {order && (
           <section aria-label="Your order" className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-sm opacity-70">Order {order.order}</p>
-            <p className="mt-1 text-xl font-semibold" data-testid="order-status">{state ? STATUS[state.status] ?? state.status : 'Checking…'}</p>
+            <p className="mt-1 text-xl font-semibold" data-testid="order-status">
+              {state && closedUnpaid && ['unpaid', 'overdue'].includes(state.status) ? 'Not paid' : state ? (STATUS[state.status] ?? state.status) : 'Checking…'}
+            </p>
+            {state && closedUnpaid && ['unpaid', 'overdue'].includes(state.status) && (
+              <p className="mt-1 text-sm" data-testid="order-closed">You closed the checkout before paying. Nothing was charged.</p>
+            )}
             {state?.status === 'paid' && <p className="mt-1 text-sm">Thank you. Your food is being prepared.</p>}
             <p className="mt-3 text-xs opacity-70" data-testid="order-notice">
               {state?.notice ? `Signed notice from 10kobo received and checked: ${state.notice.type}` : 'No notice from 10kobo yet. This shop also checks the order itself every few seconds.'}
             </p>
             {state && !['paid', 'cancelled', 'expired'].includes(state.status) && (
-              <button type="button" className="mt-3 text-sm font-medium underline" onClick={() => window.TenKobo?.open(order.invoice_id, { onPaid: () => void check(order.invoice_id), onClose: () => void check(order.invoice_id) })}>Open the checkout again</button>
+              <button type="button" className="mt-3 rounded-xl bg-[#111] px-4 py-2 text-sm font-semibold text-white" onClick={() => openCheckout(order.invoice_id)}>{closedUnpaid ? 'Pay now' : 'Open the checkout again'}</button>
             )}
           </section>
         )}

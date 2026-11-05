@@ -15,6 +15,10 @@ test('the button opens 10kobo checkout over the shop page, and Esc or the close 
   const checkout = page.frameLocator('iframe[title="10kobo checkout"]');
   await expect(checkout.getByTestId('link-payee')).toHaveText('Pay Mama Put Kitchen');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/checkout-popup.png' });
+  // The box fits the checkout: wider than before, and no taller than what it shows.
+  await expect.poll(async () => (await page.locator('iframe[title="10kobo checkout"]').boundingBox())!.width).toBeGreaterThan(540);
+  const inner = await checkout.locator('main').evaluate((element) => element.getBoundingClientRect().height);
+  await expect.poll(async () => Math.abs((await page.locator('iframe[title="10kobo checkout"]').boundingBox())!.height - inner)).toBeLessThan(4);
   await checkout.getByTestId('link-payee').click();
   await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);
@@ -96,8 +100,11 @@ test('the demo shop makes the order on its server, opens checkout over the page,
   await expect(page.frameLocator('iframe[title="10kobo checkout"]').getByTestId('link-payee')).toHaveText('Pay Mama Put Kitchen');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/shop-popup.png' });
   await page.getByRole('button', { name: 'Close checkout' }).click();
+  await expect(page.getByTestId('order-status')).toHaveText('Not paid');
+  await expect(page.getByTestId('order-closed')).toHaveText('You closed the checkout before paying. Nothing was charged.');
+  await expect(page.getByRole('button', { name: 'Pay now' })).toBeVisible();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/shop-not-paid.png' });
   expect(basket).toEqual({ items: { jollof: 1, puff: 1, zobo: 1 } });
-  await expect(page.getByTestId('order-status')).toHaveText('Waiting for payment');
   status = 'paid';
   await expect(page.getByTestId('order-status')).toHaveText('Paid', { timeout: 10_000 });
   await expect(page.getByTestId('order-notice')).toContainText('received and checked: invoice.paid');

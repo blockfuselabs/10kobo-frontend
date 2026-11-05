@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Public: whoever opens the link has no account, so this page uses neither sign-in nor a wallet connection.
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -151,6 +151,17 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
     if (embedded && reported && window.parent !== window) window.parent.postMessage({ source: '10kobo', type: 'status', invoice: id, status: reported }, '*');
   }, [embedded, reported, id]);
   const closeBox = () => window.parent.postMessage({ source: '10kobo', type: 'close', invoice: id }, '*');
+  // Tells the box how tall this page is, so it fits the checkout instead of leaving empty space.
+  const pageRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!embedded || !page || window.parent === window) return;
+    const report = () => window.parent.postMessage({ source: '10kobo', type: 'height', invoice: id, height: Math.ceil(page.getBoundingClientRect().height) }, '*');
+    const watcher = new ResizeObserver(report);
+    watcher.observe(page);
+    report();
+    return () => watcher.disconnect();
+  }, [embedded, id]);
   // Keys pressed inside the box reach this page, not the shop's, so Esc is handled here.
   useEffect(() => {
     if (!embedded) return;
@@ -164,9 +175,9 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
   const chosen = CHAINS.find((item) => item.id === chain)!;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10">
+    <main ref={pageRef} className={embedded ? 'flex flex-col items-center bg-[var(--background)] px-4 pt-6 pb-5' : 'flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10'}>
       <p className="font-display mb-8 text-2xl font-bold tracking-tight">10kobo</p>
-      <section className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm" aria-label="Pay this link">
+      <section className={`flex w-full ${embedded ? '' : 'max-w-md'} flex-col gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm`} aria-label="Pay this link">
         {missing && <p className="font-medium">This pay link does not exist. Please check it with the person who sent it.</p>}
         {!missing && !link && !error && <p className="text-[var(--muted)]">Loading…</p>}
         {link && (
