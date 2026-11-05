@@ -41,7 +41,7 @@ function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWar
       {network && <p className="text-sm font-medium" data-testid="network">Network: {network}</p>}
       {receiverGets && deciding && (
         <p className="amount text-sm font-medium" data-testid="receiver-gets">
-          Receiver gets about {receiverGets}{deciding && seconds ? `, in about ${seconds} seconds` : ''}
+          Receiver gets about {receiverGets}{deciding ? `, usually within ${deliveryMinutes(seconds)} minutes` : ''}
         </p>
       )}
       {deciding && feeWarning && <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="fee-warning">The network fee is high for this amount. Sending more, or to another network, costs less.</p>}
@@ -55,6 +55,9 @@ function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWar
 }
 
 const SLOW_DELIVERY_MS = 3 * 60_000;
+
+/** NEAR Intents' estimate covers only its own part. Base confirming and our check take about a minute more, as measured on 5 Nov. */
+const deliveryMinutes = (seconds?: number | null) => Math.max(2, Math.ceil(((seconds ?? 60) + 60) / 60));
 
 /** For USDC to another chain: where it is now, so nobody is left wondering after they sign. */
 function DeliverySteps({ item }: { item: PlanItem }) {
@@ -72,7 +75,8 @@ function DeliverySteps({ item }: { item: PlanItem }) {
   return (
     <ol className="mt-1 flex flex-col gap-1 text-sm" aria-label="Delivery progress" data-testid="delivery-steps">
       <li className="flex items-center gap-2">{mark('done')} Sent from your wallet on Base</li>
-      <li className="flex items-center gap-2">{mark(done ? 'done' : 'now')} {done ? `Moved to ${item.network}` : `Moving to ${item.network}`}{moving && <span className="amount text-[var(--muted)]" role="timer">{clock}{item.delivery_seconds ? `, usually about ${item.delivery_seconds} seconds` : ''}</span>}</li>
+      <li className="flex items-center gap-2">{mark(done ? 'done' : 'now')} {done ? `Moved to ${item.network}` : `Moving to ${item.network}`}</li>
+      {moving && <li className="amount pl-6 text-[var(--muted)]" role="timer">{clock}, usually within {deliveryMinutes(item.delivery_seconds)} minutes</li>}
       <li className="flex items-center gap-2">
         {mark(done ? 'done' : 'next')} {done ? `Received: ${item.received ?? item.receiver_gets}` : 'Received by them'}
         {done && item.delivery_tx_url && <a className="font-medium underline underline-offset-2" href={item.delivery_tx_url} target="_blank" rel="noreferrer">View</a>}
