@@ -44,6 +44,7 @@ test('lists every invoice with its status, filters them, copies a link and cance
   await first.getByRole('button', { name: 'Keep it' }).click();
   expect(cancelled).toEqual([]);
   await first.getByRole('button', { name: 'Cancel invoice' }).click();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/invoices-confirm.png' });
   await first.getByRole('button', { name: 'Yes, cancel it' }).click();
   await expect(first.getByTestId('invoice-status')).toHaveText('Cancelled');
   expect(cancelled).toEqual(['11111111-1111-4111-8111-111111111111']);

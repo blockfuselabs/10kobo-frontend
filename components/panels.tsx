@@ -674,6 +674,9 @@ export function InvoicesPanel({ api }: { api: ApiClient }) {
   );
 }
 
+// Outlined, because the plain small button blends into the white card.
+const invoiceButton = 'btn-small border border-[var(--line)] hover:border-[var(--muted)] hover:bg-[var(--surface-2)]';
+
 function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClient; onChange: () => Promise<unknown> }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -734,22 +737,22 @@ function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClie
         )}
       </dl>
       <div className="flex flex-wrap items-center gap-2">
-        <a className="btn-small" href={invoice.url} target="_blank" rel="noreferrer">Open</a>
+        <a className={invoiceButton} href={invoice.url} target="_blank" rel="noreferrer">Open</a>
         {live && (
-          <button type="button" className="btn-small inline-flex items-center gap-1.5" onClick={copy}>
+          <button type="button" className={`${invoiceButton} gap-1.5`} onClick={copy}>
             {copied ? <CheckIcon /> : <CopyIcon />}
             {copied ? 'Copied' : 'Copy link'}
           </button>
         )}
         {live && invoice.status !== 'being_paid' && !confirming && (
-          <button type="button" className="btn-small" onClick={() => setConfirming(true)}>Cancel invoice</button>
+          <button type="button" className="btn-small border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40" onClick={() => setConfirming(true)}>Cancel invoice</button>
         )}
         {confirming && (
-          <>
-            <span className="text-sm">The link will stop working.</span>
-            <button type="button" className="btn-small text-red-600 dark:text-red-400" disabled={busy} onClick={() => void cancel()}>{busy ? 'Cancelling…' : 'Yes, cancel it'}</button>
-            <button type="button" className="btn-small" disabled={busy} onClick={() => setConfirming(false)}>Keep it</button>
-          </>
+          <div className="flex w-full flex-wrap items-center gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-950/30">
+            <span className="mr-auto text-sm">Cancel this invoice? The link will stop working.</span>
+            <button type="button" className={invoiceButton} disabled={busy} onClick={() => setConfirming(false)}>Keep it</button>
+            <button type="button" className="btn-small bg-red-600 text-white hover:bg-red-700" disabled={busy} onClick={() => void cancel()}>{busy ? 'Cancelling…' : 'Yes, cancel it'}</button>
+          </div>
         )}
       </div>
       {invoice.status === 'being_paid' && <p className="text-sm text-[var(--muted)]">Someone is paying this now, so it cannot be cancelled.</p>}
