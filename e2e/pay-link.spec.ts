@@ -143,8 +143,12 @@ test('when the time runs out it says Expired and takes the address away', async 
   await serve(page, () => current);
   await page.goto(`/pay/${ID}`);
   await expect(page.getByTestId('link-address')).toBeVisible();
-  current = { ...base, open: true, payment: { ...payment, status: 'expired', deposit_address: null, deposit_deadline: null, failure_reason: 'No payment arrived in time.' } };
+  current = { ...base, open: true, payment: { ...payment, status: 'checking', deposit_address: null, deposit_deadline: null, failure_reason: null } };
   await expect(page.getByTestId('link-address')).toHaveCount(0, { timeout: 10_000 });
+  // While a last-moment payment is looked for, nothing invites a second one.
+  await expect(page.getByTestId('link-progress')).toContainText('Please do not send again');
+  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+  current = { ...base, open: true, payment: { ...payment, status: 'expired', deposit_address: null, deposit_deadline: null, failure_reason: 'No payment arrived in time.' } };
   await expect(page.getByTestId('link-last-try')).toContainText('has expired. Do not send to it.');
   await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
 });

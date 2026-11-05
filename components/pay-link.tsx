@@ -56,10 +56,13 @@ const dueText = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDat
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const chainName = (id: string) => CHAINS.find((chain) => chain.id === id)?.name ?? id;
 
+const CHECKING = 'The time to send has passed. We are checking whether your payment arrived, which can take up to 15 minutes. Please do not send again.';
 const NAIRA_PROGRESS: Record<string, string> = {
+  checking: CHECKING.replace('send again', 'transfer again'),
   processing: 'Your transfer arrived. The USDC is on its way to the receiver.',
 };
 const PROGRESS: Record<string, string> = {
+  checking: CHECKING,
   processing: 'We see your payment and are moving it.',
   paying: 'Your USDC arrived. The bank payment is on its way.',
 };
@@ -121,7 +124,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
     void load().catch(() => setError('We could not load this link. Please check your connection.'));
   }, [load]);
 
-  const moving = Boolean(link?.payment && ['awaiting_deposit', 'processing', 'paying'].includes(link.payment.status));
+  const moving = Boolean(link?.payment && ['awaiting_deposit', 'checking', 'processing', 'paying'].includes(link.payment.status));
   // Keeps watching after an address expires too, because money sent just in time can show up a little later.
   const watching = Boolean(link?.payment && !link.paid);
   useEffect(() => {
