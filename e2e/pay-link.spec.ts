@@ -94,6 +94,43 @@ test('works as an invoice: items and due date show, and it offers USDT only wher
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-invoice.png' });
 });
 
+test('someone with only naira can pay an invoice that pays out USDC, by bank transfer', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const wallet = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+  const usdcLink = { ...base, to: wallet, bank_name: 'Base', account_number: null, receives: 'USDC on Base', naira_available: true };
+  let current: object = usdcLink;
+  let sent: unknown = null;
+  await serve(page, () => current);
+  await page.route(`**/v1/public/pay-links/${ID}/pay`, async (route) => {
+    sent = route.request().postDataJSON();
+    current = { ...usdcLink, payment: { id: 'n1', status: 'awaiting_deposit', pay_from: 'naira', pay_token: 'USDC', pay_usdc: '3.602305', receiver_gets_usdc: '3.60', deposit_address: null, deposit_deadline: new Date(Date.now() + 30 * 60_000).toISOString(), failure_reason: null, paid_at: null, links: [], naira_account: { bank_name: 'Safehaven', account_number: '6010681891', account_name: '10kobo Customer', amount_naira: 5000 } } };
+    return route.fulfill({ json: current });
+  });
+  await page.goto(`/pay/${ID}`);
+  await page.getByRole('button', { name: 'Naira, by bank transfer' }).click();
+  await expect(page.getByTestId('naira-note')).toContainText('becomes USDC and goes to');
+  await expect(page.getByLabel(/for any refund/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  expect(sent).toEqual({ pay_from: 'naira' });
+  await expect(page.getByTestId('naira-amount')).toHaveText('₦5,000');
+  await expect(page.getByTestId('naira-account')).toHaveText('6010681891');
+  await expect(page.getByTestId('naira-account-name')).toHaveText('10kobo Customer');
+  await expect(page.getByTestId('link-route')).toContainText(`about 3.60 USDC goes to ${wallet} on Base`);
+  await expect(page.getByRole('timer')).toBeVisible();
+  await page.getByRole('button', { name: 'Copy' }).first().click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('5000');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-naira.png' });
+  current = { ...usdcLink, payment: { ...(current as { payment: object }).payment, status: 'processing', naira_account: null, deposit_deadline: null } };
+  await expect(page.getByTestId('link-progress')).toHaveText('Your transfer arrived. The USDC is on its way to the receiver.', { timeout: 10_000 });
+});
+
+test('naira is not offered when the receiver gets naira', async ({ page }) => {
+  await serve(page, () => ({ ...base, naira_available: false }));
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByRole('button', { name: 'Base', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Naira, by bank transfer' })).toHaveCount(0);
+});
+
 test('a cancelled invoice says so and offers nothing to pay', async ({ page }) => {
   await serve(page, () => ({ ...base, open: false, cancelled: true }));
   await page.goto(`/pay/${ID}`);

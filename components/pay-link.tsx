@@ -11,6 +11,8 @@ const CHAINS = [
   { id: 'arbitrum', name: 'Arbitrum', hint: '0x… address' },
   { id: 'ethereum', name: 'Ethereum', hint: '0x… address' },
   { id: 'solana', name: 'Solana', hint: 'Solana address' },
+  // Offered only when the receiver gets USDC on Base and the server says naira is open.
+  { id: 'naira', name: 'Naira, by bank transfer', hint: '' },
 ] as const;
 
 interface LinkPayment {
@@ -19,6 +21,7 @@ interface LinkPayment {
   pay_from: string;
   pay_usdc: string;
   receiver_gets_usdc?: string | null;
+  naira_account?: { bank_name: string | null; account_number: string; account_name: string | null; amount_naira: number } | null;
   pay_token?: string;
   links?: { label: string; url: string }[];
   deposit_address: string | null;
@@ -39,6 +42,7 @@ interface PublicLink {
   overdue?: boolean;
   line_items?: { description: string; amount_naira: number }[] | null;
   open: boolean;
+  naira_available?: boolean;
   cancelled?: boolean;
   merchant?: string | null;
   return_url?: string | null;
@@ -52,6 +56,9 @@ const dueText = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDat
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const chainName = (id: string) => CHAINS.find((chain) => chain.id === id)?.name ?? id;
 
+const NAIRA_PROGRESS: Record<string, string> = {
+  processing: 'Your transfer arrived. The USDC is on its way to the receiver.',
+};
 const PROGRESS: Record<string, string> = {
   processing: 'We see your payment and are moving it.',
   paying: 'Your USDC arrived. The bank payment is on its way.',
@@ -72,7 +79,7 @@ function Countdown({ until, onEnd }: { until: string; onEnd: () => void }) {
   return <span role="timer">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span>;
 }
 
-function CopyRow({ label, value, testId }: { label: string; value: string; testId: string }) {
+function CopyRow({ label, value, testId, copy = value }: { label: string; value: string; testId: string; copy?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2.5 last:border-0">
@@ -83,7 +90,7 @@ function CopyRow({ label, value, testId }: { label: string; value: string; testI
       <button
         className="btn-small"
         onClick={() =>
-          void navigator.clipboard?.writeText(value).then(() => {
+          void navigator.clipboard?.writeText(copy).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           })
@@ -130,7 +137,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
       const response = await fetch(`${API}/v1/public/pay-links/${id}/pay`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pay_from: chain, pay_token: USDT_FROM.has(chain) ? token : 'USDC', refund_to: refundTo.trim() }),
+        body: JSON.stringify(chain === 'naira' ? { pay_from: 'naira' } : { pay_from: chain, pay_token: USDT_FROM.has(chain) ? token : 'USDC', refund_to: refundTo.trim() }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.message ?? 'We could not set this up. Nothing was sent.');
@@ -172,6 +179,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
     return () => document.removeEventListener('keydown', onKey);
   }, [embedded, id]);
   const waiting = payment?.status === 'awaiting_deposit' && payment.deposit_address;
+  const nairaWaiting = payment?.status === 'awaiting_deposit' && payment.pay_from === 'naira';
   const chosen = CHAINS.find((item) => item.id === chain)!;
 
   return (
@@ -218,17 +226,22 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
 
             {link.open && !moving && (
               <>
-                {payment?.failure_reason && <p className="text-sm text-[var(--muted)]" data-testid="link-last-try">{payment.status === 'expired' ? 'The last payment address has expired. Do not send to it. Continue to get a new one.' : `Your last try ended: ${payment.failure_reason}`}</p>}
+                {payment?.failure_reason && <p className="text-sm text-[var(--muted)]" data-testid="link-last-try">{payment.status === 'expired' ? (payment.pay_from === 'naira' ? 'The last bank account has expired. Do not transfer to it. Continue to get a new one.' : 'The last payment address has expired. Do not send to it. Continue to get a new one.') : `Your last try ended: ${payment.failure_reason}`}</p>}
                 <fieldset>
                   <legend className="mb-2 text-sm font-medium">Pay from</legend>
                   <div className="flex flex-wrap gap-2">
-                    {CHAINS.map((item) => (
+                    {CHAINS.filter((item) => item.id !== 'naira' || link.naira_available).map((item) => (
                       <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => setChain(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
                         {item.name}
                       </button>
                     ))}
                   </div>
                 </fieldset>
+                {chain === 'naira' && (
+                  <p className="text-sm text-[var(--muted)]" data-testid="naira-note">
+                    You will get a Nigerian bank account to transfer to. Once your naira arrives, it becomes USDC and goes to {link.to} on Base.
+                  </p>
+                )}
                 {USDT_FROM.has(chain) && (
                   <fieldset>
                     <legend className="mb-2 text-sm font-medium">Pay with</legend>
@@ -239,13 +252,37 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
                     </div>
                   </fieldset>
                 )}
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                {chain !== 'naira' && <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Your {chosen.name} address, for any refund
                   <input className="field font-normal" value={refundTo} onChange={(event) => setRefundTo(event.target.value)} placeholder={chosen.hint} autoComplete="off" spellCheck={false} />
-                </label>
-                <button className="btn-primary" disabled={busy || refundTo.trim().length < 2} onClick={() => void pay()}>
+                </label>}
+                <button className="btn-primary" disabled={busy || (chain !== 'naira' && refundTo.trim().length < 2)} onClick={() => void pay()}>
                   {busy ? 'Getting the details…' : 'Continue'}
                 </button>
+              </>
+            )}
+
+            {nairaWaiting && payment.naira_account && (
+              <>
+                <div className="inset flex items-center justify-between p-3.5">
+                  <p className="text-sm">This account is valid for</p>
+                  <p className="font-mono text-xl font-semibold">{payment.deposit_deadline ? <Countdown until={payment.deposit_deadline} onEnd={() => void load().catch(() => undefined)} /> : ''}</p>
+                </div>
+                <div className="inset px-3.5 py-1">
+                  <CopyRow label="Transfer exactly" value={naira(payment.naira_account.amount_naira)} copy={String(payment.naira_account.amount_naira)} testId="naira-amount" />
+                  <CopyRow label={`To this account${payment.naira_account.bank_name ? `, ${payment.naira_account.bank_name}` : ''}`} value={payment.naira_account.account_number} testId="naira-account" />
+                  {payment.naira_account.account_name && (
+                    <div className="py-2.5">
+                      <p className="text-xs text-[var(--muted)]">Account name</p>
+                      <p className="font-medium" data-testid="naira-account-name">{payment.naira_account.account_name}</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm font-medium [overflow-wrap:anywhere]" data-testid="link-route">
+                  This account is only for this payment. Once your naira arrives, {payment.receiver_gets_usdc ? `about ${payment.receiver_gets_usdc} USDC` : 'the USDC'} goes to {link.to} on Base.
+                </p>
+                <p className="text-sm text-[var(--muted)]">Transfer the exact amount, in one transfer, from any Nigerian bank, before the time runs out.</p>
+                <p className="text-sm font-medium">Waiting for your transfer…</p>
               </>
             )}
 
@@ -268,7 +305,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
               </>
             )}
 
-            {payment && PROGRESS[payment.status] && <p className="font-medium" data-testid="link-progress">{PROGRESS[payment.status]}</p>}
+            {payment && (payment.pay_from === 'naira' ? NAIRA_PROGRESS : PROGRESS)[payment.status] && <p className="font-medium" data-testid="link-progress">{(payment.pay_from === 'naira' ? NAIRA_PROGRESS : PROGRESS)[payment.status]}</p>}
             {payment?.status === 'needs_support' && <p className="font-medium text-red-600 dark:text-red-400">{payment.failure_reason}</p>}
           </>
         )}
