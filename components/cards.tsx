@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Spinner } from './panels';
 import { ReceiptDialog } from './receipt-dialog';
 import type { AddressCheck, ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
 import { useWallet } from '@/lib/wallet/wallet';
@@ -38,7 +39,7 @@ function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWar
   return (
     <>
       {network && <p className="text-sm font-medium" data-testid="network">Network: {network}</p>}
-      {receiverGets && (
+      {receiverGets && deciding && (
         <p className="amount text-sm font-medium" data-testid="receiver-gets">
           Receiver gets about {receiverGets}{deciding && seconds ? `, in about ${seconds} seconds` : ''}
         </p>
@@ -50,6 +51,34 @@ function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWar
       )}
       {deciding && network && <p className="text-sm text-[var(--muted)]">The receiver must accept USDC on {network}. Crypto sent to a wrong address or network cannot be returned.</p>}
     </>
+  );
+}
+
+const SLOW_DELIVERY_MS = 3 * 60_000;
+
+/** For USDC to another chain: where it is now, so nobody is left wondering after they sign. */
+function DeliverySteps({ item }: { item: PlanItem }) {
+  const moving = item.payment_status === 'paying' || item.payment_status === 'funded';
+  const done = item.payment_status === 'completed';
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!moving) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [moving]);
+  const elapsed = item.paid_at ? Math.max(0, Math.floor((now - new Date(item.paid_at).getTime()) / 1000)) : 0;
+  const clock = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+  const mark = (state: 'done' | 'now' | 'next') => (state === 'done' ? <span aria-hidden className="w-4 text-center">✓</span> : state === 'now' ? <span className="w-4"><Spinner /></span> : <span aria-hidden className="w-4 text-center text-[var(--muted)]">○</span>);
+  return (
+    <ol className="mt-1 flex flex-col gap-1 text-sm" aria-label="Delivery progress" data-testid="delivery-steps">
+      <li className="flex items-center gap-2">{mark('done')} Sent from your wallet on Base</li>
+      <li className="flex items-center gap-2">{mark(done ? 'done' : 'now')} {done ? `Moved to ${item.network}` : `Moving to ${item.network}`}{moving && <span className="amount text-[var(--muted)]" role="timer">{clock}{item.delivery_seconds ? `, usually about ${item.delivery_seconds} seconds` : ''}</span>}</li>
+      <li className="flex items-center gap-2">
+        {mark(done ? 'done' : 'next')} {done ? `Received: ${item.received ?? item.receiver_gets}` : 'Received by them'}
+        {done && item.delivery_tx_url && <a className="font-medium underline underline-offset-2" href={item.delivery_tx_url} target="_blank" rel="noreferrer">View</a>}
+      </li>
+      {moving && elapsed * 1000 > SLOW_DELIVERY_MS && <li className="text-[var(--muted)]">This is taking longer than usual. Please do not send it again. We will tell you here when it arrives, or if it comes back to your wallet.</li>}
+    </ol>
   );
 }
 
@@ -226,13 +255,15 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
               {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} receiverGets={item.receiver_gets} seconds={item.delivery_seconds} feeWarning={item.fee_warning} />}
-              {item.payment_status && (
+              {item.receiver_gets && item.payment_status && ['funded', 'paying', 'completed'].includes(item.payment_status) && !item.simulated ? (
+                <DeliverySteps item={item} />
+              ) : item.payment_status ? (
                 <p className={BAD.includes(item.payment_status) ? 'text-sm text-red-600 dark:text-red-400' : 'text-sm'}>
-                  {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : item.receiver_gets && item.payment_status === 'paying' ? `On its way to ${item.network}` : PAYMENT_LABEL[item.payment_status]}
+                  {busy && item.payment_status === 'awaiting_signature' ? 'Processing' : PAYMENT_LABEL[item.payment_status]}
                   {item.payment_status === 'completed' && item.simulated ? ' (simulated)' : ''}
                   {item.failure_reason ? `: ${item.failure_reason}` : ''}
                 </p>
-              )}
+              ) : null}
               {item.payment_status === 'completed' && !item.simulated && item.payment_id && (
                 <button onClick={() => setReceiptFor(item.payment_id!)} className="mt-1 cursor-pointer text-sm font-medium underline underline-offset-2">Get receipt</button>
               )}

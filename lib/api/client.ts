@@ -134,6 +134,8 @@ export interface PlanItem {
   address_check?: AddressCheck | null;
   /** Set when the USDC goes to another chain: what the receiver should get, as quoted. */
   receiver_gets?: string | null;
+  received?: string | null;
+  delivery_tx_url?: string | null;
   delivery_seconds?: number | null;
   fee_warning?: boolean;
   data_plan: string | null;
