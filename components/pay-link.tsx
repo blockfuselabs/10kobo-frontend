@@ -194,6 +194,7 @@ export function PayLinkPage({ id }: { id: string }) {
         )}
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       </section>
+      {process.env.NEXT_PUBLIC_WALLET_CHAIN !== 'base' && <p className="mt-6 text-sm font-semibold" data-testid="test-version">Test version. No real money.</p>}
       <p className="mt-6 max-w-md text-center text-xs text-[var(--muted)]">You do not need an account. 10kobo does not hold your money: it goes straight to the payment route.</p>
     </main>
   );
