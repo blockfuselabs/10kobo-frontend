@@ -56,3 +56,34 @@ function addsManager(data: Hex): boolean {
     return false;
   }
 }
+
+/**
+ * Sponsored sends per wallet per day. Every operation is signed by its wallet, so the risk is not a stranger
+ * spending someone's gas: it is anyone signing up and draining the sponsorship from their own wallet. Kept in
+ * memory, so a restart clears it and each server instance counts alone. Coinbase's spending limits stay as the backstop.
+ */
+export class DailyGasLimit {
+  private day = '';
+  private readonly used = new Map<string, number>();
+  private readonly limit: number;
+  private readonly today: () => string;
+
+  constructor(limit: number, today: () => string = () => new Date().toISOString().slice(0, 10)) {
+    this.limit = limit;
+    this.today = today;
+  }
+
+  /** Counts this send, or returns false if the wallet has used its allowance today. */
+  take(wallet: string): boolean {
+    const day = this.today();
+    if (day !== this.day) {
+      this.day = day;
+      this.used.clear();
+    }
+    const key = wallet.toLowerCase();
+    const used = this.used.get(key) ?? 0;
+    if (used >= this.limit) return false;
+    this.used.set(key, used + 1);
+    return true;
+  }
+}

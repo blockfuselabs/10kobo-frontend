@@ -1,4 +1,4 @@
-import { sponsorshipRefusal } from '@/lib/sponsorship';
+import { DailyGasLimit, sponsorshipRefusal } from '@/lib/sponsorship';
 
 // The bundler and paymaster, reached through our own domain, as Tokkenly does it. Three reasons:
 // MTN connections in Nigeria cannot reach Coinbase; the key stays secret on the server rather than in
@@ -12,6 +12,8 @@ const TIMEOUT_MS = 20_000;
 const SPONSOR = new Set(['pm_getPaymasterStubData', 'pm_getPaymasterData', 'pm_sponsorUserOperation']);
 const USER_OP = new Set(['eth_sendUserOperation', 'eth_estimateUserOperationGas', ...SPONSOR]);
 const USDC = process.env.USDC_ADDRESS ?? '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+const SENDS_PER_DAY = 50;
+const gasLimit = new DailyGasLimit(SENDS_PER_DAY);
 
 interface RpcRequest {
   id?: unknown;
@@ -73,6 +75,8 @@ export async function POST(request: Request) {
     const sender = operation!.sender as string;
     if (!checked.has(sender)) checked.set(sender, await isOurWallet(sender).catch(() => false));
     if (!checked.get(sender)) return rpcError(item.id, -32602, 'This wallet is not a 10kobo wallet.', 403);
+    // Only a real send costs gas. Estimates and sponsorship requests repeat freely while one is prepared.
+    if (item.method === 'eth_sendUserOperation' && !gasLimit.take(sender)) return rpcError(item.id, -32602, 'This wallet has reached its free sends for today. Please try again tomorrow.', 429);
   }
 
   try {

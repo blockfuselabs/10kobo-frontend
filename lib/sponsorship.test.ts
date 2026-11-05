@@ -1,6 +1,6 @@
 import { encodeFunctionData, parseAbi } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { SPEND_PERMISSION_MANAGER, sponsorshipRefusal } from './sponsorship';
+import { DailyGasLimit, SPEND_PERMISSION_MANAGER, sponsorshipRefusal } from './sponsorship';
 
 const USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 const SENDER = '0x393eA6fbd50b821CdE7EdC1b936c567dbb15c26d';
@@ -40,5 +40,30 @@ describe('sponsorshipRefusal', () => {
 
   it('does not treat another wallet adding the manager as the sender', () => {
     expect(sponsorshipRefusal({ sender: SENDER, callData: batch([{ target: OTHER, data: add(SPEND_PERMISSION_MANAGER) }]) }, USDC)).toMatch(/not allowed/);
+  });
+});
+
+describe('DailyGasLimit', () => {
+  it('allows the limit per wallet, in any letter case, and refuses the next', () => {
+    const limit = new DailyGasLimit(2, () => '2026-11-05');
+    expect(limit.take('0xAbC')).toBe(true);
+    expect(limit.take('0xabc')).toBe(true);
+    expect(limit.take('0xABC')).toBe(false);
+  });
+
+  it('counts each wallet alone', () => {
+    const limit = new DailyGasLimit(1, () => '2026-11-05');
+    expect(limit.take('0xa')).toBe(true);
+    expect(limit.take('0xb')).toBe(true);
+    expect(limit.take('0xa')).toBe(false);
+  });
+
+  it('starts again the next day', () => {
+    let day = '2026-11-05';
+    const limit = new DailyGasLimit(1, () => day);
+    expect(limit.take('0xa')).toBe(true);
+    expect(limit.take('0xa')).toBe(false);
+    day = '2026-11-06';
+    expect(limit.take('0xa')).toBe(true);
   });
 });
