@@ -100,6 +100,23 @@ const activityQuery = (filters: ActivityFilters, page?: number) => {
   return query.toString();
 };
 
+export type InvoiceStatus = 'paid' | 'cancelled' | 'expired' | 'being_paid' | 'overdue' | 'unpaid';
+
+export interface Invoice {
+  id: string;
+  url: string;
+  status: InvoiceStatus;
+  amount_naira: number;
+  note: string | null;
+  due_date: string | null;
+  line_items: { description: string; amount_naira: number }[] | null;
+  to: string;
+  receives: string;
+  created_at: string;
+  expires_at: string;
+  paid_at: string | null;
+}
+
 export interface Schedule {
   id: string;
   group_id: string;
@@ -264,6 +281,8 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     },
     receipt: async (kind: 'payment' | 'deposit', id: string) => (await request<{ receipt: Receipt }>(`/v1/receipts/${kind}/${id}`)).receipt,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
+    invoices: async () => (await request<{ invoices: Invoice[] }>('/v1/pay-links')).invoices,
+    cancelInvoice: (id: string) => request<Invoice>(`/v1/pay-links/${id}/cancel`, { method: 'POST' }),
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
     recheckPlan: (id: string) => request<Plan>(`/v1/plans/${id}/recheck`, { method: 'POST' }),

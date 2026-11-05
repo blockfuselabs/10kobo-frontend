@@ -94,6 +94,13 @@ test('works as an invoice: items and due date show, and it offers USDT only wher
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-invoice.png' });
 });
 
+test('a cancelled invoice says so and offers nothing to pay', async ({ page }) => {
+  await serve(page, () => ({ ...base, open: false, cancelled: true }));
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByText('This invoice was cancelled.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+});
+
 test('when the time runs out it says Expired and takes the address away', async ({ page }) => {
   let current: object = { ...base, payment: { ...payment, deposit_deadline: new Date(Date.now() + 1500).toISOString() } };
   await serve(page, () => current);

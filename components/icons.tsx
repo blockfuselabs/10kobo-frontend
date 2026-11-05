@@ -11,6 +11,7 @@ function Icon({ children, size = 18 }: { children: ReactNode; size?: number }) {
 
 export const ChatIcon = () => <Icon><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5.4A8 8 0 1 1 21 12Z" /></Icon>;
 export const CalendarIcon = () => <Icon><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M8 3v4M16 3v4M3.5 10h17" /></Icon>;
+export const InvoiceIcon = () => <Icon><path d="M6.5 3.5h11A1.5 1.5 0 0 1 19 5v15.5l-2.5-1.5-2.5 1.5-2-1.5-2 1.5-2.5-1.5L5 20.5V5a1.5 1.5 0 0 1 1.5-1.5Z" /><path d="M9 8.5h6M9 12h6" /></Icon>;
 export const ActivityIcon = () => <Icon><path d="M3 12h4l3-7 4 14 3-7h4" /></Icon>;
 export const PlusIcon = () => <Icon><circle cx="12" cy="12" r="8.5" /><path d="M12 8.5v7M8.5 12h7" /></Icon>;
 export const SendIcon = () => <Icon><path d="M12 19V5M6 11l6-6 6 6" /></Icon>;

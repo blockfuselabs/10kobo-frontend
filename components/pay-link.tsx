@@ -39,6 +39,7 @@ interface PublicLink {
   overdue?: boolean;
   line_items?: { description: string; amount_naira: number }[] | null;
   open: boolean;
+  cancelled?: boolean;
   paid: boolean;
   payment: LinkPayment | null;
 }
@@ -178,7 +179,7 @@ export function PayLinkPage({ id }: { id: string }) {
               </div>
             )}
 
-            {!link.paid && !link.open && !moving && <p className="font-medium">This pay link is not open right now. Please ask the person who sent it.</p>}
+            {!link.paid && !link.open && !moving && <p className="font-medium">{link.cancelled ? 'This invoice was cancelled. Please ask the person who sent it.' : 'This pay link is not open right now. Please ask the person who sent it.'}</p>}
 
             {link.open && !moving && (
               <>

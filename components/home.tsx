@@ -5,8 +5,8 @@ import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSumma
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
-import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
+import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
+import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -33,6 +33,7 @@ const SUGGESTIONS = [
 const VIEWS = [
   ['chat', 'Chat', ChatIcon],
   ['schedules', 'Scheduled', CalendarIcon],
+  ['invoices', 'Invoices', InvoiceIcon],
   ['activity', 'Activity', ActivityIcon],
   ['receive', 'Add USDC', PlusIcon],
 ] as const;
@@ -498,7 +499,7 @@ export function Home() {
       <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">
       <nav
           aria-label="Sections"
-          className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-0.5"
+          className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-0.5"
         >
           {VIEWS.map(([key, label, ViewIcon]) => (
             <button
@@ -554,6 +555,7 @@ export function Home() {
           <section className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
               {view === 'schedules' && <SchedulesPanel api={api} />}
+              {view === 'invoices' && <InvoicesPanel api={api} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
             </div>

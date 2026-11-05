@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ActivityEntry, ActivityPage, ApiClient, DepositTerms, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
+import type { ActivityEntry, ActivityPage, ApiClient, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
-import { ArrowInIcon, ArrowOutIcon, DownloadIcon, SearchIcon } from './icons';
+import { ArrowInIcon, ArrowOutIcon, CheckIcon, CopyIcon, DownloadIcon, SearchIcon } from './icons';
 import { ReceiptDialog } from './receipt-dialog';
 
 const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
@@ -597,5 +597,163 @@ export function SchedulesPanel({ api }: { api: ApiClient }) {
       ))}
     </ul>
     </div>
+  );
+}
+
+const INVOICE_STATUS: Record<InvoiceStatus, { label: string; tone: string }> = {
+  unpaid: { label: 'Unpaid', tone: 'bg-[var(--surface-2)] text-[var(--foreground)]' },
+  being_paid: { label: 'Being paid', tone: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200' },
+  overdue: { label: 'Overdue', tone: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' },
+  paid: { label: 'Paid', tone: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200' },
+  cancelled: { label: 'Cancelled', tone: 'bg-[var(--surface-2)] text-[var(--muted)]' },
+  expired: { label: 'Expired', tone: 'bg-[var(--surface-2)] text-[var(--muted)]' },
+};
+const FILTERS = [
+  ['all', 'All'],
+  ['open', 'Unpaid'],
+  ['paid', 'Paid'],
+  ['closed', 'Cancelled or expired'],
+] as const;
+type InvoiceFilter = (typeof FILTERS)[number][0];
+const inFilter = (invoice: Invoice, filter: InvoiceFilter) =>
+  filter === 'all' ||
+  (filter === 'open' && ['unpaid', 'overdue', 'being_paid'].includes(invoice.status)) ||
+  (filter === 'paid' && invoice.status === 'paid') ||
+  (filter === 'closed' && ['cancelled', 'expired'].includes(invoice.status));
+const nairaOf = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
+const dayOf = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium' });
+
+/** Every pay link and invoice the user has made, so none are lost in old chats. */
+export function InvoicesPanel({ api }: { api: ApiClient }) {
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<InvoiceFilter>('all');
+  const load = useCallback(() => api.invoices().then(setInvoices, (failure: Error) => setError(failure.message)), [api]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
+  if (!invoices) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
+  const waiting = invoices.filter((invoice) => inFilter(invoice, 'open'));
+  const shown = invoices.filter((invoice) => inFilter(invoice, filter));
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="page-title">Invoices</h1>
+      {invoices.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">No invoices yet. Ask in the chat, for example: make an invoice for my client, ₦5,000 for repairs, due 30 November.</p>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--muted)]" data-testid="invoice-summary">
+            {waiting.length === 0 ? 'Nothing waiting to be paid.' : `${waiting.length} waiting to be paid, ${nairaOf(waiting.reduce((sum, invoice) => sum + invoice.amount_naira, 0))} in all.`}
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
+            {FILTERS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${filter === key ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--foreground)]'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {shown.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">None here.</p>
+          ) : (
+            <ul aria-label="Invoices" className="flex flex-col gap-2">
+              {shown.map((invoice) => (
+                <InvoiceRow key={invoice.id} invoice={invoice} api={api} onChange={load} />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClient; onChange: () => Promise<unknown> }) {
+  const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const status = INVOICE_STATUS[invoice.status];
+  const live = ['unpaid', 'overdue', 'being_paid'].includes(invoice.status);
+  const copy = () =>
+    void navigator.clipboard?.writeText(invoice.url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  const cancel = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.cancelInvoice(invoice.id);
+      await onChange();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'We could not cancel it. Please try again.');
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+  return (
+    <li className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-label={`Invoice for ${nairaOf(invoice.amount_naira)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="amount text-lg font-semibold">{nairaOf(invoice.amount_naira)}</p>
+          <p className="break-words text-sm">{invoice.note ?? 'No description'}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`} data-testid="invoice-status">{status.label}</span>
+      </div>
+      {invoice.line_items?.length ? (
+        <ul className="flex flex-col gap-0.5 text-sm text-[var(--muted)]">
+          {invoice.line_items.map((item, index) => (
+            <li key={index} className="flex justify-between gap-3"><span className="min-w-0 break-words">{item.description}</span><span className="amount shrink-0">{nairaOf(item.amount_naira)}</span></li>
+          ))}
+        </ul>
+      ) : null}
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-sm">
+        <dt className="text-[var(--muted)]">Pays to</dt>
+        <dd className="[overflow-wrap:anywhere]">{invoice.to}, {invoice.receives}</dd>
+        <dt className="text-[var(--muted)]">Made</dt>
+        <dd>{dateOf(invoice.created_at)}</dd>
+        {invoice.due_date && (
+          <>
+            <dt className="text-[var(--muted)]">Due</dt>
+            <dd className={invoice.status === 'overdue' ? 'font-medium text-red-600 dark:text-red-400' : ''}>{dayOf(invoice.due_date)}</dd>
+          </>
+        )}
+        {invoice.paid_at && (
+          <>
+            <dt className="text-[var(--muted)]">Paid</dt>
+            <dd>{dateOf(invoice.paid_at)}</dd>
+          </>
+        )}
+      </dl>
+      <div className="flex flex-wrap items-center gap-2">
+        <a className="btn-small" href={invoice.url} target="_blank" rel="noreferrer">Open</a>
+        {live && (
+          <button type="button" className="btn-small inline-flex items-center gap-1.5" onClick={copy}>
+            {copied ? <CheckIcon /> : <CopyIcon />}
+            {copied ? 'Copied' : 'Copy link'}
+          </button>
+        )}
+        {live && invoice.status !== 'being_paid' && !confirming && (
+          <button type="button" className="btn-small" onClick={() => setConfirming(true)}>Cancel invoice</button>
+        )}
+        {confirming && (
+          <>
+            <span className="text-sm">The link will stop working.</span>
+            <button type="button" className="btn-small text-red-600 dark:text-red-400" disabled={busy} onClick={() => void cancel()}>{busy ? 'Cancelling…' : 'Yes, cancel it'}</button>
+            <button type="button" className="btn-small" disabled={busy} onClick={() => setConfirming(false)}>Keep it</button>
+          </>
+        )}
+      </div>
+      {invoice.status === 'being_paid' && <p className="text-sm text-[var(--muted)]">Someone is paying this now, so it cannot be cancelled.</p>}
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </li>
   );
 }
