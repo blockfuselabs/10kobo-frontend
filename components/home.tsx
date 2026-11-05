@@ -7,6 +7,7 @@ import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
 import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, ReceivePanel, SchedulesPanel, Spinner } from './panels';
+import { PayLinkCard, splitPayLink } from './pay-link-card';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -578,7 +579,7 @@ export function Home() {
                             : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
                       }
                     >
-                      {message.content}
+                      {message.role === 'assistant' ? splitPayLink(message.content).text : message.content}
                       {message.notice && message.tx_hash && (
                         <>
                           {' '}
@@ -586,6 +587,10 @@ export function Home() {
                         </>
                       )}
                     </p>
+                    {message.role === 'assistant' && (() => {
+                      const link = splitPayLink(message.content);
+                      return link.id && link.url ? <PayLinkCard id={link.id} url={link.url} /> : null;
+                    })()}
                     {message.plan && <PlanApprovalCard plan={message.plan} api={api} onChange={reload} />}
                     {message.schedule_group && <ScheduleApprovalCard group={message.schedule_group} api={api} onChange={reload} />}
                     {message.cancel_schedule && <CancelScheduleCard schedule={message.cancel_schedule} api={api} onChange={reload} />}

@@ -27,6 +27,7 @@ test('someone with no account opens a link, chooses a chain, and sees exactly wh
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByTestId('link-usdc')).toHaveText('3.573829');
   await expect(page.getByTestId('link-address')).toHaveText(payment.deposit_address);
+  await expect(page.getByTestId('link-route')).toContainText('It is not the receiver');
   await expect(page.getByRole('timer')).toBeVisible();
   expect(sent).toEqual({ pay_from: 'arbitrum', pay_token: 'USDC', refund_to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' });
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-waiting.png' });

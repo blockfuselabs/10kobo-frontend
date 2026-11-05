@@ -214,8 +214,12 @@ export function PayLinkPage({ id }: { id: string }) {
                 </div>
                 <div className="inset px-3.5 py-1">
                   <CopyRow label={`Send exactly, in ${payment.pay_token ?? 'USDC'}`} value={payment.pay_usdc} testId="link-usdc" />
-                  <CopyRow label={`To this ${chainName(payment.pay_from)} address`} value={payment.deposit_address!} testId="link-address" />
+                  <CopyRow label={`To this one-time ${chainName(payment.pay_from)} address`} value={payment.deposit_address!} testId="link-address" />
                 </div>
+                <p className="text-sm font-medium" data-testid="link-route">
+                  This address is only for this payment. It is not the receiver&apos;s account.{' '}
+                  {link.receives === 'USDC on NEAR' ? `Once your ${payment.pay_token ?? 'USDC'} arrives, it goes on to ${link.to} on NEAR.` : `Once your ${payment.pay_token ?? 'USDC'} arrives, ${naira(link.amount_naira)} goes to the ${link.bank_name} account above.`}
+                </p>
                 <p className="text-sm text-[var(--muted)]">Send only {payment.pay_token ?? 'USDC'}, only on {chainName(payment.pay_from)}. Crypto sent on another network cannot be returned. Sending too little returns it to your refund address.</p>
                 <p className="text-sm font-medium">Waiting for your payment…</p>
               </>
