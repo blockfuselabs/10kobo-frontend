@@ -94,6 +94,27 @@ test('works as an invoice: items and due date show, and it offers USDT only wher
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-invoice.png' });
 });
 
+test('when the time runs out it says Expired and takes the address away', async ({ page }) => {
+  let current: object = { ...base, payment: { ...payment, deposit_deadline: new Date(Date.now() + 1500).toISOString() } };
+  await serve(page, () => current);
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByTestId('link-address')).toBeVisible();
+  current = { ...base, open: true, payment: { ...payment, status: 'expired', deposit_address: null, deposit_deadline: null, failure_reason: 'No payment arrived in time.' } };
+  await expect(page.getByTestId('link-address')).toHaveCount(0, { timeout: 10_000 });
+  await expect(page.getByTestId('link-last-try')).toContainText('has expired. Do not send to it.');
+  await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
+});
+
+test('an invoice paid out in USDC on Base says where it goes, with no bank in sight', async ({ page }) => {
+  const wallet = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+  await serve(page, () => ({ ...base, to: wallet, bank_name: 'Base', account_number: null, receives: 'USDC on Base', payment: { ...payment, receiver_gets_usdc: '3.33' } }));
+  await page.goto(`/pay/${ID}`);
+  await expect(page.getByText(`paid as USDC on Base`)).toBeVisible();
+  await expect(page.getByTestId('link-route')).toContainText(`about 3.33 USDC goes on to ${wallet} on Base`);
+  await expect(page.getByText('account above')).toHaveCount(0);
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-usdc.png' });
+});
+
 test('shows proof links once paid, and says plainly when USDC goes to NEAR', async ({ page }) => {
   await serve(page, () => ({ ...base, to: 'ada.near', account_number: null, receives: 'USDC on NEAR', open: false, paid: true, payment: { ...payment, status: 'paid', deposit_address: null, links: [{ label: 'NEAR Intents settlement', url: 'https://nearblocks.io/txns/abc' }] } }));
   await page.goto(`/pay/${ID}`);

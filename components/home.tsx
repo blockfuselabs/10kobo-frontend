@@ -185,6 +185,27 @@ function ChatList({ chats, active, actions }: { chats: Chat[]; active: string | 
   );
 }
 
+/** Copies one message. Always there on a phone, and on a computer it shows when the pointer is over the message. */
+function CopyMessage({ text, mine }: { text: string; mine: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () =>
+    void navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={copied ? 'Copied' : 'Copy this text'}
+      title={copied ? 'Copied' : 'Copy'}
+      className={`-mt-1 cursor-pointer rounded-lg p-1 text-[var(--muted)] transition-opacity hover:text-[var(--foreground)] focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${mine ? 'self-end' : 'self-start'}`}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </button>
+  );
+}
+
 export function Home() {
   const { getToken, signOut } = useAuth();
   const wallet = useWallet();
@@ -194,6 +215,14 @@ export function Home() {
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
+  const messageBox = useRef<HTMLTextAreaElement>(null);
+  // The box grows with what is typed, up to about eight lines, and then scrolls.
+  useEffect(() => {
+    const box = messageBox.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${Math.min(box.scrollHeight, 220)}px`;
+  }, [draft]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<WalletSummary | null>(null);
@@ -352,9 +381,11 @@ export function Home() {
     <form
                   onSubmit={send}
                   autoComplete="off"
-                  className="flex w-full items-center gap-2 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-2.5 pl-6 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--muted)]"
+                  className="flex w-full items-end gap-2 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-2.5 pl-6 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--muted)]"
                 >
-                  <input
+                  <textarea
+                    ref={messageBox}
+                    rows={1}
                     id="message"
                     aria-label="Message"
                     // Chrome would otherwise offer old messages, including account numbers, as suggestions.
@@ -363,9 +394,15 @@ export function Home() {
                     autoCorrect="off"
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      // Enter sends and Shift+Enter starts a new line. On a phone, Enter stays a new line and the button sends.
+                      if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || window.matchMedia('(pointer: coarse)').matches) return;
+                      event.preventDefault();
+                      event.currentTarget.form?.requestSubmit();
+                    }}
                     maxLength={2000}
                     placeholder="Tell me what to pay"
-                    className="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none md:text-[17px] placeholder:text-[var(--muted)]"
+                    className="min-w-0 flex-1 resize-none bg-transparent py-2.5 text-base leading-6 outline-none md:text-[17px] placeholder:text-[var(--muted)]"
                   />
                   <button
                     aria-label={sending ? 'Sending…' : 'Send'}
@@ -568,14 +605,14 @@ export function Home() {
               <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-3 px-4 py-5 md:px-8 md:py-8">
                 {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
                 {messages.map((message) => (
-                  <div key={message.id} className="rise flex flex-col gap-2">
+                  <div key={message.id} className="group rise flex flex-col gap-2">
                     <p
                       data-notice={message.notice ? 'true' : undefined}
                       className={
                         message.notice
                           ? 'max-w-[90%] self-center whitespace-pre-wrap rounded-full bg-[var(--surface-2)] px-3.5 py-1.5 text-center text-xs text-[var(--muted)]'
                           : message.role === 'user'
-                            ? 'max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]'
+                            ? 'max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)] selection:bg-[var(--accent-text)] selection:text-[var(--accent)]'
                             : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
                       }
                     >
@@ -587,6 +624,7 @@ export function Home() {
                         </>
                       )}
                     </p>
+                    {!message.notice && <CopyMessage text={message.content} mine={message.role === 'user'} />}
                     {message.role === 'assistant' && (() => {
                       const link = splitPayLink(message.content);
                       return link.id && link.url ? <PayLinkCard id={link.id} url={link.url} /> : null;
