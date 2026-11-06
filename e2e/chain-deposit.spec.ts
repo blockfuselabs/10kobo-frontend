@@ -32,6 +32,13 @@ test('a deposit from Tron gives a one-time address, then shows the USDC arriving
   await box.getByTestId('network-picker').click();
   await box.getByRole('option', { name: /^BNB Chain/ }).click();
   await expect(box.getByLabel(/Your BNB Chain address/)).toHaveValue(MY_EVM);
+  // The token is chosen once, in a labelled switch, and the chosen network does not repeat it.
+  const tokens = box.getByRole('group', { name: 'Token you are sending' });
+  await expect(tokens.getByRole('button')).toHaveText(['USDC', 'USDT']);
+  await expect(box.getByTestId('network-picker')).toHaveText(/BNB Chain$/);
+  await tokens.getByRole('button', { name: 'USDT' }).click();
+  await expect(box.getByLabel(/Amount in USDT/)).toBeVisible();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/chain-deposit-token.png' });
 
   // Tron has only USDT and no saved address yet.
   await box.getByTestId('network-picker').click();

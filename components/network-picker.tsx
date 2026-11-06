@@ -111,7 +111,6 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
           <>
             <Mark name={chosen.name} />
             <span className="flex-1 font-medium">{chosen.name}</span>
-            <Tokens tokens={chosen.tokens} />
           </>
         ) : (
           <span className="flex-1 text-[var(--muted)]">Choose a network</span>

@@ -420,13 +420,16 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
       {network && (
         <>
           {network.tokens.length > 1 ? (
-            <div className="flex gap-2" role="group" aria-label="Token">
-              {network.tokens.map((item) => (
-                <button key={item} type="button" aria-pressed={token === item} onClick={() => setToken(item)} className={`btn-small rounded-full border ${token === item ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>{item}</button>
-              ))}
+            <div className="flex flex-col gap-1 text-sm">
+              <span id="chain-deposit-token">Token you are sending</span>
+              <div className="grid grid-cols-2 gap-1 rounded-2xl bg-[var(--surface-2)] p-1" role="group" aria-labelledby="chain-deposit-token">
+                {network.tokens.map((item) => (
+                  <button key={item} type="button" aria-pressed={token === item} onClick={() => setToken(item)} className={`rounded-xl py-2 font-medium ${token === item ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}>{item}</button>
+                ))}
+              </div>
             </div>
           ) : (
-            <p className="text-sm text-[var(--muted)]">From {network.name}, you send {network.tokens[0]}.</p>
+            <p className="inset px-3.5 py-2.5 text-sm">From {network.name}, you send <strong className="font-semibold">{network.tokens[0]}</strong>.</p>
           )}
           <label className="flex flex-col gap-1 text-sm">
             Amount in {token}
