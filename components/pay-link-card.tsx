@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CardHeader } from './card-header';
+import { InvoiceIcon } from './icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const LINK = /(https?:\/\/\S+\/pay\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))\b/;
@@ -53,13 +55,14 @@ export function PayLinkCard({ id, url }: { id: string; url: string }) {
 
   return (
     <section className="card rise flex flex-col gap-3" aria-label="Invoice">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm text-[var(--muted)]">{details?.line_items?.length || details?.due_date ? 'Invoice' : 'Pay link'}</p>
-          {details && <p className="amount text-2xl font-semibold tracking-tight">{naira(details.amount_naira)}</p>}
-        </div>
-        {details?.paid && <p className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-xs font-semibold">Paid</p>}
-      </div>
+      <CardHeader
+        Icon={InvoiceIcon}
+        title={details?.line_items?.length || details?.due_date ? 'Invoice' : 'Pay Link'}
+        aside={details?.paid ? <p className="rounded-full bg-[var(--pop)] px-2.5 py-1 text-xs font-semibold text-[#111]">Paid</p> : undefined}
+      >
+        Share the link with whoever pays you
+      </CardHeader>
+      {details && <p className="amount text-2xl font-semibold tracking-tight">{naira(details.amount_naira)}</p>}
       {details?.line_items?.length ? (
         <ul className="flex flex-col gap-1 border-y border-[var(--line)] py-2.5 text-sm">
           {details.line_items.map((item, index) => (

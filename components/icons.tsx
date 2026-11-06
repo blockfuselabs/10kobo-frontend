@@ -20,6 +20,8 @@ export const CheckIcon = () => <Icon size={14}><path d="m5 12.5 4.5 4.5L19 7.5" 
 export const BankIcon = () => <Icon><path d="M3.5 9.5 12 4l8.5 5.5" /><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5" /><path d="M3.5 20h17" /></Icon>;
 export const WalletIcon = () => <Icon><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" /><rect x="4" y="8" width="16.5" height="11.5" rx="2.5" /><path d="M16.5 13.75h.01" /></Icon>;
 export const NetworksIcon = () => <Icon><circle cx="6" cy="6.5" r="2.5" /><circle cx="18" cy="6.5" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8.3 7.6 10.8 16M15.7 7.6 13.2 16M8.5 6.5h7" /></Icon>;
+export const PersonIcon = () => <Icon><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></Icon>;
+export const LockIcon = () => <Icon><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" /></Icon>;
 export const PencilIcon = () => <Icon><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></Icon>;
 export const ArrowInIcon = () => <Icon size={16}><path d="M17 7 7 17M7 8v9h9" /></Icon>;
 export const ArrowOutIcon = () => <Icon size={16}><path d="M7 17 17 7M8 7h9v9" /></Icon>;

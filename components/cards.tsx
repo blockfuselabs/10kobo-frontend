@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Spinner } from './panels';
 import { ReceiptDialog } from './receipt-dialog';
+import { CardHeader } from './card-header';
+import { CalendarIcon, LockIcon, PersonIcon, SendIcon } from './icons';
 import type { AddressCheck, ApiClient, ContactCard, PaymentStatus, Plan, PlanItem, Schedule, ScheduleGroup } from '@/lib/api/client';
 import { useWallet } from '@/lib/wallet/wallet';
 
@@ -249,6 +251,9 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
   return (
     <section className={card} aria-label="Payments to approve">
       {receiptFor && <ReceiptDialog api={api} kind="payment" id={receiptFor} onClose={closeReceipt} />}
+      <CardHeader Icon={SendIcon} title={plan.items.length > 1 ? `${plan.items.length} Payments` : 'Payment'}>
+        {plan.status === 'proposed' ? 'Check the details, then approve.' : plan.status === 'approved' ? 'Approved' : plan.status === 'rejected' ? 'Rejected' : 'This price has expired'}
+      </CardHeader>
       <ul className="flex flex-col gap-3">
         {plan.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
@@ -322,8 +327,7 @@ export function SetPinCard({ api, onChange }: { api: ApiClient; onChange: () => 
   const [pin, setPin] = useState('');
   return (
     <section className={card} aria-label="Set your PIN">
-      <p className="font-medium">Set a 4-digit PIN</p>
-      <p className="text-sm text-[var(--muted)]">You will enter it to approve payments and save new recipients.</p>
+      <CardHeader Icon={LockIcon} title="Set a 4-digit PIN">You will enter it to approve payments and save new recipients.</CardHeader>
       <div className="flex gap-2">
         <PinField value={pin} onChange={setPin} />
         <button className={primary} disabled={busy || pin.length !== 4} onClick={() => void run(() => api.setPin(pin))}>
@@ -355,6 +359,7 @@ export function ScheduleApprovalCard({ group, api, onChange }: { group: Schedule
 
   return (
     <section className={card} aria-label="Scheduled payments to approve">
+      <CardHeader Icon={CalendarIcon} title={group.items.length > 1 ? `${group.items.length} Scheduled Payments` : 'Scheduled Payment'}>Check when and how much, then approve.</CardHeader>
       <ul className="flex flex-col gap-3">
         {group.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 last:border-0 last:pb-0">
@@ -441,6 +446,7 @@ export function CancelScheduleButton({ schedule, api, onChange, label = 'Cancel'
 export function CancelScheduleCard({ schedule, api, onChange }: { schedule: Schedule; api: ApiClient; onChange: () => Promise<unknown> }) {
   return (
     <section className={card} aria-label="Stop this scheduled payment">
+      <CardHeader Icon={CalendarIcon} title="Stop a Scheduled Payment" />
       <p className="font-medium">
         {schedule.status === 'cancelled' ? 'Stopped' : 'Stop'}: {schedule.amount} to {schedule.recipient_name}
       </p>
@@ -475,7 +481,7 @@ export function ContactConfirmCard({
   }
   return (
     <section className={card} aria-label="Confirm this recipient">
-      <p>Is this {contact.name}?</p>
+      <CardHeader Icon={PersonIcon} title="New Recipient">Is this {contact.name}?</CardHeader>
       <p className="break-words font-medium">{contact.detail}</p>
       <div className="flex flex-wrap gap-2">
         {pin.needed && <PinField value={pin.pin} onChange={pin.setPin} />}

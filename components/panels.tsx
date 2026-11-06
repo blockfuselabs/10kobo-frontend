@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
+import { CardHeader } from './card-header';
 import { CancelScheduleButton, TxLink } from './cards';
 import { ArrowInIcon, ArrowOutIcon, BankIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
 import { NetworkPicker } from './network-picker';
@@ -194,7 +195,7 @@ export function DepositCard({ deposit: first, api, onChanged }: { deposit: Naira
   };
   return (
     <section className="card rise" aria-label="Deposit card">
-      <p className="amount text-lg font-semibold tracking-tight">Deposit {deposit.amount}</p>
+      <CardHeader Icon={BankIcon} title={<span className="amount">Deposit {deposit.amount}</span>}>Naira by bank transfer, into your wallet as USDC</CardHeader>
       <DepositProgress
         deposit={deposit}
         busy={busy}
@@ -447,19 +448,6 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
         {busy ? 'Getting the address…' : 'Get deposit address'}
       </button>
     </form>
-  );
-}
-
-/** The top of a card: its icon in a lime circle, its title, and one line on what it is for. */
-function CardHeader({ Icon, title, children }: { Icon: () => React.JSX.Element; title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 border-b border-[var(--line)] pb-4">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--pop)] text-[#111]"><Icon /></span>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="font-semibold">{title}</p>
-        <p className="text-sm text-[var(--muted)]">{children}</p>
-      </div>
-    </div>
   );
 }
 
