@@ -31,7 +31,11 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
+  // Opens towards the side with more room, and no taller than that room, so the list never hides off-screen.
+  const [place, setPlace] = useState<{ up: boolean; height: number }>({ up: false, height: 288 });
   const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const listId = useId();
   const labelId = useId();
@@ -43,9 +47,24 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
   const shown = ordered.filter((item) => `${item.name} ${item.tokens.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase()));
   const chosen = networks.find((item) => item.id === value) ?? null;
 
+  const toggle = () => {
+    if (!open && button.current) {
+      const box = button.current.getBoundingClientRect();
+      const below = window.innerHeight - box.bottom - 16;
+      const above = box.top - 16;
+      const up = below < 300 && above > below;
+      // Room for the search box and margins comes off the list's own height.
+      setPlace({ up, height: Math.max(160, Math.min(288, (up ? above : below) - 76)) });
+    }
+    setOpen(!open);
+    setActive(0);
+  };
+
   useEffect(() => {
     if (!open) return;
-    search.current?.focus();
+    search.current?.focus({ preventScroll: true });
+    // On a very short screen it may still not fit, so bring it fully into view.
+    panel.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const away = (event: MouseEvent) => {
       if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
     };
@@ -78,12 +97,13 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
     <div ref={root} className="relative flex flex-col gap-1 text-sm">
       <span id={labelId}>{label}</span>
       <button
+        ref={button}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-labelledby={labelId}
-        onClick={() => { setOpen(!open); setActive(0); }}
-        onKeyDown={(event) => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); } }}
+        onClick={toggle}
+        onKeyDown={(event) => { if (event.key === 'ArrowDown' && !open) { event.preventDefault(); toggle(); } }}
         className={`flex min-h-12 w-full items-center gap-3 rounded-2xl border bg-[var(--surface)] px-3.5 py-2 text-left transition-colors hover:border-[var(--foreground)] ${open ? 'border-[var(--foreground)]' : 'border-[var(--line)]'}`}
         data-testid="network-picker"
       >
@@ -99,7 +119,7 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
         <svg aria-hidden viewBox="0 0 20 20" className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
       {open && (
-        <div className="absolute top-full right-0 left-0 z-30 mt-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-xl" onKeyDown={keys}>
+        <div ref={panel} className={`absolute right-0 left-0 z-30 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-xl ${place.up ? 'bottom-full mb-2' : 'top-full mt-2'}`} onKeyDown={keys} data-opens={place.up ? 'up' : 'down'}>
           <div className="border-b border-[var(--line)] p-2">
             <input
               ref={search}
@@ -111,7 +131,7 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
               className="w-full rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm outline-none placeholder:text-[var(--muted)]"
             />
           </div>
-          <ul id={listId} role="listbox" aria-labelledby={labelId} className="max-h-72 overflow-y-auto p-1.5">
+          <ul id={listId} role="listbox" aria-labelledby={labelId} className="overflow-y-auto p-1.5" style={{ maxHeight: place.height }}>
             {shown.map((item, index) => (
               <li
                 key={item.id}

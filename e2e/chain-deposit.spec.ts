@@ -91,3 +91,20 @@ test('the network list opens, searches, and chooses with the keyboard', async ({
   await page.keyboard.press('Escape');
   await expect(page.getByRole('listbox')).toHaveCount(0);
 });
+
+test('near the bottom of the screen the network list opens upwards and fits, so nothing has to be scrolled to', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 640 });
+  await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  const picker = page.getByTestId('network-picker');
+  // Brings the box to the bottom edge, as in the screenshot that showed the problem.
+  await picker.evaluate((element) => element.scrollIntoView({ block: 'end' }));
+  await picker.click();
+  const panel = page.locator('[data-opens]');
+  await expect(panel).toHaveAttribute('data-opens', 'up');
+  const box = (await panel.boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(640);
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/network-picker-up.png' });
+});
