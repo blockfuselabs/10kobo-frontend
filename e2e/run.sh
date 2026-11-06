@@ -11,7 +11,7 @@ LOGS=/tmp/10kobo-e2e-logs; mkdir -p "$LOGS"
 (cd "$BACKEND" && npm run -s build) || exit 1
 # The app does not change its own database, so this one must be brought up to date first.
 (cd "$BACKEND" && npm run -s db:migrate) >"$LOGS/migrate.log" 2>&1
-(cd "$BACKEND" && IDENTITY_PROVIDER=test PORT=4011 CORS_ORIGINS=http://localhost:3011 PRIVY_APP_ID=test PRIVY_APP_SECRET=test PRIVY_VERIFICATION_KEY=test \
+(cd "$BACKEND" && IDENTITY_PROVIDER=test ADMIN_TOKEN=admin-token-for-browser-tests-01 PORT=4011 CORS_ORIGINS=http://localhost:3011 PRIVY_APP_ID=test PRIVY_APP_SECRET=test PRIVY_VERIFICATION_KEY=test \
   env ${E2E_BACKEND_ENV:-} node dist/main >"$LOGS/backend.log" 2>&1) &
 BACKEND_JOB=$!
 env NEXT_DIST_DIR=.next-e2e NEXT_PUBLIC_IDENTITY=test NEXT_PUBLIC_API_URL=http://localhost:4011 ${E2E_FRONTEND_ENV:-} \

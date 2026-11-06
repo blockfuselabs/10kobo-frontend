@@ -11,8 +11,6 @@ const CHAINS = [
   { id: 'arbitrum', name: 'Arbitrum', hint: '0x… address' },
   { id: 'ethereum', name: 'Ethereum', hint: '0x… address' },
   { id: 'solana', name: 'Solana', hint: 'Solana address' },
-  // Offered only when the receiver gets USDC on Base and the server says naira is open.
-  { id: 'naira', name: 'Naira, by bank transfer', hint: '' },
 ] as const;
 
 interface LinkPayment {
@@ -54,7 +52,7 @@ const USDT_FROM = new Set(['near', 'ethereum', 'solana']);
 const dueText = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'long' });
 
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
-const chainName = (id: string) => CHAINS.find((chain) => chain.id === id)?.name ?? id;
+const chainName = (id: string) => (id === 'naira' ? 'Naira, by bank transfer' : (CHAINS.find((chain) => chain.id === id)?.name ?? id));
 
 const CHECKING = 'The time to send has passed. We are checking whether your payment arrived, which can take up to 15 minutes. Please do not send again.';
 const NAIRA_PROGRESS: Record<string, string> = {
@@ -108,7 +106,9 @@ function CopyRow({ label, value, testId, copy = value }: { label: string; value:
 export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const [link, setLink] = useState<PublicLink | null>(null);
   const [missing, setMissing] = useState(false);
-  const [chain, setChain] = useState<string>('base');
+  const [crypto, setCrypto] = useState<string>('base');
+  // Bank transfer is offered first whenever it is open, because most payers here hold naira, not crypto.
+  const [method, setMethod] = useState<'bank' | 'crypto'>('bank');
   const [refundTo, setRefundTo] = useState('');
   const [token, setToken] = useState<'USDC' | 'USDT'>('USDC');
   const [busy, setBusy] = useState(false);
@@ -132,6 +132,9 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
     const timer = setInterval(() => void load().catch(() => undefined), 5000);
     return () => clearInterval(timer);
   }, [watching, load]);
+
+  const byBank = Boolean(link?.naira_available) && method === 'bank';
+  const chain = byBank ? 'naira' : crypto;
 
   const pay = async () => {
     setBusy(true);
@@ -183,7 +186,8 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
   }, [embedded, id]);
   const waiting = payment?.status === 'awaiting_deposit' && payment.deposit_address;
   const nairaWaiting = payment?.status === 'awaiting_deposit' && payment.pay_from === 'naira';
-  const chosen = CHAINS.find((item) => item.id === chain)!;
+  const chosen = CHAINS.find((item) => item.id === crypto)!;
+  const choice = (selected: boolean) => `rounded-2xl border p-3.5 text-left transition-colors ${selected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-[var(--line)]'}`;
 
   return (
     <main ref={pageRef} className={embedded ? 'flex flex-col items-center bg-[var(--background)] px-4 pt-6 pb-5' : 'flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10'}>
@@ -230,22 +234,39 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
             {link.open && !moving && (
               <>
                 {payment?.failure_reason && <p className="text-sm text-[var(--muted)]" data-testid="link-last-try">{payment.status === 'expired' ? (payment.pay_from === 'naira' ? 'The last bank account has expired. Do not transfer to it. Continue to get a new one.' : 'The last payment address has expired. Do not send to it. Continue to get a new one.') : `Your last try ended: ${payment.failure_reason}`}</p>}
-                <fieldset>
-                  <legend className="mb-2 text-sm font-medium">Pay from</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {CHAINS.filter((item) => item.id !== 'naira' || link.naira_available).map((item) => (
-                      <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => setChain(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
-                        {item.name}
+                {link.naira_available && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-medium">How do you want to pay?</legend>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" aria-pressed={method === 'bank'} onClick={() => setMethod('bank')} className={choice(method === 'bank')} data-testid="method-bank">
+                        <span className="block font-semibold">Bank transfer</span>
+                        <span className="block text-xs text-[var(--muted)]">Naira, from any Nigerian bank</span>
                       </button>
-                    ))}
-                  </div>
-                </fieldset>
-                {chain === 'naira' && (
+                      <button type="button" aria-pressed={method === 'crypto'} onClick={() => setMethod('crypto')} className={choice(method === 'crypto')} data-testid="method-crypto">
+                        <span className="block font-semibold">Crypto</span>
+                        <span className="block text-xs text-[var(--muted)]">USDC or USDT, from any chain</span>
+                      </button>
+                    </div>
+                  </fieldset>
+                )}
+                {!byBank && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-medium">Pay from</legend>
+                    <div className="flex flex-wrap gap-2">
+                      {CHAINS.map((item) => (
+                        <button key={item.id} type="button" aria-pressed={crypto === item.id} onClick={() => setCrypto(item.id)} className={`btn-small rounded-full border ${crypto === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+                {byBank && (
                   <p className="text-sm text-[var(--muted)]" data-testid="naira-note">
                     You will get a Nigerian bank account to transfer to. Once your naira arrives, it becomes USDC and goes to {link.to} on Base.
                   </p>
                 )}
-                {USDT_FROM.has(chain) && (
+                {!byBank && USDT_FROM.has(crypto) && (
                   <fieldset>
                     <legend className="mb-2 text-sm font-medium">Pay with</legend>
                     <div className="flex gap-2">
@@ -255,11 +276,11 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
                     </div>
                   </fieldset>
                 )}
-                {chain !== 'naira' && <label className="flex flex-col gap-1.5 text-sm font-medium">
+                {!byBank && <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Your {chosen.name} address, for any refund
                   <input className="field font-normal" value={refundTo} onChange={(event) => setRefundTo(event.target.value)} placeholder={chosen.hint} autoComplete="off" spellCheck={false} />
                 </label>}
-                <button className="btn-primary" disabled={busy || (chain !== 'naira' && refundTo.trim().length < 2)} onClick={() => void pay()}>
+                <button className="btn-primary" disabled={busy || (!byBank && refundTo.trim().length < 2)} onClick={() => void pay()}>
                   {busy ? 'Getting the details…' : 'Continue'}
                 </button>
               </>

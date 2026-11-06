@@ -107,7 +107,9 @@ test('someone with only naira can pay an invoice that pays out USDC, by bank tra
     return route.fulfill({ json: current });
   });
   await page.goto(`/pay/${ID}`);
-  await page.getByRole('button', { name: 'Naira, by bank transfer' }).click();
+  // Bank transfer is the first choice and already picked, with no chains to puzzle over.
+  await expect(page.getByTestId('method-bank')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Solana' })).toHaveCount(0);
   await expect(page.getByTestId('naira-note')).toContainText('becomes USDC and goes to');
   await expect(page.getByLabel(/for any refund/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -128,7 +130,23 @@ test('naira is not offered when the receiver gets naira', async ({ page }) => {
   await serve(page, () => ({ ...base, naira_available: false }));
   await page.goto(`/pay/${ID}`);
   await expect(page.getByRole('button', { name: 'Base', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Naira, by bank transfer' })).toHaveCount(0);
+  await expect(page.getByTestId('method-bank')).toHaveCount(0);
+  await expect(page.getByText('How do you want to pay?')).toHaveCount(0);
+});
+
+test('a payer who picks crypto gets the chains and a refund address, and can switch back to bank transfer', async ({ page }) => {
+  await serve(page, () => ({ ...base, to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', bank_name: 'Base', account_number: null, receives: 'USDC on Base', naira_available: true }));
+  await page.goto(`/pay/${ID}`);
+  await page.getByTestId('method-crypto').click();
+  await expect(page.getByTestId('naira-note')).toHaveCount(0);
+  await page.getByRole('button', { name: 'NEAR' }).click();
+  await expect(page.getByLabel(/Your NEAR address, for any refund/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'USDT', exact: true })).toBeVisible();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-crypto-choice.png' });
+  await page.getByTestId('method-bank').click();
+  await expect(page.getByTestId('naira-note')).toBeVisible();
+  await expect(page.getByLabel(/for any refund/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
 });
 
 test('a cancelled invoice says so and offers nothing to pay', async ({ page }) => {
