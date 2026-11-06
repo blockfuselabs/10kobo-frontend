@@ -3,16 +3,39 @@ import { ProofHighlights } from './proof-page';
 import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, Logo, PlusIcon, ThemeToggle } from './icons';
 
 const STEPS = [
-  ['Type it', 'Say what you want in your own words, like "send 5k to Mum".'],
-  ['Check it', 'See who gets paid and how much. Nothing moves until you approve.'],
-  ['Done', 'It goes through, and you get a receipt right there in the chat.'],
+  ['Say it or pick it', 'Type "send 5k to Mum" in the chat, or choose who and how much on the Send page.'],
+  ['Check it', 'See the account name, the network and what arrives. Nothing moves until you approve with your PIN.'],
+  ['Done', 'It goes through in a minute or two, with a receipt and a link to check it on the blockchain.'],
 ] as const;
 
-const FEATURES = [
-  [ChatIcon, 'Bank transfers', 'The account name shows before you pay.'],
-  [ActivityIcon, 'Airtime and data', 'The network is worked out for you.'],
-  [CalendarIcon, 'Scheduled payments', 'Later today, next week or every month.'],
-  [PlusIcon, 'Deposit in naira', 'Pay in from your bank and watch it arrive.'],
+const NETWORKS = ['Base', 'NEAR', 'Ethereum', 'Arbitrum', 'Optimism', 'Polygon', 'Avalanche', 'Solana', 'Stellar', 'Tron', 'BNB Chain', 'TON', 'Sui', 'Aptos', 'Gnosis', 'Monad'];
+const BANKS = ['OPay', 'Moniepoint', 'PalmPay', 'Kuda', 'GTBank', 'Access', 'Zenith', 'First Bank', 'UBA'];
+
+const FOR_YOU = [
+  'Pay any Nigerian bank from your USDC, with the account name shown first',
+  'Send USDC or USDT to 16 networks, from Stellar to Tron',
+  'Airtime and data for MTN, Airtel, Glo and 9mobile',
+  'Deposit by naira bank transfer, or from 14 other networks',
+  'Schedule payments: later today, next week or every month',
+];
+const FOR_BUSINESS = [
+  'Invoices your clients pay in naira by bank transfer, or in crypto from 15 networks',
+  'Get paid in naira to your bank, or in USDC to your wallet',
+  'A checkout button for your website that opens over your page',
+  'Signed notices to your server the moment an order is paid',
+  'An Invoices tab to see what is paid, due or overdue',
+];
+const AGENT_POINTS = [
+  ['No sign-up needed', 'An agent can pay over x402 with no account and no API key, or use a key with its own limits.'],
+  ['Pays from NEAR with no gas', 'The agent sends USDC on NEAR. A relayer covers the gas, so it needs no NEAR of its own.'],
+  ['Checks before it pays', 'Every quote names the bank account holder first, so an agent can stop if the name is wrong.'],
+  ['Limits it cannot pass', 'Caps per payment, per account and per day, and every payment has a receipt and its transactions.'],
+] as const;
+const SAFETY = [
+  ['Never holds your money', 'Payments go straight through NEAR Intents and our payment partner. Nothing sits with 10kobo.'],
+  ['Your approval, every time', 'Nothing moves until you approve, and new recipients and payments need your PIN.'],
+  ['Mistakes caught early', 'Bank names checked, wallet addresses checksum-checked, and token contracts refused.'],
+  ['Proof on the blockchain', 'Every crypto step has a transaction anyone can check. Paid means seen on chain.'],
 ] as const;
 
 type Scene = {
@@ -29,9 +52,10 @@ type Scene = {
 // Made-up people and amounts, shown the way the real app shows them.
 const SCENES: Scene[] = [
   { request: 'send 5k to Mum', name: 'Mum', detail: 'Adaeze Okafor, GTBank ****4821', kind: 'Bank transfer', amount: '₦5,000', second: '3.63 USDC', doneLabel: 'Paid', doneNote: 'Receipt · 3 Nov, 18:12' },
+  { request: 'send Ada 10 USDC on Stellar', name: 'Ada', detail: 'GAZ6GH…Z6OB · Stellar', kind: 'Receiver gets about 9.97 USDC', amount: '10.00 USDC', second: 'about ₦13,750', doneLabel: 'Delivered in 40 s', doneNote: 'Receipt · proof on Stellar' },
+  { request: 'invoice my client 50k for the logo', name: 'Invoice · Logo design', detail: 'Your client pays by bank transfer or crypto', kind: 'You get USDC in your wallet', amount: '₦50,000', second: 'naira or USDC', doneLabel: 'Paid by bank transfer', doneNote: 'USDC in your wallet · receipt sent' },
   { request: 'buy Tunde ₦500 airtime', name: 'Tunde', detail: '08031234567 (MTN)', kind: 'Airtime', amount: '₦500', second: '0.36 USDC', doneLabel: 'Paid', doneNote: 'Receipt · 3 Nov, 18:14' },
   { request: 'pay my rent 80k on the 28th every month', name: 'Landlord', detail: 'Musa Bello, Access ****2210', kind: 'Every month on the 28th', amount: '₦80,000', second: 'Approve once', doneLabel: 'Scheduled', doneNote: 'Runs by itself. Cancel any time.' },
-  { request: 'send Ada 2 USDC in 30 minutes', name: 'Ada', detail: '0x71C7…976F', kind: 'In 30 minutes', amount: '2.00 USDC', second: 'about ₦2,750', doneLabel: 'Scheduled', doneNote: 'Runs by itself. Cancel any time.' },
 ];
 
 type Phase = 'typing' | 'approve' | 'done';
@@ -167,6 +191,93 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
   );
 }
 
+/** Small round tags, used for networks and banks. */
+const Tags = ({ items }: { items: readonly string[] }) => (
+  <ul className="flex flex-wrap gap-1.5">
+    {items.map((item) => (
+      <li key={item} className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-sm font-medium">{item}</li>
+    ))}
+  </ul>
+);
+
+const Tick = () => (
+  <span aria-hidden className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--pop)] text-[#111]"><CheckIcon /></span>
+);
+
+/** Naira on one side, 16 networks on the other, and 10kobo turning one into the other in both directions. */
+function BothWays() {
+  return (
+    <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div className="flex flex-col gap-4 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
+        <p className="text-sm font-semibold text-[var(--muted)]">NAIRA</p>
+        <p className="font-display text-2xl font-bold tracking-tight">Any Nigerian bank</p>
+        <Tags items={[...BANKS, 'and more']} />
+        <p className="text-sm text-[var(--muted)]">Pay out to any account, or pay in by bank transfer.</p>
+      </div>
+      <div className="flex items-center justify-center lg:flex-col" aria-hidden>
+        <div className="flex flex-col items-center gap-2 rounded-[1.75rem] bg-[var(--pop)] px-6 py-5 text-[#111] lg:py-8">
+          <Logo size={40} />
+          <span className="font-display text-lg font-bold">10kobo</span>
+          <span className="text-2xl leading-none">⇄</span>
+          <span className="text-center text-xs font-semibold">both ways,<br />in minutes</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
+        <p className="text-sm font-semibold text-[var(--muted)]">STABLECOINS</p>
+        <p className="font-display text-2xl font-bold tracking-tight">USDC and USDT on 16 networks</p>
+        <Tags items={NETWORKS} />
+        <p className="text-sm text-[var(--muted)]">Send to 16 · get paid from 15 · deposit from 14. Moved by NEAR Intents.</p>
+      </div>
+    </div>
+  );
+}
+
+function Audience({ tag, title, points, cta, onClick }: { tag: string; title: string; points: string[]; cta: string; onClick: () => void }) {
+  return (
+    <div className="flex flex-col gap-5 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)] md:p-8">
+      <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">{tag}</span>
+      <p className="font-display text-3xl font-bold tracking-tight">{title}</p>
+      <ul className="flex flex-col gap-3">
+        {points.map((point) => (
+          <li key={point} className="flex gap-3"><Tick /><span>{point}</span></li>
+        ))}
+      </ul>
+      <button onClick={onClick} className="mt-auto w-fit cursor-pointer rounded-full border border-[var(--line)] px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">{cta} →</button>
+    </div>
+  );
+}
+
+const AGENT_CODE = `POST /v1/agent/quotes
+{
+  "amount_naira": 5000,
+  "bank_name": "OPay",
+  "account_number": "8031234568",
+  "pay_from": "near",
+  "refund_to": "agent.near"
+}
+
+200 OK
+{
+  "status": "quoted",
+  "account_name": "Ada Bello",
+  "account_number": "****4568",
+  "pay_usdc": "3.613829"
+}`;
+
+const SHOP_CODE = `<script src="YOUR_10KOBO_LINK/checkout.js"></script>
+<button onclick="TenKobo.open(invoiceId)">
+  Pay with naira or crypto
+</button>`;
+
+function Code({ code, label }: { code: string; label: string }) {
+  return (
+    <figure className="flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[var(--line)] bg-[var(--surface-2)]">
+      <figcaption className="border-b border-[var(--line)] px-5 py-3 text-xs font-semibold text-[var(--muted)]">{label}</figcaption>
+      <pre className="overflow-x-auto p-5 text-[13px] leading-relaxed"><code>{code}</code></pre>
+    </figure>
+  );
+}
+
 export function Welcome({ onSignIn }: { onSignIn: () => void }) {
   const { scene, typed, phase } = useDemo();
   return (
@@ -177,16 +288,17 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
             <Logo size={42} />
             <span className="font-display text-2xl font-bold tracking-tight md:text-[1.75rem]">10kobo</span>
           </div>
-          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5 text-base font-medium md:flex">
-            <a href="#how" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
-            <a href="#what" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
-            <a href="/proof" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">Proof</a>
+          <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5 text-base font-medium lg:flex">
+            <a href="#both-ways" className="rounded-full px-4 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
+            <a href="#business" className="rounded-full px-4 py-2.5 transition-colors hover:bg-[var(--surface-2)]">Businesses</a>
+            <a href="#agents" className="rounded-full px-4 py-2.5 transition-colors hover:bg-[var(--surface-2)]">AI agents</a>
+            <a href="/proof" className="rounded-full px-4 py-2.5 transition-colors hover:bg-[var(--surface-2)]">Proof</a>
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle className="h-11 w-11 rounded-full" />
-          <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 py-2.5 text-[15px] font-semibold md:px-7 md:py-3 md:text-base transition-colors hover:bg-[var(--surface-2)]">
-            Sign in
-          </button>
+            <button onClick={onSignIn} className="cursor-pointer rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 py-2.5 text-[15px] font-semibold transition-colors hover:bg-[var(--surface-2)] md:px-7 md:py-3 md:text-base">
+              Sign in
+            </button>
           </div>
         </header>
 
@@ -194,20 +306,24 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           <section className="flex flex-col gap-10 pt-4 pb-8 md:pt-8 md:pb-10">
             <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10">
               <div className="flex flex-col items-start gap-6">
-                <h1 className="font-display text-[3rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[4rem] lg:text-[3.25rem] xl:text-[4rem]">
-                  Send money like <br className="hidden sm:block" />
-                  sending a{' '}
+                <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1.5 text-sm font-medium">
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#28c941] align-middle" />
+                  Live on mainnet · built on NEAR
+                </span>
+                <h1 className="font-display text-[2.9rem] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-[4rem] lg:text-[3.25rem] xl:text-[4.1rem]">
+                  Naira and stablecoins,{' '}
                   <span className={`relative inline-block rounded-[0.9rem] bg-[var(--accent)] px-[0.28em] pb-[0.08em] text-[var(--accent-text)] ${phase === 'approve' ? 'bubble-send' : ''}`}>
                     <span className="inline-block overflow-hidden align-bottom">
-                      <span key={phase === 'approve' ? scene.request : 'rest'} className={`inline-block ${phase === 'approve' ? 'text-send' : ''}`}>text.</span>
+                      <span key={phase === 'approve' ? scene.request : 'rest'} className={`inline-block ${phase === 'approve' ? 'text-send' : ''}`}>both ways.</span>
                     </span>
                     <svg aria-hidden viewBox="0 0 20 20" className="absolute -bottom-[0.12em] left-0 h-[0.32em] w-[0.32em] fill-[var(--accent)]"><path d="M0 0h20C20 11 11 20 0 20Z" /></svg>
                   </span>
                 </h1>
                 <p className="text-lg leading-relaxed text-[var(--muted)]">
-                  Type what you want to pay, in your own words. 10kobo gets it ready, you approve it, and you get a receipt.
+                  Pay any bank in Nigeria or any wallet on 16 networks, by chat or by tap. Get paid in naira or USDC. Let your AI agents pay too.
                 </p>
                 <ChatStart onSignIn={onSignIn} typed={typed} />
+                <a href="/proof" className="text-sm font-semibold underline underline-offset-4">See it working with real money →</a>
               </div>
               <div className="float min-w-0 text-left">
                 <AppWindow scene={scene} typed={typed} phase={phase} />
@@ -217,8 +333,8 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
         </main>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
-        <section id="proof" className="flex scroll-mt-6 flex-col gap-6 pt-6 pb-4 md:pt-10">
+      <div className="mx-auto flex w-full max-w-7xl flex-col px-5 md:px-8">
+        <section id="proof" className="flex scroll-mt-6 flex-col gap-6 pt-6 pb-14 md:pt-10 md:pb-20">
           <div className="flex flex-col gap-2">
             <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">Mainnet · real money</span>
             <h2 className="font-display max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">Proven with real money.</h2>
@@ -227,12 +343,57 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           <ProofHighlights />
         </section>
 
-        <section id="how" className="flex scroll-mt-6 flex-col gap-7 py-14 md:py-20">
-          <h2 className="font-display max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Three steps. No forms.</h2>
+        <section id="both-ways" className="flex scroll-mt-6 flex-col gap-7 pb-14 md:pb-20">
+          <div className="flex flex-col gap-2">
+            <h2 className="font-display max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">Money in, money out.</h2>
+            <p className="max-w-2xl text-[var(--muted)]">Naira becomes USDC, and USDC becomes naira, between any Nigerian bank and 16 blockchains.</p>
+          </div>
+          <BothWays />
+        </section>
+
+        <section id="business" className="grid scroll-mt-6 gap-4 pb-14 md:pb-20 lg:grid-cols-2">
+          <Audience tag="For you" title="Pay anyone, anywhere." points={FOR_YOU} cta="Get started" onClick={onSignIn} />
+          <Audience tag="For businesses" title="Get paid however they pay." points={FOR_BUSINESS} cta="Make your first invoice" onClick={onSignIn} />
+        </section>
+
+        <section id="agents" className="flex scroll-mt-6 flex-col gap-8 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)] md:p-10">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+            <div className="flex flex-col gap-5">
+              <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">For AI agents</span>
+              <h2 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">AI agents can pay a Nigerian bank now.</h2>
+              <p className="text-lg text-[var(--muted)]">
+                One API call quotes it and names the account holder. The agent pays in USDC from NEAR, Base, Solana or 12 more networks, and the naira lands in the bank in about two minutes.
+              </p>
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {AGENT_POINTS.map(([title, detail]) => (
+                  <li key={title} className="flex gap-3">
+                    <Tick />
+                    <span><span className="block font-semibold">{title}</span><span className="text-sm text-[var(--muted)]">{detail}</span></span>
+                  </li>
+                ))}
+              </ul>
+              <a href="/proof" className="w-fit text-sm font-semibold underline underline-offset-4">See an agent pay OPay from NEAR, on chain →</a>
+            </div>
+            <Code code={AGENT_CODE} label="An agent asks for a quote" />
+          </div>
+        </section>
+
+        <section className="grid gap-8 pt-14 pb-14 md:pt-20 md:pb-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
+          <div className="flex flex-col gap-4">
+            <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">For online shops</span>
+            <h2 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">A checkout button in three lines.</h2>
+            <p className="text-lg text-[var(--muted)]">Your customer pays by bank transfer or crypto in a box over your page. You get naira or USDC, and a signed notice the moment it is paid.</p>
+            <a href="/shop" className="w-fit text-sm font-semibold underline underline-offset-4">Try the demo shop →</a>
+          </div>
+          <Code code={SHOP_CODE} label="On your website" />
+        </section>
+
+        <section id="how" className="flex scroll-mt-6 flex-col gap-7 pb-14 md:pb-20">
+          <h2 className="font-display max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Three steps.</h2>
           <ol className="grid gap-4 md:grid-cols-3">
             {STEPS.map(([title, detail], index) => (
-              <li key={title} className="flex flex-col gap-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 md:p-7">
-                <span className="font-display text-5xl font-bold text-[var(--accent)]">{index + 1}</span>
+              <li key={title} className="flex flex-col gap-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)] md:p-7">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--pop)] font-display text-xl font-bold text-[#111]">{index + 1}</span>
                 <p className="font-display text-2xl font-bold tracking-tight">{title}</p>
                 <p className="text-[var(--muted)]">{detail}</p>
               </li>
@@ -240,14 +401,12 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           </ol>
         </section>
 
-        <section id="what" className="flex scroll-mt-6 flex-col gap-7 pb-14 md:pb-20">
-          <h2 className="font-display max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">One chat for all of it.</h2>
+        <section id="safe" className="flex scroll-mt-6 flex-col gap-7 pb-14 md:pb-20">
+          <h2 className="font-display max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">Safe by design.</h2>
           <ul className="grid gap-x-8 sm:grid-cols-2">
-            {FEATURES.map(([Icon, title, detail]) => (
-              <li key={title} className="flex items-center gap-4 border-t border-[var(--line)] py-5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-                  <Icon />
-                </span>
+            {SAFETY.map(([title, detail]) => (
+              <li key={title} className="flex gap-4 border-t border-[var(--line)] py-5">
+                <Tick />
                 <div>
                   <p className="font-display text-lg font-bold tracking-tight">{title}</p>
                   <p className="text-[var(--muted)]">{detail}</p>
@@ -257,9 +416,21 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           </ul>
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] py-6 text-sm text-[var(--muted)]">
-          <span>© {new Date().getFullYear()} 10kobo</span>
-          {process.env.NEXT_PUBLIC_WALLET_CHAIN !== 'base' && <span>Test version. No real money.</span>}
+        <section className="mb-14 flex flex-col items-start gap-5 rounded-[2rem] bg-[var(--pop)] p-8 text-[#111] md:mb-20 md:flex-row md:items-center md:justify-between md:p-10">
+          <div>
+            <p className="font-display text-3xl font-bold tracking-tight md:text-4xl">Naira and stablecoins, both ways.</p>
+            <p className="mt-1 text-[#111]/70">Sign in with your email. Your wallet is made for you.</p>
+          </div>
+          <button onClick={onSignIn} className="cursor-pointer rounded-full bg-[#111] px-7 py-3.5 text-base font-semibold text-white transition-opacity hover:opacity-90">Get started</button>
+        </section>
+
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] py-6 text-sm text-[var(--muted)]">
+          <span>© {new Date().getFullYear()} 10kobo · built for the NEAR Hackathon</span>
+          <span className="flex flex-wrap gap-4">
+            <a href="/proof" className="hover:text-[var(--foreground)]">Proof</a>
+            <a href="/shop" className="hover:text-[var(--foreground)]">Demo shop</a>
+            {process.env.NEXT_PUBLIC_WALLET_CHAIN !== 'base' && <span>Test version. No real money.</span>}
+          </span>
         </footer>
       </div>
     </div>

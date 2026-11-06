@@ -30,3 +30,20 @@ test('the landing page shows four real payments and links to the rest', async ({
   await proof.getByRole('link', { name: /See all 24 real payments/ }).click();
   await expect(page).toHaveURL(/\/proof$/);
 });
+
+for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+  test(`the landing page tells the whole story: both ways, people, businesses, agents and shops, at ${size.width}px`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Naira and stablecoins,\s*both ways\./);
+    for (const heading of ['Proven with real money.', 'Money in, money out.', 'AI agents can pay a Nigerian bank now.', 'A checkout button in three lines.', 'Three steps.', 'Safe by design.']) {
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    }
+    await expect(page.locator('#both-ways')).toContainText('Stellar');
+    await expect(page.locator('#agents')).toContainText('"pay_from": "near"');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/10kobo-e2e-results/landing-${size.width}.png`, fullPage: true });
+  });
+}

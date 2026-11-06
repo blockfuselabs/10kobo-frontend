@@ -4,7 +4,7 @@ test('our own login page: email, code, then into the app', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign out' }).click();
 
-  await page.getByRole('button', { name: 'Get started' }).click();
+  await page.getByRole('button', { name: 'Get started' }).first().click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('heading', { name: 'Welcome to 10kobo' })).toBeVisible();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/login-email.png' });
@@ -34,7 +34,7 @@ test('the Sign in button goes to the same page, and it links home', async ({ pag
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByRole('link', { name: '← Back to home' }).click();
-  await expect(page.getByRole('button', { name: 'Get started' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Get started' }).first()).toBeVisible();
 });
 
 test('someone already signed in skips the login page', async ({ page }) => {
