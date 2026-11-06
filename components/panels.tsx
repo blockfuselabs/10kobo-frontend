@@ -450,37 +450,69 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
   );
 }
 
+const WAYS = [
+  { id: 'naira', title: 'Naira', detail: 'Bank transfer from any Nigerian bank' },
+  { id: 'base', title: 'USDC on Base', detail: 'Send to your wallet address' },
+  { id: 'other', title: 'Other network', detail: 'USDC or USDT from 14 networks' },
+] as const;
+type Way = (typeof WAYS)[number]['id'];
+
 export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSummary | null; api: ApiClient; onChanged: () => void }) {
   const [copied, setCopied] = useState(false);
+  // One way at a time, so the page stays short. Naira first, as most people here add money that way.
+  const [way, setWay] = useState<Way>('naira');
   const address = summary?.address;
   return (
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
       <h1 className="page-title">Add USDC</h1>
-      <div className="panel">
-        <p className="font-semibold">Deposit naira</p>
-        <DepositNaira api={api} onChanged={onChanged} />
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="How do you want to add money?">
+        {WAYS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={way === item.id}
+            onClick={() => setWay(item.id)}
+            className={`flex flex-col gap-0.5 rounded-2xl border p-3 text-left transition-colors sm:p-4 ${way === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] bg-[var(--surface)] hover:border-[var(--foreground)]'}`}
+            data-testid={`way-${item.id}`}
+          >
+            <span className="text-sm font-semibold sm:text-base">{item.title}</span>
+            <span className={`hidden text-xs sm:block ${way === item.id ? 'opacity-80' : 'text-[var(--muted)]'}`}>{item.detail}</span>
+          </button>
+        ))}
       </div>
-      <div className="panel">
-      <p className="font-semibold">Or receive USDC</p>
-      <p className="text-sm text-[var(--muted)]">Send USDC on the Base network to this address. Sending any other coin, or using another network, can lose the money.</p>
-      <p className="inset break-all p-3.5 font-mono text-sm" data-testid="receive-address">
-        {address ?? 'Your wallet is being set up…'}
-      </p>
-      {address && (
-        <button
-          className="btn-secondary self-start"
-          onClick={() => void navigator.clipboard?.writeText(address).then(() => setCopied(true))}
-        >
-          {copied ? 'Copied' : 'Copy address'}
-        </button>
+
+      {way === 'naira' && (
+        <div className="panel">
+          <p className="font-semibold">Deposit naira</p>
+          <p className="mb-1 text-sm text-[var(--muted)]">Transfer naira from any Nigerian bank, and it arrives in your wallet as USDC.</p>
+          <DepositNaira api={api} onChanged={onChanged} />
+        </div>
       )}
-      <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
-      </div>
-      <div className="panel" aria-label="Deposit from another network">
-        <p className="font-semibold">Or deposit from another network</p>
-        <p className="mb-3 text-sm text-[var(--muted)]">USDC or USDT from Tron, BNB Chain, Solana, Ethereum and more. It arrives in your wallet as USDC on Base.</p>
-        <DepositOtherNetwork api={api} onChanged={onChanged} />
-      </div>
+
+      {way === 'base' && (
+        <div className="panel">
+          <p className="font-semibold">Receive USDC on Base</p>
+          <p className="text-sm text-[var(--muted)]">Send USDC on the Base network to this address. Sending any other coin, or using another network, can lose the money.</p>
+          <p className="inset break-all p-3.5 font-mono text-sm" data-testid="receive-address">
+            {address ?? 'Your wallet is being set up…'}
+          </p>
+          {address && (
+            <button className="btn-secondary self-start" onClick={() => void navigator.clipboard?.writeText(address).then(() => setCopied(true))}>
+              {copied ? 'Copied' : 'Copy address'}
+            </button>
+          )}
+          <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
+          <p className="text-sm text-[var(--muted)]">Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other network</button>.</p>
+        </div>
+      )}
+
+      {way === 'other' && (
+        <div className="panel" aria-label="Deposit from another network">
+          <p className="font-semibold">Deposit from another network</p>
+          <p className="mb-3 text-sm text-[var(--muted)]">USDC or USDT from Tron, BNB Chain, Solana, Ethereum and more. It arrives in your wallet as USDC on Base.</p>
+          <DepositOtherNetwork api={api} onChanged={onChanged} />
+        </div>
+      )}
     </section>
   );
 }

@@ -22,6 +22,7 @@ test('a deposit from Tron gives a one-time address, then shows the USDC arriving
   await page.route('**/v1/chain-deposits/*', (route) => route.fulfill({ json: { deposit } }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('way-other').click();
   const box = page.getByRole('region', { name: 'Deposit from another network' }).or(page.locator('[aria-label="Deposit from another network"]'));
 
   // A 0x network fills in the saved 0x refund address by itself.
@@ -68,6 +69,7 @@ test('a refused deposit says why, and nothing is shown to send to', async ({ pag
   );
   await page.goto('/');
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('way-other').click();
   await page.getByTestId('network-picker').click();
   await page.getByRole('option', { name: /^BNB Chain/ }).click();
   await page.getByLabel(/Amount in USDC/).fill('5');
@@ -82,6 +84,7 @@ test('the network list opens, searches, and chooses with the keyboard', async ({
   await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks: [...networks, { id: 'solana', name: 'Solana', tokens: ['USDC', 'USDT'], family: 'solana' }], refund_addresses: {}, deposits: [] } }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('way-other').click();
   await page.getByTestId('network-picker').click();
   // The networks most used in Nigeria come first.
   await expect(page.getByRole('option')).toHaveText([/Tron/, /BNB Chain/, /Solana/, /Polygon/]);
@@ -104,6 +107,7 @@ test('near the bottom of the screen the network list opens upwards and fits, so 
   await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('way-other').click();
   const picker = page.getByTestId('network-picker');
   // Brings the box to the bottom edge, as in the screenshot that showed the problem.
   await picker.evaluate((element) => element.scrollIntoView({ block: 'end' }));
@@ -115,3 +119,24 @@ test('near the bottom of the screen the network list opens upwards and fits, so 
   expect(box.y + box.height).toBeLessThanOrEqual(640);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/network-picker-up.png' });
 });
+
+for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) {
+  test(`Add USDC asks how first and shows one way at a time, at ${size.width}px`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+    const ways = page.getByRole('group', { name: 'How do you want to add money?' });
+    await expect(ways.getByRole('button')).toHaveText([/^Naira/, /^USDC on Base/, /^Other network/]);
+    await expect(page.getByTestId('way-naira')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('Deposit naira')).toBeVisible();
+    await expect(page.getByTestId('receive-address')).toHaveCount(0);
+    await page.screenshot({ path: `/tmp/10kobo-e2e-results/add-usdc-${size.width}.png` });
+    await page.getByTestId('way-base').click();
+    await expect(page.getByTestId('receive-address')).toBeVisible();
+    await expect(page.getByText('Deposit naira')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Use Other network' }).click();
+    await expect(page.getByTestId('network-picker')).toBeVisible();
+    await expect(page.getByTestId('way-other')).toHaveAttribute('aria-pressed', 'true');
+  });
+}

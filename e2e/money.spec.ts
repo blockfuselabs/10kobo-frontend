@@ -155,6 +155,7 @@ test('activity and the add-USDC address are there', async () => {
   await expect(page.getByRole('list', { name: 'Activity' })).toContainText('Airtime for Obinna');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/5-activity.png' });
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('way-base').click();
   await expect(page.getByTestId('receive-address')).toContainText(WALLET);
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   const box = await page.getByLabel('Message').boundingBox();
