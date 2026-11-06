@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { ProofHighlights } from './proof-page';
 import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, Logo, PlusIcon, ThemeToggle } from './icons';
 
 const STEPS = [
@@ -179,6 +180,7 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
           <nav aria-label="Page" className="hidden items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5 text-base font-medium md:flex">
             <a href="#how" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">How it works</a>
             <a href="#what" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">What you can do</a>
+            <a href="/proof" className="rounded-full px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)]">Proof</a>
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle className="h-11 w-11 rounded-full" />
@@ -216,6 +218,15 @@ export function Welcome({ onSignIn }: { onSignIn: () => void }) {
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
+        <section id="proof" className="flex scroll-mt-6 flex-col gap-6 pt-6 pb-4 md:pt-10">
+          <div className="flex flex-col gap-2">
+            <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">Mainnet · real money</span>
+            <h2 className="font-display max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">Proven with real money.</h2>
+            <p className="max-w-2xl text-[var(--muted)]">Not a demo: these moved real naira and real USDC. Open any of them on its blockchain.</p>
+          </div>
+          <ProofHighlights />
+        </section>
+
         <section id="how" className="flex scroll-mt-6 flex-col gap-7 py-14 md:py-20">
           <h2 className="font-display max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Three steps. No forms.</h2>
           <ol className="grid gap-4 md:grid-cols-3">
