@@ -33,7 +33,7 @@ test('sends to a saved bank recipient with a form, and shows the same approval c
   let sent: Record<string, unknown> | null = null;
   await open(page, (body) => { sent = body; return planFor({}); });
   await expect(page.getByRole('group', { name: 'Who are you sending to?' }).getByRole('button')).toHaveText([/Bank Account/, /Crypto Wallet/, /Airtime & Data/]);
-  await expect(page.getByLabel('To', { exact: true })).toHaveValue(options.recipients[0]!.destination_id);
+  await expect(page.getByTestId('recipient-picker')).toContainText('Mum');
   await page.getByLabel('Amount in naira').fill('5000');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-bank.png' });
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -62,7 +62,7 @@ test('buys data for a saved phone, with the plans for its network', async ({ pag
   let sent: Record<string, unknown> | null = null;
   await open(page, (body) => { sent = body; return planFor({ route: 'data', recipient_name: 'Kc', data_plan: '1GB, 30 days' }); });
   await page.getByTestId('send-phone').click();
-  await expect(page.getByLabel('To', { exact: true })).toHaveValue(options.recipients[1]!.destination_id);
+  await expect(page.getByTestId('recipient-picker')).toContainText('Kc');
   await page.getByRole('group', { name: 'Airtime or data' }).getByRole('button', { name: 'data' }).click();
   await page.getByLabel('Data plan').selectOption('mtn-1gb');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-data.png' });
@@ -83,7 +83,8 @@ test('a new bank recipient picks the bank from a searchable list, or types one t
   await page.setViewportSize({ width: 1280, height: 900 });
   let sent: Record<string, unknown> | null = null;
   await open(page, (body) => { sent = body; return planFor({}); });
-  await page.getByLabel('To', { exact: true }).selectOption('new');
+  await page.getByTestId('recipient-picker').click();
+  await page.getByRole('option', { name: 'Someone new' }).click();
   await page.getByTestId('network-picker').click();
   await page.getByLabel('Search banks').fill('palm');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-bank-picker.png' });
@@ -97,4 +98,31 @@ test('a new bank recipient picks the bank from a searchable list, or types one t
   await page.getByLabel('Amount in naira').fill('2000');
   await page.getByRole('button', { name: 'Continue' }).click();
   expect(sent).toEqual({ route: 'bank', destination_id: null, amount_naira: 2000, new_recipient: { bank_name: 'Paga', account_number: '0123456789' } });
+});
+
+test('with 100 saved people, shows only the 5 most recent, and search finds anyone', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const many = Array.from({ length: 100 }, (_, index) => ({ destination_id: `11111111-1111-4111-8111-${String(index).padStart(12, '0')}`, name: `Person ${index + 1}`, kind: 'bank', detail: `Bank account ****${String(1000 + index)}`, network: null }));
+  await page.route('**/v1/send/options', (route) => route.fulfill({ json: { ...options, recipients: many } }));
+  let sent: Record<string, unknown> | null = null;
+  await page.route('**/v1/send', (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: { plan: planFor({ recipient_name: 'Person 73' }) } }); });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Send money' }).click();
+  await expect(page.getByTestId('recipient-picker')).toContainText('Person 1');
+  await page.getByTestId('recipient-picker').click();
+  // Someone new, then the five most recent, and a note that the rest are a search away.
+  await expect(page.getByRole('option')).toHaveCount(6);
+  await expect(page.getByRole('listbox')).toContainText('95 more saved. Search to find them.');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-recipients.png' });
+  await page.getByLabel('Search recipients').fill('person 73');
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('recipient-picker')).toContainText('Person 73');
+  await page.getByTestId('recipient-picker').click();
+  await page.getByLabel('Search recipients').fill('nobody here');
+  await expect(page.getByRole('listbox')).toContainText('Nobody saved called “nobody here”.');
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Amount in naira').fill('1000');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  expect(sent).toMatchObject({ route: 'bank', destination_id: many[72]!.destination_id, amount_naira: 1000 });
 });

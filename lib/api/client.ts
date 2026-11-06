@@ -225,7 +225,7 @@ export interface ChainDeposit {
 
 /** What the Send page needs: saved recipients by kind, and the networks to choose from. */
 export interface SendOptions {
-  recipients: { destination_id: string; name: string; kind: 'bank' | 'wallet' | 'phone'; detail: string; network: string | null }[];
+  recipients: { destination_id: string; name: string; kind: 'bank' | 'wallet' | 'phone'; detail: string; network: string | null; last_paid_at?: string | null }[];
   networks: { id: string; name: string; token: 'USDC' | 'USDT' }[];
   phone_networks: string[];
 }

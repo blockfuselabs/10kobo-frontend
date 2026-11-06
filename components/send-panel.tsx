@@ -6,6 +6,7 @@ import { CardHeader } from './card-header';
 import { PlanApprovalCard } from './cards';
 import { BankIcon, PhoneIcon, WalletIcon } from './icons';
 import { NetworkPicker } from './network-picker';
+import { NEW_RECIPIENT, RecipientPicker } from './recipient-picker';
 
 const WAYS = [
   { id: 'bank', title: 'Bank Account', detail: 'Naira to any Nigerian bank', Icon: BankIcon },
@@ -18,7 +19,7 @@ type Way = (typeof WAYS)[number]['id'];
 const BANKS = ['OPay', 'PalmPay', 'Moniepoint', 'Kuda', 'GTBank', 'Access Bank', 'Zenith Bank', 'First Bank', 'UBA', 'Fidelity Bank', 'Union Bank', 'Stanbic IBTC', 'Sterling Bank', 'Wema Bank', 'FCMB', 'Ecobank', 'Polaris Bank', 'Keystone Bank'];
 
 const KIND_OF: Record<Way, 'bank' | 'wallet' | 'phone'> = { bank: 'bank', crypto: 'wallet', phone: 'phone' };
-const NEW = 'new';
+const NEW = NEW_RECIPIENT;
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -174,16 +175,7 @@ export function SendPanel({ api, onChanged, onAddMoney }: { api: ApiClient; onCh
             {way === 'bank' ? 'Paid in naira from your USDC. The bank’s name for the account shows before you approve.' : way === 'crypto' ? 'From your wallet on Base to any of 16 networks.' : 'Paid from your USDC, delivered in seconds.'}
           </CardHeader>
 
-          {saved.length > 0 && (
-            <Field label="To">
-              <select className="field font-medium" value={recipient} onChange={(event) => setRecipient(event.target.value)} name="send-recipient" aria-label="To">
-                {saved.map((item) => (
-                  <option key={item.destination_id} value={item.destination_id}>{item.name} · {item.detail}</option>
-                ))}
-                <option value={NEW}>Someone new…</option>
-              </select>
-            </Field>
-          )}
+          {saved.length > 0 && <RecipientPicker recipients={saved} value={recipient} onChange={setRecipient} />}
 
           {recipient === NEW && way === 'bank' && (
             <>
