@@ -25,7 +25,7 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     });
 
     await page.goto('/');
-    await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+    await page.getByRole('button', { name: 'Deposit', exact: true }).click();
     const amount = page.getByLabel('Amount in naira');
     await amount.fill('1000');
     await expect(page.getByText('Enter between ₦1,500 and ₦500,000.')).toBeVisible();
@@ -74,7 +74,7 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
       route.fulfill({ json: { deposit: { ...base, status: 'waiting', expires_at: new Date(Date.now() - 1000).toISOString() } } }),
     );
     await page.goto('/');
-    await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+    await page.getByRole('button', { name: 'Deposit', exact: true }).click();
     await expect(page.getByText('This account has expired')).toBeVisible();
     await expect(page.getByTestId('deposit-account')).toHaveCount(0);
   });

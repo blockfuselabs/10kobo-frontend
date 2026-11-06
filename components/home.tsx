@@ -34,12 +34,14 @@ const SUGGESTIONS = [
 ] as const;
 const VIEWS = [
   ['chat', 'Chat', ChatIcon],
-  ['send', 'Transfer', ArrowOutIcon],
+  ['send', 'Send', ArrowOutIcon],
   ['schedules', 'Scheduled', CalendarIcon],
   ['invoices', 'Invoices', InvoiceIcon],
   ['activity', 'Activity', ActivityIcon],
-  ['receive', 'Add USDC', PlusIcon],
+  ['receive', 'Deposit', PlusIcon],
 ] as const;
+/** On a computer the Deposit and Send money buttons above the menu open these, so the menu does not repeat them. */
+const BUTTONS_ON_COMPUTER: ReadonlySet<string> = new Set(['send', 'receive']);
 type View = (typeof VIEWS)[number][0];
 
 type ChatActions = { onOpen: (id: string | null) => void; onRename: (id: string, title: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
@@ -472,7 +474,7 @@ export function Home() {
           )}
         </div>
         <div className="hidden grid-cols-2 gap-2 md:grid">
-          <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)]">
+          <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--pop)] py-2.5 text-sm font-semibold text-[#111] shadow-sm transition-[filter] hover:brightness-95">
             <ArrowInIcon />
             Deposit
           </button>
@@ -505,7 +507,9 @@ export function Home() {
               key={key}
               onClick={() => setView(key)}
               aria-current={view === key ? 'page' : undefined}
-              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
+              // On the phone the Send tab must not be mistaken for the message box's Send button.
+              aria-label={key === 'send' ? 'Send money' : undefined}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${BUTTONS_ON_COMPUTER.has(key) ? 'md:hidden' : ''} ${
                 view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
               }`}
             >

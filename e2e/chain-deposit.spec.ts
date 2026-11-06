@@ -21,7 +21,7 @@ test('a deposit from Tron gives a one-time address, then shows the USDC arriving
   });
   await page.route('**/v1/chain-deposits/*', (route) => route.fulfill({ json: { deposit } }));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   await page.getByTestId('way-other').click();
   const box = page.getByRole('region', { name: 'Deposit from another network' }).or(page.locator('[aria-label="Deposit from another network"]'));
 
@@ -68,7 +68,7 @@ test('a refused deposit says why, and nothing is shown to send to', async ({ pag
       : route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }),
   );
   await page.goto('/');
-  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   await page.getByTestId('way-other').click();
   await page.getByTestId('network-picker').click();
   await page.getByRole('option', { name: /^BNB Chain/ }).click();
@@ -83,7 +83,7 @@ test('the network list opens, searches, and chooses with the keyboard', async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks: [...networks, { id: 'solana', name: 'Solana', tokens: ['USDC', 'USDT'], family: 'solana' }], refund_addresses: {}, deposits: [] } }));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   await page.getByTestId('way-other').click();
   await page.getByTestId('network-picker').click();
   // The networks most used in Nigeria come first.
@@ -106,7 +106,7 @@ test('near the bottom of the screen the network list opens upwards and fits, so 
   await page.setViewportSize({ width: 1440, height: 640 });
   await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   await page.getByTestId('way-other').click();
   const picker = page.getByTestId('network-picker');
   // Brings the box to the bottom edge, as in the screenshot that showed the problem.
@@ -125,7 +125,7 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) 
     await page.setViewportSize(size);
     await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
     await page.goto('/');
-    await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+    await page.getByRole('button', { name: 'Deposit', exact: true }).click();
     const ways = page.getByRole('group', { name: 'How do you want to add money?' });
     await expect(ways.getByRole('button')).toHaveText([/^Naira/, /^USDC on Base/, /^Other Network/]);
     await expect(page.getByTestId('way-naira')).toHaveAttribute('aria-pressed', 'true');

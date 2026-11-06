@@ -115,7 +115,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
             <Nav Icon={ChatIcon} label="Chat" active />
             <Nav Icon={CalendarIcon} label="Scheduled" />
             <Nav Icon={ActivityIcon} label="Activity" />
-            <Nav Icon={PlusIcon} label="Add USDC" />
+            <Nav Icon={PlusIcon} label="Deposit" />
           </div>
         </div>
         <div className="flex min-h-0 flex-col">

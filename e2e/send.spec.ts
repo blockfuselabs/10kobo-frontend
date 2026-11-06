@@ -76,7 +76,7 @@ test('says why a payment was refused, offers to add money, and keeps the form', 
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'wallet has' })).toContainText('You need 3.60 USDC');
   await page.getByRole('button', { name: 'Add money' }).click();
-  await expect(page.getByRole('heading', { name: 'Add USDC' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Deposit', exact: true })).toBeVisible();
 });
 
 test('a new bank recipient picks the bank from a searchable list, or types one that is not listed', async ({ page }) => {

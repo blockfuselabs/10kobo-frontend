@@ -465,7 +465,7 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   const address = summary?.address;
   return (
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
-      <h1 className="page-title">Add USDC</h1>
+      <h1 className="page-title">Deposit</h1>
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="How do you want to add money?">
         {WAYS.map((item) => {
           const chosen = way === item.id;
