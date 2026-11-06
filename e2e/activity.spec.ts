@@ -85,7 +85,7 @@ test('the sidebar shows the rate, Deposit, Send money and the latest transaction
   await page.getByTestId('latest').click();
   await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible();
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
-  await expect(page.getByText('Deposit naira')).toBeVisible();
+  await expect(page.getByText('Deposit Naira')).toBeVisible();
 });
 
 test('dark mode settles to dark colours', async ({ page }) => {

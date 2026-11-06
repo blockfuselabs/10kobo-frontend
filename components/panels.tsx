@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
-import { ArrowInIcon, ArrowOutIcon, CheckIcon, CopyIcon, DownloadIcon, SearchIcon } from './icons';
+import { ArrowInIcon, ArrowOutIcon, BankIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
 import { NetworkPicker } from './network-picker';
 import { ReceiptDialog } from './receipt-dialog';
 
@@ -451,9 +451,9 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
 }
 
 const WAYS = [
-  { id: 'naira', title: 'Naira', detail: 'Bank transfer from any Nigerian bank' },
-  { id: 'base', title: 'USDC on Base', detail: 'Send to your wallet address' },
-  { id: 'other', title: 'Other network', detail: 'USDC or USDT from 14 networks' },
+  { id: 'naira', title: 'Naira', detail: 'Bank transfer from any Nigerian bank', Icon: BankIcon },
+  { id: 'base', title: 'USDC on Base', detail: 'Send to your wallet address', Icon: WalletIcon },
+  { id: 'other', title: 'Other Network', detail: 'USDC or USDT from 14 networks', Icon: NetworksIcon },
 ] as const;
 type Way = (typeof WAYS)[number]['id'];
 
@@ -466,24 +466,37 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
       <h1 className="page-title">Add USDC</h1>
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="How do you want to add money?">
-        {WAYS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={way === item.id}
-            onClick={() => setWay(item.id)}
-            className={`flex flex-col gap-0.5 rounded-2xl border p-3 text-left transition-colors sm:p-4 ${way === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] bg-[var(--surface)] hover:border-[var(--foreground)]'}`}
-            data-testid={`way-${item.id}`}
-          >
-            <span className="text-sm font-semibold sm:text-base">{item.title}</span>
-            <span className={`hidden text-xs sm:block ${way === item.id ? 'opacity-80' : 'text-[var(--muted)]'}`}>{item.detail}</span>
-          </button>
-        ))}
+        {WAYS.map((item) => {
+          const chosen = way === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={chosen}
+              onClick={() => setWay(item.id)}
+              className={`relative flex flex-col gap-2 rounded-2xl border bg-[var(--surface)] p-3 text-left transition-all sm:gap-3 sm:p-4 ${chosen ? 'border-[var(--foreground)] shadow-md ring-1 ring-[var(--foreground)]' : 'border-[var(--line)] hover:-translate-y-0.5 hover:shadow-sm'}`}
+              data-testid={`way-${item.id}`}
+            >
+              <span className={`grid h-9 w-9 place-items-center rounded-full ${chosen ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
+                <item.Icon />
+              </span>
+              {chosen && (
+                <span aria-hidden className="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full bg-[var(--foreground)] text-[var(--background)]">
+                  <CheckIcon />
+                </span>
+              )}
+              <span className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold sm:text-base">{item.title}</span>
+                <span className="hidden text-xs text-[var(--muted)] sm:block">{item.detail}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {way === 'naira' && (
         <div className="panel">
-          <p className="font-semibold">Deposit naira</p>
+          <p className="font-semibold">Deposit Naira</p>
           <p className="mb-1 text-sm text-[var(--muted)]">Transfer naira from any Nigerian bank, and it arrives in your wallet as USDC.</p>
           <DepositNaira api={api} onChanged={onChanged} />
         </div>
@@ -502,13 +515,13 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
             </button>
           )}
           <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
-          <p className="text-sm text-[var(--muted)]">Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other network</button>.</p>
+          <p className="text-sm text-[var(--muted)]">Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other Network</button>.</p>
         </div>
       )}
 
       {way === 'other' && (
         <div className="panel" aria-label="Deposit from another network">
-          <p className="font-semibold">Deposit from another network</p>
+          <p className="font-semibold">Deposit from Another Network</p>
           <p className="mb-3 text-sm text-[var(--muted)]">USDC or USDT from Tron, BNB Chain, Solana, Ethereum and more. It arrives in your wallet as USDC on Base.</p>
           <DepositOtherNetwork api={api} onChanged={onChanged} />
         </div>
