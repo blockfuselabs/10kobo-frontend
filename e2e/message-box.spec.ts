@@ -57,3 +57,24 @@ test('a message can be copied', async ({ page, context }) => {
   await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
 });
+
+test('a long address with no spaces stays inside its bubble', async ({ page }) => {
+  const text = 'send 0.5 usdc to this address GAZ6GHSFCKVVCOECNRJ7XKKP3KPSJ24ZGHJNLF3MPMOYOG2RXFU2Z6Q5ABCDEFGHIJKLMNOP';
+  const message = { id: '55555555-5555-4555-8555-555555555555', role: 'user', content: text, created_at: new Date().toISOString() };
+  let sent = false;
+  await page.route(/\/v1\/chat\/messages(\?.*)?$/, async (route) => {
+    if (route.request().method() === 'POST') {
+      sent = true;
+      return route.fulfill({ json: { conversation_id: '22222222-2222-4222-8222-222222222222', reply: message } });
+    }
+    return sent ? route.fulfill({ json: { messages: [message] } }) : route.continue();
+  });
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('/');
+  await page.getByLabel('Message').fill(text);
+  await page.getByLabel('Message').press('Enter');
+  const bubble = page.getByText(text, { exact: true });
+  await expect(bubble).toBeVisible();
+  expect(await bubble.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/message-long-address.png' });
+});

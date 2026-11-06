@@ -612,10 +612,10 @@ export function Home() {
                       data-notice={message.notice ? 'true' : undefined}
                       className={
                         message.notice
-                          ? 'max-w-[90%] self-center whitespace-pre-wrap rounded-full bg-[var(--surface-2)] px-3.5 py-1.5 text-center text-xs text-[var(--muted)]'
+                          ? 'max-w-[90%] self-center whitespace-pre-wrap [overflow-wrap:anywhere] rounded-full bg-[var(--surface-2)] px-3.5 py-1.5 text-center text-xs text-[var(--muted)]'
                           : message.role === 'user'
-                            ? 'max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)] selection:bg-[var(--accent-text)] selection:text-[var(--accent)]'
-                            : 'max-w-[85%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
+                            ? 'max-w-[80%] self-end whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)] selection:bg-[var(--accent-text)] selection:text-[var(--accent)]'
+                            : 'max-w-[85%] self-start whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
                       }
                     >
                       {message.role === 'assistant' ? splitPayLink(message.content).text : message.content}
@@ -646,7 +646,7 @@ export function Home() {
                   </div>
                 ))}
                 {waitingOn && (
-                  <p className="max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]">{waitingOn}</p>
+                  <p className="max-w-[80%] self-end whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]">{waitingOn}</p>
                 )}
                 {sending && (
                   <p className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-3.5" aria-label="Thinking">
