@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ActivityEntry, ActivityPage, ApiClient, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
+import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
 import { ArrowInIcon, ArrowOutIcon, CheckIcon, CopyIcon, DownloadIcon, SearchIcon } from './icons';
 import { ReceiptDialog } from './receipt-dialog';
@@ -324,6 +324,137 @@ function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => voi
   );
 }
 
+const CHAIN_DEPOSIT_STEP: Record<ChainDeposit['status'], string> = {
+  waiting: 'Waiting for your transfer…',
+  moving: 'Your transfer arrived. Turning it into USDC on Base…',
+  delivered: 'Done. The USDC is in your wallet.',
+  refunded: 'It could not be completed, so it went back to your refund address.',
+  failed: 'Something went wrong. Our team is checking it. Do not send again.',
+  expired: 'Nothing arrived in time. Anything sent late goes back to your refund address.',
+};
+
+/** From another network to the wallet on Base, through a one-time NEAR Intents address. */
+function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: () => void }) {
+  const [networks, setNetworks] = useState<DepositNetwork[]>([]);
+  const [saved, setSaved] = useState<Record<string, string>>({});
+  const [chain, setChain] = useState('');
+  const [token, setToken] = useState<'USDC' | 'USDT'>('USDC');
+  const [amount, setAmount] = useState('');
+  const [refundTo, setRefundTo] = useState('');
+  const [deposit, setDeposit] = useState<ChainDeposit | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const seconds = useSecondsLeft(deposit?.status === 'waiting' ? deposit.deadline : null);
+
+  useEffect(() => {
+    api.chainDeposits().then((overview) => {
+      setNetworks(overview.networks);
+      setSaved(overview.refund_addresses);
+    }).catch(() => setError('We could not load the networks. Please try again.'));
+  }, [api]);
+
+  const network = networks.find((item) => item.id === chain) ?? null;
+  // A saved address for this kind of wallet fills in by itself, so it is typed once.
+  const pick = (id: string) => {
+    const next = networks.find((item) => item.id === id);
+    setChain(id);
+    setToken(next?.tokens[0] ?? 'USDC');
+    setRefundTo(next ? (saved[next.family] ?? '') : '');
+    setError(null);
+  };
+
+  const open = deposit && (deposit.status === 'waiting' || deposit.status === 'moving');
+  useEffect(() => {
+    if (!open) return;
+    const timer = setInterval(() => {
+      void api.getChainDeposit(deposit.id).then((latest) => {
+        setDeposit(latest);
+        if (latest.status === 'delivered') onChanged();
+      }).catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [open, deposit?.id, api, onChanged]);
+
+  const start = async () => {
+    if (!network) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setDeposit(await api.startChainDeposit({ pay_from: network.id, pay_token: token, amount: amount.trim(), refund_to: refundTo.trim() }));
+      setSaved({ ...saved, [network.family]: refundTo.trim() });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'We could not set this up. Nothing was sent.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (deposit) {
+    return (
+      <div className="flex flex-col gap-3" data-testid="chain-deposit">
+        {deposit.status === 'waiting' && (
+          <>
+            <div className="inset flex items-center justify-between p-3.5">
+              <span className="text-sm">This address is valid for</span>
+              <span className="amount text-lg font-semibold" role="timer">{String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}</span>
+            </div>
+            <div className="inset px-3.5">
+              <CopyRow label={`Send exactly, in ${deposit.token} on ${deposit.network}`} value={`${deposit.send} ${deposit.token}`} copy={deposit.send_exact.replace(/\.?0+$/, '')} testId="chain-deposit-amount" />
+              <CopyRow label={`To this one-time ${deposit.network} address`} value={deposit.deposit_address} copy={deposit.deposit_address} testId="chain-deposit-address" />
+            </div>
+            <p className="text-sm font-medium">You get about {deposit.you_get} in your wallet on Base.</p>
+            <p className="text-sm text-[var(--muted)]">Send only {deposit.token}, only on {deposit.network}, in one transfer. Less than this, or after the time runs out, goes back to {deposit.refund_to}.</p>
+          </>
+        )}
+        <p className="font-medium" data-testid="chain-deposit-status">{CHAIN_DEPOSIT_STEP[deposit.status]}{deposit.received ? ` ${deposit.received} added.` : ''}</p>
+        {deposit.delivery_tx_url && <a className="text-sm font-medium underline underline-offset-2" href={deposit.delivery_tx_url} target="_blank" rel="noreferrer">See it on Base</a>}
+        {!open && <button className="btn-secondary self-start" onClick={() => { setDeposit(null); setAmount(''); }}>Make another deposit</button>}
+      </div>
+    );
+  }
+
+  return (
+    <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); if (!busy) void start(); }}>
+      <fieldset>
+        <legend className="mb-2 text-sm">Network you are sending from</legend>
+        <div className="flex flex-wrap gap-2">
+          {networks.map((item) => (
+            <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => pick(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
+              {item.name}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      {network && (
+        <>
+          {network.tokens.length > 1 ? (
+            <div className="flex gap-2" role="group" aria-label="Token">
+              {network.tokens.map((item) => (
+                <button key={item} type="button" aria-pressed={token === item} onClick={() => setToken(item)} className={`btn-small rounded-full border ${token === item ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>{item}</button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">From {network.name}, you send {network.tokens[0]}.</p>
+          )}
+          <label className="flex flex-col gap-1 text-sm">
+            Amount in {token}
+            <input className="field text-lg font-medium" inputMode="decimal" autoComplete="off" name="chain-deposit-amount" placeholder="At least 1" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ''))} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Your {network.name} address, for any refund
+            <input className="field font-normal" autoComplete="off" spellCheck={false} name="chain-deposit-refund" value={refundTo} onChange={(event) => setRefundTo(event.target.value)} />
+            <span className="text-xs text-[var(--muted)]">{saved[network.family] && saved[network.family] === refundTo.trim() ? 'Saved from last time. ' : ''}Used only if the deposit cannot go through. Not an exchange address, and not your 10kobo wallet.</span>
+          </label>
+        </>
+      )}
+      {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
+      <button className="btn-primary w-full" disabled={!network || busy || !amount || refundTo.trim().length < 2}>
+        {busy ? 'Getting the address…' : 'Get deposit address'}
+      </button>
+    </form>
+  );
+}
+
 export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSummary | null; api: ApiClient; onChanged: () => void }) {
   const [copied, setCopied] = useState(false);
   const address = summary?.address;
@@ -349,6 +480,11 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
         </button>
       )}
       <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
+      </div>
+      <div className="panel" aria-label="Deposit from another network">
+        <p className="font-semibold">Or deposit from another network</p>
+        <p className="mb-3 text-sm text-[var(--muted)]">USDC or USDT from Tron, BNB Chain, Solana, Ethereum and more. It arrives in your wallet as USDC on Base.</p>
+        <DepositOtherNetwork api={api} onChanged={onChanged} />
       </div>
     </section>
   );

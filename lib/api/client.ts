@@ -197,6 +197,32 @@ export interface Chat {
   updated_at: string;
 }
 
+/** A network a deposit can come from, and the tokens it takes. "evm" networks share one refund address. */
+export interface DepositNetwork {
+  id: string;
+  name: string;
+  tokens: ('USDC' | 'USDT')[];
+  family: string;
+}
+
+/** Money from another network on its way to the wallet on Base, through NEAR Intents. */
+export interface ChainDeposit {
+  id: string;
+  status: 'waiting' | 'moving' | 'delivered' | 'refunded' | 'failed' | 'expired';
+  pay_from: string;
+  network: string;
+  token: 'USDC' | 'USDT';
+  send: string;
+  send_exact: string;
+  you_get: string;
+  received: string | null;
+  deposit_address: string;
+  refund_to: string;
+  deadline: string;
+  created_at: string;
+  delivery_tx_url: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -275,6 +301,10 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     getDeposit: async (id: string) => (await request<{ deposit: NairaDeposit | null }>(`/v1/deposits/${id}`)).deposit,
     depositSent: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/sent`, { method: 'POST' }),
     closeDeposit: (id: string) => request<{ ok: boolean }>(`/v1/deposits/${id}/close`, { method: 'POST' }),
+    chainDeposits: () => request<{ networks: DepositNetwork[]; refund_addresses: Record<string, string>; deposits: ChainDeposit[] }>('/v1/chain-deposits'),
+    startChainDeposit: async (body: { pay_from: string; pay_token: 'USDC' | 'USDT'; amount: string; refund_to: string }) =>
+      (await request<{ deposit: ChainDeposit }>('/v1/chain-deposits', { method: 'POST', body: JSON.stringify(body) })).deposit,
+    getChainDeposit: async (id: string) => (await request<{ deposit: ChainDeposit }>(`/v1/chain-deposits/${id}`)).deposit,
     activity: (page: number, filters: ActivityFilters = {}) => request<ActivityPage>(`/v1/activity?${activityQuery(filters, page)}`),
     /** The filtered list as a spreadsheet file, fetched with the sign-in token. */
     activityFile: async (filters: ActivityFilters = {}): Promise<Blob> => {
