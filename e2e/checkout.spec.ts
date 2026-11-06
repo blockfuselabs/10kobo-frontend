@@ -17,8 +17,10 @@ test('the button opens 10kobo checkout over the shop page, and Esc or the close 
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/checkout-popup.png' });
   // The box fits the checkout: wider than before, and no taller than what it shows.
   await expect.poll(async () => (await page.locator('iframe[title="10kobo checkout"]').boundingBox())!.width).toBeGreaterThan(540);
+  // As tall as the checkout, except that a long one stops inside the window, with a margin, and scrolls in the box.
   const inner = await checkout.locator('main').evaluate((element) => element.getBoundingClientRect().height);
-  await expect.poll(async () => Math.abs((await page.locator('iframe[title="10kobo checkout"]').boundingBox())!.height - inner)).toBeLessThan(4);
+  const room = page.viewportSize()!.height - 32;
+  await expect.poll(async () => Math.abs((await page.locator('iframe[title="10kobo checkout"]').boundingBox())!.height - Math.min(inner, room))).toBeLessThan(4);
   await checkout.getByTestId('link-payee').click();
   await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);

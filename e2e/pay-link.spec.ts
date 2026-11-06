@@ -187,3 +187,24 @@ test('shows proof links once paid, and says plainly when USDC goes to NEAR', asy
   await expect(page.getByTestId('link-paid')).toContainText('The USDC went to ada.near on NEAR');
   await expect(page.getByRole('link', { name: 'NEAR Intents settlement' })).toHaveAttribute('href', 'https://nearblocks.io/txns/abc');
 });
+
+test('a payer can pay from Tron, in USDT, which is the only choice there', async ({ page }) => {
+  await serve(page, () => base);
+  let sent: unknown;
+  await page.route(`**/v1/public/pay-links/${ID}/pay`, async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ json: { ...base, payment: { ...payment, pay_from: 'tron', pay_token: 'USDT', deposit_address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' } } });
+  });
+  await page.goto(`/pay/${ID}`);
+  for (const name of ['Tron', 'BNB Chain', 'Polygon', 'TON', 'Sui', 'Aptos', 'Gnosis', 'Monad']) await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Stellar', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tron', exact: true }).click();
+  await expect(page.getByTestId('usdt-only')).toHaveText('From Tron, you pay in USDT.');
+  await expect(page.getByRole('button', { name: 'USDC', exact: true })).toHaveCount(0);
+  await page.getByLabel(/Your Tron address/).fill('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/pay-link-tron.png' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect.poll(() => sent).toEqual({ pay_from: 'tron', pay_token: 'USDT', refund_to: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8' });
+  await expect(page.getByTestId('link-address')).toHaveText('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
+  await expect(page.getByRole('region', { name: 'Pay this link' })).toContainText('Send only USDT, only on Tron');
+});

@@ -5,12 +5,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // Public: whoever opens the link has no account, so this page uses neither sign-in nor a wallet connection.
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+// Every network NEAR Intents would take a payment from on 6 Nov 2026. Stellar is missing: it would not quote Stellar to Base.
 const CHAINS = [
   { id: 'base', name: 'Base', hint: '0x… address' },
   { id: 'near', name: 'NEAR', hint: 'name.near' },
   { id: 'arbitrum', name: 'Arbitrum', hint: '0x… address' },
   { id: 'ethereum', name: 'Ethereum', hint: '0x… address' },
   { id: 'solana', name: 'Solana', hint: 'Solana address' },
+  { id: 'tron', name: 'Tron', hint: 'T… address' },
+  { id: 'bsc', name: 'BNB Chain', hint: '0x… address' },
+  { id: 'polygon', name: 'Polygon', hint: '0x… address' },
+  { id: 'optimism', name: 'Optimism', hint: '0x… address' },
+  { id: 'avalanche', name: 'Avalanche', hint: '0x… address' },
+  { id: 'ton', name: 'TON', hint: 'TON address (UQ… or EQ…)' },
+  { id: 'sui', name: 'Sui', hint: '0x… address (64 digits)' },
+  { id: 'aptos', name: 'Aptos', hint: '0x… address (64 digits)' },
+  { id: 'gnosis', name: 'Gnosis', hint: '0x… address' },
+  { id: 'monad', name: 'Monad', hint: '0x… address' },
 ] as const;
 
 interface LinkPayment {
@@ -48,7 +59,9 @@ interface PublicLink {
   payment: LinkPayment | null;
 }
 
-const USDT_FROM = new Set(['near', 'ethereum', 'solana']);
+const USDT_FROM = new Set(['near', 'ethereum', 'solana', 'bsc']);
+/** No USDC route from these, so USDT is the only choice. */
+const USDT_ONLY = new Set(['tron', 'ton']);
 const dueText = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'long' });
 
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
@@ -143,7 +156,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
       const response = await fetch(`${API}/v1/public/pay-links/${id}/pay`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(chain === 'naira' ? { pay_from: 'naira' } : { pay_from: chain, pay_token: USDT_FROM.has(chain) ? token : 'USDC', refund_to: refundTo.trim() }),
+        body: JSON.stringify(chain === 'naira' ? { pay_from: 'naira' } : { pay_from: chain, pay_token: USDT_ONLY.has(chain) ? 'USDT' : USDT_FROM.has(chain) ? token : 'USDC', refund_to: refundTo.trim() }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.message ?? 'We could not set this up. Nothing was sent.');
@@ -266,6 +279,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
                     You will get a Nigerian bank account to transfer to. Once your naira arrives, it becomes USDC and goes to {link.to} on Base.
                   </p>
                 )}
+                {!byBank && USDT_ONLY.has(crypto) && <p className="text-sm text-[var(--muted)]" data-testid="usdt-only">From {chosen.name}, you pay in USDT.</p>}
                 {!byBank && USDT_FROM.has(crypto) && (
                   <fieldset>
                     <legend className="mb-2 text-sm font-medium">Pay with</legend>
