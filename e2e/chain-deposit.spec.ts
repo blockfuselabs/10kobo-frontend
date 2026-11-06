@@ -25,14 +25,17 @@ test('a deposit from Tron gives a one-time address, then shows the USDC arriving
   const box = page.getByRole('region', { name: 'Deposit from another network' }).or(page.locator('[aria-label="Deposit from another network"]'));
 
   // A 0x network fills in the saved 0x refund address by itself.
-  await box.getByRole('button', { name: 'Polygon' }).click();
+  await box.getByTestId('network-picker').click();
+  await box.getByRole('option', { name: /^Polygon/ }).click();
   await expect(box.getByLabel(/Your Polygon address/)).toHaveValue(MY_EVM);
   await expect(box).toContainText('Saved from last time.');
-  await box.getByRole('button', { name: 'BNB Chain' }).click();
+  await box.getByTestId('network-picker').click();
+  await box.getByRole('option', { name: /^BNB Chain/ }).click();
   await expect(box.getByLabel(/Your BNB Chain address/)).toHaveValue(MY_EVM);
 
   // Tron has only USDT and no saved address yet.
-  await box.getByRole('button', { name: 'Tron' }).click();
+  await box.getByTestId('network-picker').click();
+  await box.getByRole('option', { name: /^Tron/ }).click();
   await expect(box).toContainText('From Tron, you send USDT.');
   await expect(box.getByLabel(/Your Tron address/)).toHaveValue('');
   await box.getByLabel(/Amount in USDT/).fill('20');
@@ -58,10 +61,33 @@ test('a refused deposit says why, and nothing is shown to send to', async ({ pag
   );
   await page.goto('/');
   await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
-  await page.getByRole('button', { name: 'BNB Chain' }).click();
+  await page.getByTestId('network-picker').click();
+  await page.getByRole('option', { name: /^BNB Chain/ }).click();
   await page.getByLabel(/Amount in USDC/).fill('5');
   await page.getByLabel(/Your BNB Chain address/).fill(MY_EVM);
   await page.getByRole('button', { name: 'Get deposit address' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'BNB Chain' })).toHaveText('Deposits from BNB Chain start at $1,000 for the moment. Nothing was set up.');
   await expect(page.getByTestId('chain-deposit-address')).toHaveCount(0);
+});
+
+test('the network list opens, searches, and chooses with the keyboard', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks: [...networks, { id: 'solana', name: 'Solana', tokens: ['USDC', 'USDT'], family: 'solana' }], refund_addresses: {}, deposits: [] } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add USDC', exact: true }).click();
+  await page.getByTestId('network-picker').click();
+  // The networks most used in Nigeria come first.
+  await expect(page.getByRole('option')).toHaveText([/Tron/, /BNB Chain/, /Solana/, /Polygon/]);
+  await page.getByTestId('network-picker').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/network-picker-open.png' });
+  await page.getByLabel('Search networks').fill('poly');
+  await expect(page.getByRole('option')).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('network-picker')).toContainText('Polygon');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await page.getByTestId('network-picker').click();
+  await page.getByLabel('Search networks').fill('stellar');
+  await expect(page.getByRole('listbox')).toContainText('Stellar deposits are not possible yet.');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
 });

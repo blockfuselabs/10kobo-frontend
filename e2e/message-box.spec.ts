@@ -78,3 +78,28 @@ test('a long address with no spaces stays inside its bubble', async ({ page }) =
   expect(await bubble.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/message-long-address.png' });
 });
+
+test('a reply shows numbered steps and bold facts, and copies as plain text', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const content = 'Yes, from 14 networks.\n\n1. Open the **Add USDC** tab.\n2. Choose the network from the list.\n3. Send **exactly** the amount shown.\n\nDeposits from Stellar are not possible yet.';
+  const reply = { id: '66666666-6666-4666-8666-666666666667', role: 'assistant', content, created_at: new Date().toISOString() };
+  let sent = false;
+  await page.route(/\/v1\/chat\/messages(\?.*)?$/, async (route) => {
+    if (route.request().method() === 'POST') {
+      sent = true;
+      return route.fulfill({ json: { conversation_id: '22222222-2222-4222-8222-222222222222', reply } });
+    }
+    return sent ? route.fulfill({ json: { messages: [reply] } }) : route.continue();
+  });
+  await page.goto('/');
+  await page.getByLabel('Message').fill('can i deposit from any chain');
+  await page.getByLabel('Message').press('Enter');
+  const steps = page.getByRole('list').filter({ hasText: 'Open the Add USDC tab.' });
+  await expect(steps.getByRole('listitem')).toHaveText(['Open the Add USDC tab.', 'Choose the network from the list.', 'Send exactly the amount shown.']);
+  await expect(steps.locator('strong')).toHaveText(['Add USDC', 'exactly']);
+  await expect(page.getByText('**')).toHaveCount(0);
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/reply-steps.png' });
+  await page.getByText('Deposits from Stellar are not possible yet.').hover();
+  await page.getByRole('button', { name: 'Copy this text' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(content.replace(/\*\*/g, ''));
+});

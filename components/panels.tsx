@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CancelScheduleButton, TxLink } from './cards';
 import { ArrowInIcon, ArrowOutIcon, CheckIcon, CopyIcon, DownloadIcon, SearchIcon } from './icons';
+import { NetworkPicker } from './network-picker';
 import { ReceiptDialog } from './receipt-dialog';
 
 const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
@@ -415,16 +416,7 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
 
   return (
     <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); if (!busy) void start(); }}>
-      <fieldset>
-        <legend className="mb-2 text-sm">Network you are sending from</legend>
-        <div className="flex flex-wrap gap-2">
-          {networks.map((item) => (
-            <button key={item.id} type="button" aria-pressed={chain === item.id} onClick={() => pick(item.id)} className={`btn-small rounded-full border ${chain === item.id ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
-              {item.name}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <NetworkPicker label="Network you are sending from" networks={networks} value={chain} onChange={pick} />
       {network && (
         <>
           {network.tokens.length > 1 ? (

@@ -8,6 +8,7 @@ import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprova
 import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
+import { plainText, RichText } from './rich-text';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -608,7 +609,7 @@ export function Home() {
                 {me?.pin_required && !me.has_pin && <SetPinCard api={api} onChange={() => api.me().then(setMe)} />}
                 {messages.map((message) => (
                   <div key={message.id} className="group rise flex flex-col gap-2">
-                    <p
+                    <div
                       data-notice={message.notice ? 'true' : undefined}
                       className={
                         message.notice
@@ -618,15 +619,15 @@ export function Home() {
                             : 'max-w-[85%] self-start whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
                       }
                     >
-                      {message.role === 'assistant' ? splitPayLink(message.content).text : message.content}
+                      {message.role === 'assistant' && !message.notice ? <RichText text={splitPayLink(message.content).text} /> : message.content}
                       {message.notice && message.tx_hash && (
                         <>
                           {' '}
                           <TxLink hash={message.tx_hash} />
                         </>
                       )}
-                    </p>
-                    {!message.notice && <CopyMessage text={message.content} mine={message.role === 'user'} />}
+                    </div>
+                    {!message.notice && <CopyMessage text={plainText(message.content)} mine={message.role === 'user'} />}
                     {message.role === 'assistant' && (() => {
                       const link = splitPayLink(message.content);
                       return link.id && link.url ? <PayLinkCard id={link.id} url={link.url} /> : null;
