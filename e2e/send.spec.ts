@@ -126,3 +126,37 @@ test('with 100 saved people, shows only the 5 most recent, and search finds anyo
   await page.getByRole('button', { name: 'Continue' }).click();
   expect(sent).toMatchObject({ route: 'bank', destination_id: many[72]!.destination_id, amount_naira: 1000 });
 });
+
+test('wallets saved under their address show short, with network and last paid, and can be named', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const wallets = [
+    { destination_id: '11111111-1111-4111-8111-00000000000a', contact_id: '33333333-3333-4333-8333-00000000000a', name: '0x8168C3DC48e2174BeD6110EAFaC20Ed8529f11e2', unnamed: true, kind: 'wallet', detail: '0x8168…11e2', network: 'Base', last_paid_at: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+    { destination_id: '11111111-1111-4111-8111-00000000000b', contact_id: '33333333-3333-4333-8333-00000000000b', name: 'GAZ6GHSFCKVVCOECNRJ7XKKP3KPSJ24ZGHJNLF3MPMOYOG2RXFU2Z6OB', unnamed: true, kind: 'wallet', detail: 'GAZ6GH…Z6OB', network: 'Stellar', last_paid_at: new Date().toISOString() },
+  ];
+  let named: unknown = null;
+  let current = wallets;
+  await page.route('**/v1/send/options', (route) => route.fulfill({ json: { ...options, recipients: current } }));
+  await page.route('**/v1/contacts/*/rename', (route) => {
+    named = { url: route.request().url(), body: route.request().postDataJSON() };
+    current = [{ ...wallets[0]!, name: 'Tolu', unnamed: false }, wallets[1]!];
+    return route.fulfill({ status: 204, body: '' });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Send money' }).click();
+  await page.getByTestId('send-crypto').click();
+  const picker = page.getByTestId('recipient-picker');
+  await expect(picker).toContainText('0x8168…11e2');
+  await expect(picker).toContainText('Base · Last paid 2 days ago');
+  await picker.click();
+  await expect(page.getByRole('option').nth(2)).toContainText('Stellar · Last paid today');
+  await page.getByLabel('Search recipients').fill('stellar');
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await page.keyboard.press('Escape');
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-unnamed.png' });
+  await page.getByLabel('Name for this recipient').fill('Tolu');
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await expect(picker).toContainText('Tolu');
+  await expect(picker).toContainText('Base · 0x8168…11e2 · Last paid 2 days ago');
+  await expect(page.getByTestId('name-it')).toHaveCount(0);
+  expect(named).toEqual({ url: expect.stringContaining('/v1/contacts/33333333-3333-4333-8333-00000000000a/rename'), body: { name: 'Tolu' } });
+});

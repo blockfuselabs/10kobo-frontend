@@ -31,6 +31,35 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
+/** A saved wallet with no name is hard to recognise, so the page offers to name it. Only the label changes. */
+function NameIt({ contactId, kind, api, onSaved }: { contactId: string; kind: string; api: ApiClient; onSaved: () => void }) {
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.renameContact(contactId, name.trim());
+      onSaved();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'We could not save the name.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="inset flex flex-col gap-2 p-3" data-testid="name-it">
+      <p className="text-sm">This {kind === 'wallet' ? 'wallet' : 'recipient'} has no name yet. <span className="text-[var(--muted)]">Give it one so you can find it later.</span></p>
+      <div className="flex gap-2">
+        <input className="field min-w-0 flex-1 bg-[var(--surface)]" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Ada (Stellar)" aria-label="Name for this recipient" maxLength={60} />
+        <button type="button" className="btn-secondary shrink-0" disabled={busy || !name.trim()} onClick={() => void save()}>{busy ? 'Saving…' : 'Save name'}</button>
+      </div>
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
+}
+
 /** Sending without the chat: the same payments, rules and approval card, chosen with a form. */
 export function SendPanel({ api, onChanged, onAddMoney }: { api: ApiClient; onChanged: () => void; onAddMoney: () => void }) {
   const [way, setWay] = useState<Way>('bank');
@@ -176,6 +205,7 @@ export function SendPanel({ api, onChanged, onAddMoney }: { api: ApiClient; onCh
           </CardHeader>
 
           {saved.length > 0 && <RecipientPicker recipients={saved} value={recipient} onChange={setRecipient} />}
+          {chosen?.unnamed && <NameIt key={chosen.contact_id} contactId={chosen.contact_id} kind={chosen.kind} api={api} onSaved={() => api.sendOptions().then(setOptions).catch(() => undefined)} />}
 
           {recipient === NEW && way === 'bank' && (
             <>

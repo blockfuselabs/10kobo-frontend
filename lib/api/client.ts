@@ -225,7 +225,7 @@ export interface ChainDeposit {
 
 /** What the Send page needs: saved recipients by kind, and the networks to choose from. */
 export interface SendOptions {
-  recipients: { destination_id: string; name: string; kind: 'bank' | 'wallet' | 'phone'; detail: string; network: string | null; last_paid_at?: string | null }[];
+  recipients: { destination_id: string; contact_id: string; name: string; unnamed?: boolean; kind: 'bank' | 'wallet' | 'phone'; detail: string; network: string | null; last_paid_at?: string | null }[];
   networks: { id: string; name: string; token: 'USDC' | 'USDT' }[];
   phone_networks: string[];
 }
@@ -351,6 +351,7 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
       request<{ has_pin: boolean }>('/v1/pin', { method: 'POST', body: JSON.stringify({ pin, ...(currentPin ? { current_pin: currentPin } : {}) }) }),
     approvePlan: (id: string, pin?: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
     getPlan: (id: string) => request<Plan>(`/v1/plans/${id}`),
+    renameContact: (contactId: string, name: string) => request<void>(`/v1/contacts/${contactId}/rename`, { method: 'POST', body: JSON.stringify({ name }) }),
     sendOptions: () => request<SendOptions>('/v1/send/options'),
     dataPlansFor: async (network: string) => (await request<{ plans: { id: string; label: string; price: string }[] }>(`/v1/send/data-plans?network=${encodeURIComponent(network)}`)).plans,
     prepareSend: async (body: SendRequest) => (await request<{ plan: Plan }>('/v1/send', { method: 'POST', body: JSON.stringify(body) })).plan,

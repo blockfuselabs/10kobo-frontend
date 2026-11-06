@@ -10,8 +10,33 @@ export const NEW_RECIPIENT = 'new';
 const RECENT = 5;
 const MOST_RESULTS = 30;
 
+const short = (text: string) => (text.length > 16 ? `${text.slice(0, 6)}…${text.slice(-4)}` : text);
+
+/** How long ago, in words a person uses. */
+function ago(at: string): string {
+  const days = Math.floor((Date.now() - new Date(at).getTime()) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  return new Date(at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * What a person recognises: their name when they have one. A wallet saved under its own address shows a short
+ * address, its network and when it was last paid instead, because nobody remembers a 42-letter address.
+ */
+export function describe(item: Recipient): { title: string; line: string; mark: string } {
+  const paid = item.last_paid_at ? `Last paid ${ago(item.last_paid_at)}` : 'Not paid yet';
+  if (item.unnamed) {
+    const where = item.kind === 'wallet' ? (item.network ?? 'Base') : item.kind === 'phone' ? (item.network ?? 'Phone') : 'Bank';
+    return { title: short(item.name), line: `${where} · ${paid}`, mark: where };
+  }
+  return { title: item.name, line: item.kind === 'wallet' ? `${item.network ?? 'Base'} · ${short(item.detail)} · ${paid}` : `${item.detail} · ${paid}`, mark: item.name };
+}
+
 function Initials({ name }: { name: string }) {
-  const letters = name.trim().split(/\s+/).map((word) => word[0]).join('').slice(0, 2) || '?';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters = (words.length > 1 ? words.map((word) => word[0]).join('') : (words[0] ?? '')).replace(/[^A-Za-z0-9]/g, '').slice(0, 2) || '?';
   return <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--surface-2)] text-xs font-semibold uppercase">{letters}</span>;
 }
 
@@ -32,7 +57,7 @@ export function RecipientPicker({ recipients, value, onChange }: { recipients: R
   const labelId = useId();
 
   const wanted = query.trim().toLowerCase();
-  const matches = wanted ? recipients.filter((item) => `${item.name} ${item.detail}`.toLowerCase().includes(wanted)) : recipients.slice(0, RECENT);
+  const matches = wanted ? recipients.filter((item) => `${item.name} ${item.detail} ${item.network ?? ''}`.toLowerCase().includes(wanted)) : recipients.slice(0, RECENT);
   const shown = matches.slice(0, MOST_RESULTS);
   const hidden = wanted ? matches.length - shown.length : recipients.length - shown.length;
   // "Someone new" is always the first choice, then the people.
@@ -103,10 +128,10 @@ export function RecipientPicker({ recipients, value, onChange }: { recipients: R
       >
         {chosen ? (
           <>
-            <Initials name={chosen.name} />
+            <Initials name={describe(chosen).mark} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-medium">{chosen.name}</span>
-              <span className="truncate text-xs text-[var(--muted)]">{chosen.detail}</span>
+              <span className="truncate font-medium">{describe(chosen).title}</span>
+              <span className="truncate text-xs text-[var(--muted)]">{describe(chosen).line}</span>
             </span>
           </>
         ) : (
@@ -124,7 +149,7 @@ export function RecipientPicker({ recipients, value, onChange }: { recipients: R
               ref={search}
               value={query}
               onChange={(event) => { setQuery(event.target.value); setActive(0); }}
-              placeholder="Search by name, bank or number"
+              placeholder="Search by name, network, bank or number"
               aria-label="Search recipients"
               aria-controls={listId}
               className="w-full rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm outline-none placeholder:text-[var(--muted)]"
@@ -145,10 +170,10 @@ export function RecipientPicker({ recipients, value, onChange }: { recipients: R
                 onClick={() => choose(item.destination_id)}
                 className={`flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 ${active === index + 1 ? 'bg-[var(--surface-2)]' : ''}`}
               >
-                <Initials name={item.name} />
+                <Initials name={describe(item).mark} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{item.name}</span>
-                  <span className="truncate text-xs text-[var(--muted)]">{item.detail}</span>
+                  <span className="truncate font-medium">{describe(item).title}</span>
+                  <span className="truncate text-xs text-[var(--muted)]">{describe(item).line}</span>
                 </span>
                 <span aria-hidden className={`w-4 text-center ${item.destination_id === value ? '' : 'invisible'}`}>✓</span>
               </li>
