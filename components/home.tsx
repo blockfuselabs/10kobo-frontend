@@ -8,6 +8,7 @@ import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprova
 import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
+import { SendPanel } from './send-panel';
 import { plainText, RichText } from './rich-text';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -33,6 +34,7 @@ const SUGGESTIONS = [
 ] as const;
 const VIEWS = [
   ['chat', 'Chat', ChatIcon],
+  ['send', 'Transfer', ArrowOutIcon],
   ['schedules', 'Scheduled', CalendarIcon],
   ['invoices', 'Invoices', InvoiceIcon],
   ['activity', 'Activity', ActivityIcon],
@@ -475,11 +477,7 @@ export function Home() {
             Deposit
           </button>
           <button
-            onClick={() => {
-              setView('chat');
-              setDraft((current) => current || 'Send ');
-              setTimeout(() => document.getElementById('message')?.focus(), 0);
-            }}
+            onClick={() => setView('send')}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
           >
             <ArrowOutIcon />
@@ -500,7 +498,7 @@ export function Home() {
       <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">
       <nav
           aria-label="Sections"
-          className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-0.5"
+          className="grid grid-cols-6 gap-1 md:flex md:flex-col md:gap-0.5"
         >
           {VIEWS.map(([key, label, ViewIcon]) => (
             <button
@@ -559,6 +557,7 @@ export function Home() {
               {view === 'invoices' && <InvoicesPanel api={api} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
+              {view === 'send' && <SendPanel api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}
             </div>
           </section>
         )}

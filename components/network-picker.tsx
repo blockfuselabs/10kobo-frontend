@@ -27,7 +27,29 @@ function Tokens({ tokens }: { tokens: string[] }) {
 }
 
 /** A list to choose the network a deposit comes from, with search and full keyboard use. */
-export function NetworkPicker({ networks, value, onChange, label }: { networks: DepositNetwork[]; value: string; onChange: (id: string) => void; label: string }) {
+export function NetworkPicker({
+  networks,
+  value,
+  onChange,
+  label,
+  placeholder = 'Choose a network',
+  searchLabel = 'Search networks',
+  empty = (query: string) => `No network called “${query}”. Stellar deposits are not possible yet.`,
+  allowTyped = false,
+  loading = false,
+}: {
+  networks: DepositNetwork[];
+  value: string;
+  onChange: (id: string) => void;
+  label: string;
+  placeholder?: string;
+  searchLabel?: string;
+  /** What to say when the search finds nothing. */
+  empty?: (query: string) => string;
+  /** Offers what was typed as a choice of its own, for a bank that is not in the list. */
+  allowTyped?: boolean;
+  loading?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -45,7 +67,8 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
     [networks],
   );
   const shown = ordered.filter((item) => `${item.name} ${item.tokens.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const chosen = networks.find((item) => item.id === value) ?? null;
+  const chosen = networks.find((item) => item.id === value) ?? (allowTyped && value ? { id: value, name: value, tokens: [], family: '' } : null);
+  const typed = allowTyped && query.trim().length > 1 && shown.length === 0 ? query.trim() : null;
 
   const toggle = () => {
     if (!open && button.current) {
@@ -88,6 +111,7 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (shown[active]) choose(shown[active].id);
+      else if (typed) choose(typed);
     } else if (event.key === 'Escape') {
       setOpen(false);
     }
@@ -113,7 +137,7 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
             <span className="flex-1 font-medium">{chosen.name}</span>
           </>
         ) : (
-          <span className="flex-1 text-[var(--muted)]">Choose a network</span>
+          <span className="flex-1 text-[var(--muted)]">{placeholder}</span>
         )}
         <svg aria-hidden viewBox="0 0 20 20" className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
@@ -124,8 +148,8 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
               ref={search}
               value={query}
               onChange={(event) => { setQuery(event.target.value); setActive(0); }}
-              placeholder="Search networks"
-              aria-label="Search networks"
+              placeholder={searchLabel}
+              aria-label={searchLabel}
               aria-controls={listId}
               className="w-full rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm outline-none placeholder:text-[var(--muted)]"
             />
@@ -146,7 +170,15 @@ export function NetworkPicker({ networks, value, onChange, label }: { networks: 
                 <span aria-hidden className={`w-4 text-center ${item.id === value ? '' : 'invisible'}`}>✓</span>
               </li>
             ))}
-            {shown.length === 0 && <li className="px-2.5 py-3 text-[var(--muted)]">No network called “{query}”. Stellar deposits are not possible yet.</li>}
+            {typed && (
+              <li role="option" aria-selected={false} onClick={() => choose(typed)} className={`flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 ${shown.length === 0 ? 'bg-[var(--surface-2)]' : ''}`}>
+                <Mark name={typed} />
+                <span className="flex-1 font-medium">Use “{typed}”</span>
+              </li>
+            )}
+            {shown.length === 0 && !typed && (
+              <li className="px-2.5 py-3 text-[var(--muted)]">{loading ? 'Loading…' : networks.length === 0 ? 'Could not load the list. Please reload the page.' : empty(query)}</li>
+            )}
           </ul>
         </div>
       )}

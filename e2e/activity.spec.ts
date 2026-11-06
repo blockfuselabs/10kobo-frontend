@@ -81,7 +81,7 @@ test('the sidebar shows the rate, Deposit, Send money and the latest transaction
   await page.waitForTimeout(300);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/sidebar.png' });
   await page.getByRole('button', { name: 'Send money' }).click();
-  await expect(page.getByLabel('Message')).toHaveValue('Send ');
+  await expect(page.getByRole('heading', { name: 'Send Money' })).toBeVisible();
   await page.getByTestId('latest').click();
   await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible();
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();

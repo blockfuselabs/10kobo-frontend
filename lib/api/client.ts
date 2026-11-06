@@ -223,6 +223,22 @@ export interface ChainDeposit {
   delivery_tx_url: string | null;
 }
 
+/** What the Send page needs: saved recipients by kind, and the networks to choose from. */
+export interface SendOptions {
+  recipients: { destination_id: string; name: string; kind: 'bank' | 'wallet' | 'phone'; detail: string; network: string | null }[];
+  networks: { id: string; name: string; token: 'USDC' | 'USDT' }[];
+  phone_networks: string[];
+}
+
+export interface SendRequest {
+  route: 'bank' | 'usdc' | 'airtime' | 'data';
+  destination_id?: string | null;
+  amount_naira?: number | null;
+  amount_usdc?: string | null;
+  data_plan_id?: string | null;
+  new_recipient?: { name?: string; phone?: string; wallet_address?: string; wallet_chain?: string; bank_name?: string; account_number?: string } | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -334,6 +350,10 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     setPin: (pin: string, currentPin?: string) =>
       request<{ has_pin: boolean }>('/v1/pin', { method: 'POST', body: JSON.stringify({ pin, ...(currentPin ? { current_pin: currentPin } : {}) }) }),
     approvePlan: (id: string, pin?: string) => request<Plan>(`/v1/plans/${id}/approve`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
+    getPlan: (id: string) => request<Plan>(`/v1/plans/${id}`),
+    sendOptions: () => request<SendOptions>('/v1/send/options'),
+    dataPlansFor: async (network: string) => (await request<{ plans: { id: string; label: string; price: string }[] }>(`/v1/send/data-plans?network=${encodeURIComponent(network)}`)).plans,
+    prepareSend: async (body: SendRequest) => (await request<{ plan: Plan }>('/v1/send', { method: 'POST', body: JSON.stringify(body) })).plan,
     rejectPlan: (id: string) => request<Plan>(`/v1/plans/${id}/reject`, { method: 'POST' }),
     confirmContact: (id: string, pin?: string) => request<null>(`/v1/contacts/${id}/confirm`, { method: 'POST', body: JSON.stringify(pin ? { pin } : {}) }),
     discardContact: (id: string) => request<null>(`/v1/contacts/${id}/discard`, { method: 'POST' }),
