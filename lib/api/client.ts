@@ -60,6 +60,9 @@ export interface Receipt {
   note: string | null;
   completed_at: string;
   tx_hash: string | null;
+  /** For USDC sent on to another network: what arrived there, and the transaction that delivered it. */
+  received?: string | null;
+  delivery_tx_hash?: string | null;
 }
 
 export interface ActivityPage {

@@ -96,3 +96,19 @@ test('dark mode settles to dark colours', async ({ page }) => {
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/dark-settled.png' });
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
 });
+
+test('a receipt for USDC sent to Stellar shows the whole address, what arrived and both transactions', async ({ page }) => {
+  const address = 'GAZ6GHSFCKVVCOECNRJ7XKKP3KPSJ24ZGHJNLF3MPMOYOG2RXFU2Z6OB';
+  const stellar = { reference: 'b8c3407f-a321', kind: 'USDC transfer', title: 'Payment successful', recipient: address, recipient_detail: null, network: 'Stellar', amount: '0.50 USDC', second_amount: null, note: null, completed_at: new Date().toISOString(), tx_hash: '0x8ffaa375' + 'a'.repeat(50) + 'b71e11', received: '0.48 USDC', delivery_tx_hash: '771999fdadf6ee6a03811d5b019889f546770f2eee1975db4e28b2edc084129c' };
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/v1/activity*', (route) => route.fulfill({ json: { activity: [entry(1, { type: 'usdc', type_label: 'USDC transfer', detail: address })], page: 1, per_page: 10, total: 1 } }));
+  await page.route('**/v1/receipts/**', (route) => route.fulfill({ json: { receipt: stellar } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Activity', exact: true }).click();
+  await page.getByRole('list', { name: 'Activity' }).getByRole('button', { name: 'Receipt' }).click();
+  const image = page.getByRole('dialog', { name: 'Receipt' }).getByRole('img');
+  await expect(image).toHaveAttribute('alt', `Payment successful, 0.50 USDC to ${address}`);
+  const download = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Receipt' }).getByRole('link', { name: 'Download' }).click();
+  await (await download).saveAs('/tmp/10kobo-e2e-results/receipt-stellar.png');
+});

@@ -6,11 +6,20 @@ const PAD = 56;
 const when = (value: string) => new Date(value).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' });
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-6)}`;
 
-/** Breaks a sentence into lines that fit, so a long name or note is never cut off. */
+/** Breaks a sentence into lines that fit, so a long name or note is never cut off. A word too long for one line, such as a wallet address, is split. */
 function wrap(context: CanvasRenderingContext2D, text: string, width: number): string[] {
   const lines: string[] = [];
   let line = '';
-  for (const word of text.split(' ')) {
+  const words = text.split(' ').flatMap((word) => {
+    if (context.measureText(word).width <= width) return [word];
+    // Into equal pieces, so an address does not end with a few letters alone on the last line.
+    for (let count = 2; ; count++) {
+      const size = Math.ceil(word.length / count);
+      const pieces = Array.from({ length: count }, (_, index) => word.slice(index * size, (index + 1) * size)).filter(Boolean);
+      if (pieces.every((piece) => context.measureText(piece).width <= width) || size <= 1) return pieces;
+    }
+  });
+  for (const word of words) {
     const next = line ? `${line} ${word}` : word;
     if (context.measureText(next).width > width && line) {
       lines.push(line);
@@ -28,9 +37,11 @@ function rows(receipt: Receipt): [string, string][] {
   list.push(['Type', receipt.kind]);
   if (receipt.network) list.push(['Network', receipt.network]);
   if (receipt.second_amount) list.push(['Paid with', receipt.second_amount]);
+  if (receipt.received) list.push(['Received', receipt.received]);
   list.push(['Date', when(receipt.completed_at)]);
   list.push(['Reference', receipt.reference.slice(0, 8).toUpperCase()]);
-  if (receipt.tx_hash) list.push(['Transaction', short(receipt.tx_hash)]);
+  if (receipt.tx_hash) list.push([receipt.delivery_tx_hash ? 'Sent on Base' : 'Transaction', short(receipt.tx_hash)]);
+  if (receipt.delivery_tx_hash) list.push([`Delivered on ${receipt.network ?? 'the network'}`, short(receipt.delivery_tx_hash)]);
   return list;
 }
 
