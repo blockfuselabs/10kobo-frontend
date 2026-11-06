@@ -151,6 +151,10 @@ export interface PlanItem {
   address_check?: AddressCheck | null;
   /** Set when the USDC goes to another chain: what the receiver should get, as quoted. */
   receiver_gets?: string | null;
+  /** USDC, or USDT where the network has no USDC route (Tron, TON). */
+  receiver_token?: 'USDC' | 'USDT' | null;
+  /** A catch of the network, said before approving, such as "personal wallets only". */
+  delivery_caution?: string | null;
   received?: string | null;
   delivery_tx_url?: string | null;
   delivery_seconds?: number | null;

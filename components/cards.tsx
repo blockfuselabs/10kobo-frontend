@@ -34,7 +34,7 @@ const ADDRESS_NOTE: Record<AddressCheck, { text: string; warn: boolean }> = {
 };
 
 /** The network and what we know about the address, because crypto sent to the wrong place cannot come back. */
-function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWarning }: { network?: string | null; check?: AddressCheck | null; deciding: boolean; receiverGets?: string | null; seconds?: number | null; feeWarning?: boolean }) {
+function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWarning, token, caution }: { network?: string | null; check?: AddressCheck | null; deciding: boolean; receiverGets?: string | null; seconds?: number | null; feeWarning?: boolean; token?: string | null; caution?: string | null }) {
   const note = check ? ADDRESS_NOTE[check] : null;
   return (
     <>
@@ -44,12 +44,13 @@ function CryptoDetails({ network, check, deciding, receiverGets, seconds, feeWar
           Receiver gets about {receiverGets}{deciding ? `, usually within ${deliveryMinutes(seconds)} minutes` : ''}
         </p>
       )}
+      {deciding && caution && <p className="text-sm font-medium text-amber-700 dark:text-amber-400" data-testid="delivery-caution">{caution}</p>}
       {deciding && feeWarning && <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="fee-warning">The network fee is high for this amount. Sending more, or to another network, costs less.</p>}
       {deciding && receiverGets && <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="chain-warning">Check this is their address on {network}. An address on one network may not belong to the same person on another.</p>}
       {deciding && note && (
         <p data-testid="address-check" className={`text-sm ${note.warn ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--muted)]'}`}>{note.text}</p>
       )}
-      {deciding && network && <p className="text-sm text-[var(--muted)]">The receiver must accept USDC on {network}. Crypto sent to a wrong address or network cannot be returned.</p>}
+      {deciding && network && <p className="text-sm text-[var(--muted)]">The receiver must accept {token ?? 'USDC'} on {network}. Crypto sent to a wrong address or network cannot be returned.</p>}
     </>
   );
 }
@@ -258,7 +259,7 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
                 {ROUTE_LABEL[item.route]}
                 {item.data_plan ? `: ${item.data_plan}` : ''}
               </p>
-              {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} receiverGets={item.receiver_gets} seconds={item.delivery_seconds} feeWarning={item.fee_warning} />}
+              {item.route === 'usdc' && <CryptoDetails network={item.network} check={item.address_check} deciding={plan.status === 'proposed'} receiverGets={item.receiver_gets} seconds={item.delivery_seconds} feeWarning={item.fee_warning} token={item.receiver_token} caution={item.delivery_caution} />}
               {item.receiver_gets && item.payment_status && ['funded', 'paying', 'completed'].includes(item.payment_status) && !item.simulated ? (
                 <DeliverySteps item={item} />
               ) : item.payment_status ? (
