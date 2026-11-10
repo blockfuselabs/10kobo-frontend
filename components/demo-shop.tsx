@@ -1,15 +1,15 @@
 'use client';
 
+import { PublicNav } from './public-nav';
+import { CheckoutIntegration } from './checkout-integration';
+import styles from './storefront.module.css';
+
 import Script from 'next/script';
 import { useCallback, useEffect, useState } from 'react';
 
 // A pretend shop that shows the checkout button the way a real shop would use it. Its prices and its merchant key
 // live on its server (app/shop/api), so this page only sends what was picked.
-const MENU = [
-  { id: 'jollof', name: 'Jollof rice and chicken', naira: 900 },
-  { id: 'puff', name: 'Puff-puff, six pieces', naira: 300 },
-  { id: 'zobo', name: 'Zobo drink', naira: 200 },
-] as const;
+import { MENU } from '@/lib/shop/catalogue';
 type Basket = Record<(typeof MENU)[number]['id'], number>;
 type Order = { order: string; invoice_id: string };
 type State = { status: string; amount_naira: number; order: string; notice: { type: string; at: string } | null };
@@ -43,7 +43,8 @@ const recall = (order: string) => {
 };
 
 export function DemoShop() {
-  const [basket, setBasket] = useState<Basket>({ jollof: 1, puff: 1, zobo: 1 });
+  const [basket, setBasket] = useState<Basket>({ headphones: 1, backpack: 1, sunglasses: 1 });
+  const [category, setCategory] = useState('All products');
   const [order, setOrder] = useState<Order | null>(null);
   const [state, setState] = useState<State | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,14 +67,15 @@ export function DemoShop() {
 
   useEffect(() => {
     if (!order) return;
-    void check(order.invoice_id);
+    void check(order.invoice_id).catch(() => setError('We could not check your order. Please try again.'));
     const timer = setInterval(() => void check(order.invoice_id).catch(() => undefined), 4000);
     return () => clearInterval(timer);
   }, [order, check]);
 
   const openCheckout = (invoiceId: string) => {
     setClosedUnpaid(false);
-    window.TenKobo?.open(invoiceId, {
+    if (!window.TenKobo) { setError('Checkout is still loading. Please try opening it again.'); return; }
+    window.TenKobo.open(invoiceId, {
       onPaid: () => void check(invoiceId),
       onClose: ({ paid }) => {
         if (!paid) setClosedUnpaid(true);
@@ -101,49 +103,28 @@ export function DemoShop() {
   };
 
   return (
-    <main className="min-h-dvh bg-[#fbf6ee] px-4 py-10 text-[#2b1d12]">
+    <main className={styles.page}>
       <Script src="/checkout.js" strategy="afterInteractive" />
-      <div className="mx-auto flex max-w-xl flex-col gap-6">
-        <p className="rounded-xl bg-[#2b1d12] px-4 py-2 text-center text-xs text-[#fbf6ee]">
-          Demo shop for the 10kobo checkout button. Payments are real: naira goes to the 10kobo team&apos;s own account.
-        </p>
-        <header>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Mama Put Kitchen</h1>
-          <p className="text-sm opacity-70">Lagos street food. Pay from anywhere in the world.</p>
-        </header>
-
-        <section aria-label="Menu" className="flex flex-col gap-2">
-          {MENU.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm">
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <p className="amount text-sm opacity-70">{naira(item.naira)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button" aria-label={`One less ${item.name}`} className="h-8 w-8 rounded-full border border-[#2b1d12]/20" onClick={() => setBasket((current) => ({ ...current, [item.id]: Math.max(current[item.id] - 1, 0) }))}>−</button>
-                <span className="w-5 text-center" data-testid={`qty-${item.id}`}>{basket[item.id]}</span>
-                <button type="button" aria-label={`One more ${item.name}`} className="h-8 w-8 rounded-full border border-[#2b1d12]/20" onClick={() => setBasket((current) => ({ ...current, [item.id]: Math.min(current[item.id] + 1, 5) }))}>+</button>
-              </div>
+      <PublicNav current="shop" />
+      <div className={styles.intro}><div><span className={styles.eyebrow}>10KOBO CHECKOUT / INTERACTIVE STOREFRONT</span><h1>A familiar shop.<br /><span>A new way to pay.</span></h1><p>Build a basket and try the checkout your customers would use.</p></div><a href="#integration">Add checkout to your store <span aria-hidden>↓</span></a></div>
+      <div className={styles.store}>
+        <header className={styles.storeHeader}><div className={styles.storeBrand}><span aria-hidden>e.</span><div><strong>Everyday Supply</strong><small>Considered essentials. For your everyday.</small></div></div><span className={styles.storeBadge}>Powered by 10kobo</span></header>
+        <div className={styles.storeGrid}>
+          <section className={styles.catalogue} aria-label="Products"><div className={styles.catalogueHeading}><h2>The everyday collection.</h2><span>Demo prices · 3 essentials</span></div><div className={styles.categories} role="group" aria-label="Product categories">{['All products', 'Tech', 'Bags', 'Accessories'].map(value => <button type="button" key={value} aria-pressed={category === value} onClick={() => setCategory(value)}>{value}</button>)}</div><div className={styles.products}>
+          {MENU.filter(item => category === 'All products' || item.category === category).map((item) => <article key={item.id} className={styles.product}>
+            <div className={styles.productArt} data-product={item.id} aria-hidden="true">
+              <img src={`/images/shop/${item.id}.webp`} alt="" width={900} height={900} loading="lazy" className={styles.productPhoto} />
             </div>
-          ))}
-        </section>
-
-        <div className="flex items-center justify-between">
-          <p className="text-lg">Total</p>
-          <p className="amount text-2xl font-semibold" data-testid="shop-total">{naira(total)}</p>
-        </div>
-
-        <button
-          type="button"
-          disabled={busy || total === 0}
-          onClick={() => void pay()}
-          className="flex flex-col items-center gap-0.5 rounded-2xl bg-[#111] px-6 py-3 text-white disabled:opacity-50"
-        >
-          <span className="text-base font-semibold">{busy ? 'Starting…' : 'Pay with crypto'}</span>
-          <span className="text-xs opacity-75">USDC or USDT from any chain, by 10kobo</span>
-        </button>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-
+            <div className={styles.productInfo}><small>{item.category}</small><h3>{item.name}</h3><div className={styles.productBottom}><strong>{naira(item.naira)}</strong><div className={styles.quantity}><button type="button" disabled={basket[item.id] === 0} aria-label={`One less ${item.name}`} onClick={() => setBasket(current => ({ ...current, [item.id]: Math.max(current[item.id] - 1, 0) }))}>−</button><span data-testid={`qty-${item.id}`}>{basket[item.id]}</span><button type="button" disabled={basket[item.id] === 5} aria-label={`One more ${item.name}`} onClick={() => setBasket(current => ({ ...current, [item.id]: Math.min(current[item.id] + 1, 5) }))}>+</button></div></div></div>
+          </article>)}
+          </div></section>
+          <aside className={styles.cart} aria-label="Your basket"><div className={styles.cartHeading}><h2>Your basket</h2><span>{Object.values(basket).reduce((a,b)=>a+b,0)} items</span></div>
+            <ul>{MENU.filter(item => basket[item.id] > 0).map(item => <li key={item.id}><span>{basket[item.id]} × {item.name}</span><strong>{naira(basket[item.id]*item.naira)}</strong></li>)}</ul>
+            {total === 0 && <p className={styles.empty}>Your basket is empty. Add a favourite to get started.</p>}
+            <div className={styles.total}><span>Total</span><strong data-testid="shop-total">{naira(total)}</strong></div>
+            <button type="button" disabled={busy || total === 0} onClick={() => void pay()} className={styles.payButton}>{busy ? 'Opening checkout…' : 'Checkout with 10kobo'}<span aria-hidden>→</span></button>
+            <p className={styles.paymentNote}>Real-payment demo · No products are shipped. Review the quote before paying.</p>
+            {error && <p role="alert" className={styles.error}>{error}</p>}
         {order && (
           <section aria-label="Your order" className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-sm opacity-70">Order {order.order}</p>
@@ -153,7 +134,7 @@ export function DemoShop() {
             {state && closedUnpaid && ['unpaid', 'overdue'].includes(state.status) && (
               <p className="mt-1 text-sm" data-testid="order-closed">You closed the checkout before paying. Nothing was charged.</p>
             )}
-            {state?.status === 'paid' && <p className="mt-1 text-sm">Thank you. Your food is being prepared.</p>}
+            {state?.status === 'paid' && <p className="mt-1 text-sm">Payment confirmed. This was a demo order; no products will be shipped.</p>}
             <p className="mt-3 text-xs opacity-70" data-testid="order-notice">
               {state?.notice ? `Signed notice from 10kobo received and checked: ${state.notice.type}` : 'No notice from 10kobo yet. This shop also checks the order itself every few seconds.'}
             </p>
@@ -163,11 +144,11 @@ export function DemoShop() {
           </section>
         )}
 
-        <footer className="text-xs opacity-60">
-          How a shop adds this: its server asks 10kobo for an invoice using its secret key, then its page loads{' '}
-          <code className="font-mono">checkout.js</code> and calls <code className="font-mono">TenKobo.open(invoiceId)</code>. The checkout opens over the page.
-        </footer>
+          </aside>
+        </div>
       </div>
+      <CheckoutIntegration />
+      <footer className={styles.footer}><a href="/">10kobo.</a><span>Naira and stablecoins, both ways.</span><a href="/proof">See payment proof →</a></footer>
     </main>
   );
 }

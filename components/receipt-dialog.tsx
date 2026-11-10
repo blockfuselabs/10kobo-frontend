@@ -67,7 +67,7 @@ export function ReceiptDialog({ api, kind, id, onClose }: { api: ApiClient; kind
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Receipt" className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="rise flex max-h-full w-full max-w-md flex-col gap-3 overflow-y-auto rounded-3xl bg-[var(--surface)] p-4 shadow-2xl">
+      <div className="receipt-sheet rise flex max-h-full w-full max-w-md flex-col gap-3 overflow-y-auto rounded-3xl bg-[var(--surface)] p-4 shadow-2xl">
         <div className="flex items-center justify-between px-1">
           <p className="font-semibold">Your receipt</p>
           <button ref={closeButton} onClick={onClose} aria-label="Close" className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-lg text-[var(--muted)] hover:bg-[var(--surface-2)]">×</button>

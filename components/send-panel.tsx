@@ -175,7 +175,7 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
 
   return (
     <section className="flex flex-col gap-4" aria-label="Send money">
-      <h1 className="page-title">Send Money</h1>
+      <div className="product-page-heading"><span className="product-eyebrow">MOVE YOUR MONEY</span><h1 className="page-title">Send</h1><p>Choose where it goes. Review the recipient and quote before you approve.</p></div>
       {!plan && (
         <div className="grid grid-cols-3 gap-2" role="group" aria-label="Who are you sending to?">
           {WAYS.map((item) => {

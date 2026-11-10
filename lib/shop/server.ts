@@ -6,11 +6,7 @@ export const API = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ??
 export const shopKey = () => process.env.SHOP_MERCHANT_KEY;
 export const shopSecret = () => process.env.SHOP_WEBHOOK_SECRET;
 
-export const MENU = [
-  { id: 'jollof', name: 'Jollof rice and chicken', naira: 900 },
-  { id: 'puff', name: 'Puff-puff, six pieces', naira: 300 },
-  { id: 'zobo', name: 'Zobo drink', naira: 200 },
-] as const;
+export { MENU } from './catalogue';
 
 /** Checks a notice the way any shop should: the signature must match, and it must be recent so an old one cannot be replayed. */
 export function noticeIsGenuine(header: string | null, body: string, secret: string, now = Date.now()): boolean {

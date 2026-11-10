@@ -1,7 +1,7 @@
 'use client';
 
 import { duration, HIGHLIGHTS, PROOFS, proofAt, when, type Proof } from '@/lib/proof';
-import { Logo } from './icons';
+import { PublicNav } from './public-nav';
 
 const KIND_LABEL: Record<Proof['kind'], string> = { bank: 'Bank payout', airtime: 'Airtime', wallet: 'Crypto send', deposit: 'Naira deposit', agent: 'AI agent', 'naira-in': 'Naira in' };
 
@@ -50,15 +50,9 @@ export function ProofHighlights({ linkToAll = true }: { linkToAll?: boolean }) {
 export function ProofPage() {
   const networks = new Set(PROOFS.flatMap((item) => item.networks.filter((name) => !['NEAR Intents', 'Nigerian bank'].includes(name))));
   return (
-    <div className="min-h-dvh bg-[var(--background)]">
+    <div className="proof-page min-h-dvh bg-[var(--background)]">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 py-8 md:px-8 md:py-12">
-        <header className="flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5">
-            <Logo size={36} />
-            <span className="font-display text-xl font-bold tracking-tight">10kobo</span>
-          </a>
-          <a href="/" className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 py-2 text-sm font-semibold">Open 10kobo</a>
-        </header>
+        <PublicNav current="proof" />
 
         <section className="flex flex-col gap-4">
           <span className="w-fit rounded-full bg-[var(--pop)] px-3 py-1 text-xs font-semibold text-[#111]">Mainnet · real money</span>

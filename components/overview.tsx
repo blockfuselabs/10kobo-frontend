@@ -32,13 +32,13 @@ function Action({ label, detail, icon, onClick, strong = false }: { label: strin
       type="button"
       onClick={onClick}
       className={`group flex cursor-pointer flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-[transform,background-color] hover:-translate-y-0.5 ${
-        strong ? 'border-transparent bg-[var(--pop)] text-[#111]' : 'border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
+        strong ? 'border-transparent bg-[#141414] text-white' : 'border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
       }`}
     >
-      <span className={`grid h-9 w-9 place-items-center rounded-full ${strong ? 'bg-[#111]/10' : 'bg-[var(--surface-2)] group-hover:bg-[var(--surface)]'}`}>{icon}</span>
+      <span className={`grid h-9 w-9 place-items-center rounded-full ${strong ? 'bg-white/15' : 'bg-[var(--surface-2)] group-hover:bg-[var(--surface)]'}`}>{icon}</span>
       <span className="flex flex-col gap-0.5">
         <span className="text-sm font-semibold">{label}</span>
-        <span className={`text-xs ${strong ? 'text-[#111]/70' : 'text-[var(--muted)]'}`}>{detail}</span>
+        <span className={`text-xs ${strong ? 'text-white/75' : 'text-[var(--muted)]'}`}>{detail}</span>
       </span>
     </button>
   );
@@ -63,9 +63,9 @@ export function Overview({
   api,
   me,
   summary,
+  balanceError,
+  onRefreshBalance,
   address,
-  composer,
-  suggestions,
   extra,
   onGo,
   onSuggest,
@@ -73,21 +73,23 @@ export function Overview({
   api: ApiClient;
   me: Me | null;
   summary: WalletSummary | null;
+  balanceError?: string | null;
+  onRefreshBalance?: () => void;
   address: string | null | undefined;
-  composer: ReactNode;
-  suggestions: readonly (readonly [string, string])[];
   extra?: ReactNode;
   onGo: (target: OverviewTarget) => void;
   onSuggest: (text: string) => void;
 }) {
   const [activity, setActivity] = useState<ActivityEntry[] | null>(null);
+  const [activityFailed, setActivityFailed] = useState(false);
+  const [invoicesFailed, setInvoicesFailed] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      api.activity(1).then((page) => !cancelled && setActivity(page.activity.slice(0, 5)), () => !cancelled && setActivity((current) => current ?? []));
-      api.invoices().then((list) => !cancelled && setInvoices(list), () => !cancelled && setInvoices((current) => current ?? []));
+      api.activity(1).then((page) => !cancelled && (setActivity(page.activity.slice(0, 5)), setActivityFailed(false)), () => !cancelled && setActivityFailed(true));
+      api.invoices().then((list) => !cancelled && (setInvoices(list), setInvoicesFailed(false)), () => !cancelled && setInvoicesFailed(true));
     };
     load();
     const timer = setInterval(load, 15000);
@@ -111,7 +113,7 @@ export function Overview({
 
       {extra}
 
-      <section className="relative overflow-hidden rounded-3xl bg-[var(--accent)] p-5 text-[var(--accent-text)] md:p-7">
+      <section className="wallet-summary relative overflow-hidden rounded-3xl p-5 md:p-7">
         <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full bg-[var(--pop)] opacity-25 blur-2xl" />
         <p className="text-sm opacity-70">Balance</p>
         <p data-testid="balance" className="amount mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -121,9 +123,10 @@ export function Overview({
               {summary.balance_naira && <span className="text-base opacity-70">≈ {summary.balance_naira}</span>}
             </>
           ) : (
-            <span className="text-lg opacity-70">{address ? 'Checking your balance…' : 'Setting up your wallet…'}</span>
+            <span className="text-lg opacity-70">{balanceError ? 'Balance unavailable' : address ? 'Checking your balance…' : 'Setting up your wallet…'}</span>
           )}
         </p>
+        {balanceError && <div className="mt-3 flex flex-wrap items-center gap-3 text-sm"><p role="status" className="text-[var(--muted)]">{balanceError}</p><button type="button" className="btn-secondary" onClick={onRefreshBalance}>Try again</button></div>}
         {summary?.latest && (
           <button
             type="button"
@@ -166,35 +169,17 @@ export function Overview({
       </section>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Action strong label="Send" detail="Bank, wallet or phone" icon={<ArrowOutIcon />} onClick={() => onGo('send')} />
+        <Action label="Send" detail="Bank, wallet or phone" icon={<ArrowOutIcon />} onClick={() => onGo('send')} />
         <Action label="Deposit" detail="Naira or crypto" icon={<ArrowInIcon />} onClick={() => onGo('receive')} />
         <Action label="New invoice" detail="Get paid by link" icon={<InvoiceIcon />} onClick={() => onSuggest('Make an invoice for ')} />
         <Action label="Airtime & data" detail="MTN, Airtel, Glo, 9mobile" icon={<PhoneIcon />} onClick={() => onGo('airtime')} />
       </div>
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 md:p-5">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-semibold">Ask 10kobo</h2>
-          <p className="text-xs text-[var(--muted)]">Type it the way you would say it. Nothing moves until you approve.</p>
-        </div>
-        {composer}
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map(([label, text]) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onSuggest(text)}
-              className="cursor-pointer rounded-full border border-[var(--line)] px-3 py-1.5 text-xs transition-colors hover:bg-[var(--surface-2)]"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
+
 
       <div className="grid gap-5 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Panel title="Recent activity" action={<button type="button" className={linkButton} onClick={() => onGo('activity')}>See all ›</button>}>
-          {activity === null ? (
+          {activityFailed ? (<p role="status" className="text-sm text-[var(--muted)]">Activity is unavailable right now. Open Activity to try again.</p>) : activity === null ? (
             <p className="text-sm text-[var(--muted)]">Loading…</p>
           ) : activity.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">Nothing yet. Your payments and deposits will show here.</p>
@@ -227,7 +212,7 @@ export function Overview({
 
         <div className="flex flex-col gap-5">
           <Panel title="Invoices" action={<button type="button" className={linkButton} onClick={() => onGo('invoices')}>Open ›</button>}>
-            {invoices === null ? (
+            {invoicesFailed ? (<p role="status" className="text-sm text-[var(--muted)]">Invoices are unavailable right now. Open Invoices to try again.</p>) : invoices === null ? (
               <p className="text-sm text-[var(--muted)]">Loading…</p>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -258,6 +243,7 @@ export function Overview({
           </button>
         </div>
       </div>
+
     </div>
   );
 }

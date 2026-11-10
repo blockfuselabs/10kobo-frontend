@@ -48,4 +48,11 @@ describe('createApiClient', () => {
     expect(failure).toBeInstanceOf(ApiError);
     expect((failure as ApiError).status).toBe(0);
   });
+  it('reports a missing transport response without exposing a JavaScript error', async () => {
+    const fetcher = vi.fn(async () => undefined);
+    const api = createApiClient('http://api.test', async () => 't', fetcher as unknown as typeof fetch);
+    await expect(api.me()).rejects.toMatchObject({ status: 0, message: 'We could not get a response from the server. Please refresh and try again.' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
 });

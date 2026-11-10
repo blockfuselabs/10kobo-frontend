@@ -1,0 +1,96 @@
+.showcase { --teal: #087f72; --ease: cubic-bezier(.23,1,.32,1); display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; }
+.showcase article { min-width: 0; }
+.agent,.merchant { border-radius: 30px; padding: 36px; position: relative; overflow: hidden; }
+.agent { background: #e7ecea; display: flex; flex-direction: column; }
+.merchant { background: #eee6db; }
+.label { font-size: 10px; letter-spacing: .13em; color: #67736d; font-weight: 600; }
+.showcase h3 { font-size: clamp(28px,3vw,42px); line-height: 1.08; letter-spacing: -.055em; font-weight: 600; margin: 20px 0 16px; }
+.showcase p { font-size: 15px; line-height: 1.7; color: #59625e; margin: 0; max-width: 360px; }
+.showcase a,.showcase button { display: flex; gap: 20px; align-items: center; justify-content: space-between; color: #164f33; text-decoration: none; font: inherit; font-size: 14px; font-weight: 600; background: none; border: 0; padding: 0; cursor: pointer; }
+.copy a { margin-top: 24px; width: fit-content; }
+.showcase a > span,.showcase button > span { font-size: 22px; }
+.agentScene { position: relative; margin: 36px auto 0; width: min(100%,360px); padding: 0 10px; }
+.agentNode,.bankNode { display: flex; align-items: center; gap: 16px; padding: 19px 22px; border-radius: 18px; background: #fff; box-shadow: 0 16px 28px -22px #384b4270; transition: transform 250ms var(--ease); }
+.agentNode { width: 86%; transform: rotate(-4deg); }
+.bankNode { margin-left: 10%; transform: rotate(3deg); }
+.agentNode > svg,.bankNode > svg:first-child { width: 30px; height: 30px; color: var(--teal); flex-shrink: 0; }
+.agentNode > span,.bankNode > span { font-size: 18px; font-weight: 550; }
+.agentScene small { display: block; font-size: 12px; font-weight: 400; color: #74817a; margin-top: 4px; }
+.bankNode > svg:last-child { color: var(--teal); margin-left: auto; }
+.bridge { height: 76px; display: flex; align-items: center; flex-direction: column; position: relative; }
+.bridge i { width: 1px; flex: 1; background: #9aaca3; }
+.bridge b { font-size: 13px; background: #164f33; color: #fff; border-radius: 30px; padding: 7px 18px; }
+.bridge > span { position: absolute; bottom: -5px; color: #74817a; }
+.sceneNote { display: block; text-align: center; margin-top: 23px; color: #74817a; font-size: 11px; }
+.receiptScene { position: relative; padding: 30px 14px 26px; }
+.receipt { position: relative; background: #fff; padding: 24px; transform: rotate(5deg); box-shadow: 0 16px 35px -23px #50423580; border-radius: 12px 12px 0 0; transition: transform 250ms var(--ease); }
+.receipt::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; bottom: -9px; background: linear-gradient(135deg,#fff 25%,transparent 25%) -5px 0/10px 10px,linear-gradient(225deg,#fff 25%,transparent 25%) -5px 0/10px 10px; }
+.receipt > svg { color: #8a7e6e; margin-bottom: 18px; }
+.receipt > small { display: block; font-size: 9px; letter-spacing: .12em; color: #8a7e6e; }
+.receipt > strong { display: block; font-size: 38px; letter-spacing: -.06em; margin: 8px 0 20px; }
+.receipt > div { display: flex; gap: 8px; font-size: 11px; }
+.receipt > div span { border: 1px solid #e1ded7; border-radius: 6px; padding: 8px; }
+.receipt footer { display: flex; justify-content: space-between; border-top: 1px dashed #d4cfc5; margin-top: 20px; padding-top: 14px; font-size: 12px; font-weight: 600; }
+.receipt footer span { font-size: 8px; font-weight: 400; }
+.paid { position: absolute; bottom: 40px; right: -12px; display: flex; align-items: center; gap: 8px; background: #fff; color: var(--teal); box-shadow: 0 12px 28px -12px #594b3430; border: 1px solid #ede7de; border-radius: 12px; padding: 13px 16px; font-size: 12px; transform: rotate(-4deg); }
+.merchant > a { margin-top: 22px; }
+.daily { grid-column: 1/-1; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 28px; margin-top: 18px; }
+.daily article { display: flex; flex-direction: column; }
+.daily h3 { font-size: 24px; margin: 22px 0 10px; }
+.daily p { font-size: 14px; margin-bottom: 20px; }
+.daily button { margin-top: auto; padding-top: 10px; border-top: 1px solid #d7dedb; font-size: 13px; }
+.mini { height: 145px; border-radius: 20px; background: #eaefec; display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden; }
+.chat { flex-direction: column; padding: 18px; align-items: flex-end; }
+.chat > span { padding: 12px 10px; background: white; font-size: 11px; border-radius: 10px 10px 2px 10px; box-shadow: 0 8px 18px -16px #263c31; }
+.chat > span:last-child { display: flex; align-items: center; gap: 5px; align-self: flex-start; color: var(--teal); }
+.chat svg { width: 14px; }
+.transfer > span:not(:nth-child(2)) { display: grid; place-items: center; border: 5px solid #ffffff80; width: 62px; height: 62px; border-radius: 50%; background: #fff; color: #335e48; font-size: 32px; box-shadow: 0 8px 20px #26332c09; }
+.transfer > span:last-child { transform: translateY(12px); }
+.phone { background: #efe8df; gap: 7px; position: relative; padding: 18px; }
+.phone > svg { width: 35px; height: 50px; color: #84715e; }
+.phone > span { font-size: 13px; }
+.phone small { display: block; margin-top: 7px; font-size: 11px; color: #84715e; }
+.phone i { width: 3px; height: 12px; background: #ad9d88; align-self: center; }
+.phone i:nth-last-child(2) { height: 20px; }.phone i:last-child { height: 28px; }
+.schedule > span { background: #fff; border-radius: 9px; text-align: center; padding: 10px 16px; transform: rotate(-7deg); box-shadow: 0 12px 18px -14px #26352e40; }
+.schedule small { display: block; font-size: 8px; letter-spacing: .06em; color: #6f7a75; }
+.schedule b { font-size: 42px; font-weight: 550; letter-spacing: -.06em; }
+.schedule > svg { width: 26px; height: 26px; color: #75837c; }
+.showcase a:focus-visible,.showcase button:focus-visible { outline: 2px solid var(--teal); outline-offset: 5px; }
+@media (hover:hover) and (pointer:fine) { .agent:hover .agentNode { transform: translateY(-4px) rotate(-2deg); }.agent:hover .bankNode { transform: translateY(-3px) rotate(1deg); }.merchant:hover .receipt { transform: rotate(1deg) translateY(-4px); } }
+@media(max-width:1000px) { .daily { grid-template-columns: repeat(2,minmax(0,1fr)); }.agent,.merchant { padding: 26px; }.showcase { grid-template-columns: 1fr 1fr; } }
+@media(max-width:650px) { .showcase { grid-template-columns: 1fr; }.daily { gap: 24px 16px; }.daily h3 { font-size: 22px; }.mini { height: 140px; }.chat { padding: 10px; }.chat > span { font-size: 9px; }.phone { flex-wrap: wrap; }.phone i { display: none; }.paid { right: -6px; }.agentScene { margin-top: 28px; } }
+@media(prefers-reduced-motion:reduce) { .agentNode,.bankNode,.receipt { transition: none; } }
+
+/* Tighter feature panels with clearer contrast. */
+.agent,.merchant { padding: 28px 32px; }
+.agent { background: #e0e6df; }
+.merchant { background: #e8dac8; }
+.label { color: #52625a; }
+.showcase h3 { font-size: clamp(28px,2.6vw,36px); margin: 15px 0 12px; }
+.showcase p { color: #46534d; max-width: 450px; line-height: 1.6; }
+.copy a { margin-top: 18px; }
+.agentScene { margin-top: 22px; width: min(100%,360px); }
+.agentNode,.bankNode { padding: 14px 18px; border: 1px solid #ced9d3; box-shadow: 0 14px 24px -18px #354d4160; }
+.bridge { height: 48px; }
+.sceneNote { margin-top: 14px; color: #586860; }
+.agentScene small { color: #52665c; }
+.receiptScene { padding: 20px 14px 18px; max-width: 360px; width: 100%; margin-inline: auto; }
+.receipt { padding: 20px; box-shadow: 0 18px 30px -20px #634e3970; }
+.receipt > svg { margin-bottom: 10px; }
+.receipt > small { color: #72604d; }
+.receipt > strong { font-size: 34px; margin: 6px 0 14px; }
+.receipt footer { margin-top: 14px; padding-top: 10px; }
+.merchant > a { margin-top: 14px; }
+.mini { background: #dfe7e3; }
+.phone { background: #e8ddce; }
+.phone > span { color: #493f33; }
+.phone small { color: #6c5b48; }
+.phone > svg { color: #776047; }
+.daily h3 { font-size: 24px; }
+@media(max-width:650px) {
+  .agent,.merchant { padding: 24px; }
+  .showcase h3 { font-size: 30px; }
+  .agentScene { margin-top: 22px; }
+  .daily h3 { font-size: 22px; }
+}

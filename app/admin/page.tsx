@@ -74,7 +74,7 @@ export default function AdminPage() {
 
   if (!overview) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
+      <main className="admin-page mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
         <h1 className="text-2xl font-semibold">10kobo admin</h1>
         <form onSubmit={submit} className="flex flex-col gap-3">
           <input
@@ -94,7 +94,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
+    <main className="admin-page mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">10kobo admin</h1>
         <button className="rounded-lg border border-[var(--line)] px-3 py-1" onClick={() => void load()}>Refresh</button>

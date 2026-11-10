@@ -4,7 +4,7 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CardHeader } from './card-header';
 import { CancelScheduleButton, TxLink } from './cards';
-import { ArrowInIcon, ArrowOutIcon, BankIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
+import { ArrowInIcon, ArrowOutIcon, BankIcon, CalendarIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
 import { InvoiceForm } from './invoice-form';
 import { NetworkPicker } from './network-picker';
 import { ReceiptDialog } from './receipt-dialog';
@@ -490,7 +490,7 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   const address = summary?.address;
   return (
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
-      <h1 className="page-title">Deposit</h1>
+      <div className="product-page-heading"><span className="product-eyebrow">MONEY IN</span><h1 className="page-title">Add money</h1><p>Fund your wallet with naira or crypto. Choose a route to see the details.</p></div>
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="How do you want to add money?">
         {WAYS.map((item) => {
           const chosen = way === item.id;
@@ -697,7 +697,7 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
   const control = 'rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm';
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="page-title">Activity</h1>
+      <div className="product-page-heading"><span className="product-eyebrow">YOUR PAYMENT RECORD</span><h1 className="page-title">Activity</h1><p>Follow your money, check a payment and keep its receipt.</p></div>
       <div role="tablist" aria-label="Filter by direction" className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1">
         {TABS.map(([value, label]) => (
           <button
@@ -790,7 +790,7 @@ export function SchedulesPanel({ api }: { api: ApiClient }) {
   }, [load]);
   if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
   if (!schedules) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
-  if (schedules.length === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Scheduled</h1><p className="text-sm text-[var(--muted)]">No scheduled payments. Try: send N500 airtime to Kc every month.</p></div>;
+  if (schedules.length === 0) return <div className="flex flex-col gap-2"><h1 className="page-title">Scheduled</h1><div className="product-empty"><CalendarIcon /><h2>Your next payment, planned.</h2><p>No scheduled payments yet. Open Ask 10kobo and describe what you want to pay and when.</p><span>For example: “Send ₦500 airtime every month.”</span></div></div>;
   return (
     <div className="flex flex-col gap-4">
     <h1 className="page-title">Scheduled</h1>

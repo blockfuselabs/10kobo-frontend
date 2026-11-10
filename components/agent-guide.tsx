@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckIcon, CopyIcon } from './icons';
+import styles from './agent-page.module.css';
 
 const STEPS = [
   ['Ask for a price', 'The agent sends the amount, bank and account number. 10kobo answers with the USDC price and the name the bank holds for the account. Nothing moves.'],
@@ -37,6 +38,7 @@ const MCP = `{ "mcpServers": { "10kobo": {
 
 function Code({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   return (
     <div className="relative">
       <pre aria-label={label} className="overflow-x-auto rounded-2xl bg-[#111] p-4 pr-12 text-xs leading-5 text-[#e8e8e3]"><code>{text}</code></pre>
@@ -44,13 +46,17 @@ function Code({ text, label }: { text: string; label: string }) {
         type="button"
         aria-label={`Copy ${label}`}
         className="absolute top-2.5 right-2.5 grid h-8 w-8 place-items-center rounded-lg text-[#e8e8e3] hover:bg-white/10"
-        onClick={() => void navigator.clipboard?.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        })}
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true); setCopyError(false);
+            setTimeout(() => setCopied(false), 1500);
+          } catch { setCopyError(true); }
+        }}
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
+      <span role="status" className={styles.copyStatus}>{copyError ? "Copy unavailable. Select the code to copy it." : copied ? "Copied." : ""}</span>
     </div>
   );
 }
@@ -59,10 +65,10 @@ function Code({ text, label }: { text: string; label: string }) {
 export function AgentGuide() {
   const [tab, setTab] = useState<'http' | 'mcp'>('http');
   return (
-    <div className="mt-10 flex flex-col gap-10">
-      <section aria-labelledby="how" className="flex flex-col gap-4">
+    <div className={styles.guide}>
+      <section aria-labelledby="how" className={styles.how}><span className={styles.eyebrow}>02 / THE PAYMENT PATH</span>
         <h2 id="how" className="font-display text-xl font-bold tracking-tight">How an agent pays a Nigerian bank</h2>
-        <ol className="grid gap-3 md:grid-cols-4">
+        <ol className={styles.steps}>
           {STEPS.map(([title, text], index) => (
             <li key={title} className="flex flex-col gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
               <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--pop)] text-xs font-bold text-[#111]">{index + 1}</span>
@@ -73,7 +79,7 @@ export function AgentGuide() {
         </ol>
       </section>
 
-      <section aria-labelledby="safety" className="flex flex-col gap-4">
+      <section aria-labelledby="safety" className={styles.safety}><span className={styles.eyebrow}>03 / CHECKS BEFORE MONEY MOVES</span>
         <h2 id="safety" className="font-display text-xl font-bold tracking-tight">What keeps it safe</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {SAFETY.map(([title, text]) => (
@@ -88,7 +94,7 @@ export function AgentGuide() {
         </div>
       </section>
 
-      <section aria-labelledby="connect" className="flex flex-col gap-4">
+      <section aria-labelledby="connect" className={styles.connect}><span className={styles.eyebrow}>04 / START BUILDING</span>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="connect" className="font-display text-xl font-bold tracking-tight">Connect your agent</h2>
@@ -96,7 +102,7 @@ export function AgentGuide() {
           </div>
           <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" role="group" aria-label="Way to connect">
             {([['http', 'HTTP API'], ['mcp', 'MCP']] as const).map(([key, label]) => (
-              <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`rounded-full px-3 py-1 text-sm font-medium ${tab === key ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'text-[var(--muted)]'}`}>
+              <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`rounded-full px-4 py-2 text-sm font-medium ${tab === key ? 'bg-[#141414] text-white' : 'text-[var(--muted)]'}`}>
                 {label}
               </button>
             ))}

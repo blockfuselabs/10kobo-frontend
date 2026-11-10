@@ -57,7 +57,7 @@ export function InvoiceForm({ api, onDone, onClose }: { api: ApiClient; onDone: 
 
   if (made) {
     return (
-      <section className="flex flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="Invoice ready">
+      <section className="invoice-editor flex flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="Invoice ready">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--pop)] text-[#111]"><CheckIcon /></span>
           <div>
@@ -85,7 +85,7 @@ export function InvoiceForm({ api, onDone, onClose }: { api: ApiClient; onDone: 
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="New invoice">
+    <section className="invoice-editor flex flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="New invoice">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-semibold">New invoice</h2>

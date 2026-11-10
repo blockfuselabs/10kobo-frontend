@@ -203,7 +203,7 @@ export function PayLinkPage({ id, embedded = false }: { id: string; embedded?: b
   const choice = (selected: boolean) => `rounded-2xl border p-3.5 text-left transition-colors ${selected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-[var(--line)]'}`;
 
   return (
-    <main ref={pageRef} className={embedded ? 'flex flex-col items-center bg-[var(--background)] px-4 pt-6 pb-5' : 'flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10'}>
+    <main ref={pageRef} className={embedded ? 'checkout-page checkout-embedded flex flex-col items-center bg-[var(--background)] px-4 pt-6 pb-5' : 'checkout-page flex min-h-dvh flex-col items-center bg-[var(--background)] px-4 py-10'}>
       <p className="font-display mb-8 text-2xl font-bold tracking-tight">10kobo</p>
       <section className={`flex w-full ${embedded ? '' : 'max-w-md'} flex-col gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm`} aria-label="Pay this link">
         {missing && <p className="font-medium">This pay link does not exist. Please check it with the person who sent it.</p>}

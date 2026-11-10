@@ -1,8 +1,11 @@
 'use client';
 
+import { PublicNav } from './public-nav';
+
 import { useCallback, useEffect, useState } from 'react';
 import { AgentGuide } from './agent-guide';
-import { Logo } from './icons';
+import { BankIcon, NetworksIcon, InvoiceIcon } from './icons';
+import styles from './agent-page.module.css';
 import { Spinner } from './panels';
 
 // Shows what the demo agent really does: every line below comes from the agent's own run, nothing is scripted.
@@ -132,50 +135,50 @@ export function AgentDashboard() {
   const nearTx = result?.transactions?.find((hash) => !hash.startsWith('0x') && hash !== 'simulated');
 
   return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <a href="/" aria-label="10kobo home"><Logo size={36} /></a>
-            <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight">Agents pay Nigerian banks</h1>
-              <p className="text-sm text-[var(--muted)]">Watch an AI agent read an invoice and pay it in naira, live. Pick a case and run it.</p>
-            </div>
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <PublicNav current="agents" />
+        <header className={styles.hero}>
+          <div><span className={styles.eyebrow}>10KOBO FOR AGENTS</span><h1>Your agent.<br /><span>Real-world payments.</span></h1><p>Give your software a way to pay Nigerian bank accounts. Fund with stablecoins. Deliver naira through x402 and NEAR Intents.</p><div className={styles.heroActions}><a className="btn-primary neutral-primary" href="#playground">Try the agent <span aria-hidden>↓</span></a><a href="#connect">Integration guide <span aria-hidden>→</span></a></div></div>
+          <div className={styles.route} aria-label="AI agent funds a naira bank payment using x402">
+            <div><span className={styles.routeIcon}><NetworksIcon /></span><strong>Your agent<small>USDC from its wallet</small></strong></div>
+            <div className={styles.routeConnector}><span /><b>x402</b><span /><i aria-hidden>↓</i></div>
+            <div><span className={styles.routeIcon}><BankIcon /></span><strong>Nigerian bank<small>Naira to the recipient</small></strong></div>
+            <p>Quote → verify → fund → receipt</p>
           </div>
-          {setup && (
-            <p data-testid="money-mode" className={`rounded-full px-3 py-1 text-sm font-semibold ${setup.real ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-[var(--line)]'}`}>
-              {setup.real ? 'Real money' : 'Test mode. No real money'}
-            </p>
-          )}
         </header>
+        <section id="playground" className={styles.playground} aria-labelledby="playground-title">
+          <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>01 / SEE IT IN ACTION</span><h2 id="playground-title">An invoice in. A decision out.</h2><p>Choose a case and follow the agent’s actual decisions and payment status.</p></div>
+            {setup && <span data-testid="money-mode" className={`${styles.mode} ${setup.real ? styles.realMode : ''}`}>{setup.real ? 'Real money' : 'Test mode · No real money'}</span>}
+          </div>
 
-        <div className="grid gap-5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <section className="flex flex-col gap-4 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="The task">
+        <div className={styles.workbench}>
+          <section className={styles.task} aria-label="The task">
             <fieldset disabled={running || starting}>
-              <legend className="mb-2 text-sm font-medium">Choose an invoice</legend>
-              <div className="flex flex-wrap gap-2">
+              <legend className={styles.panelTitle}><InvoiceIcon /> Choose a scenario</legend>
+              <div className={styles.scenarios}>
                 {setup?.scenarios.map((item) => (
-                  <button key={item.name} type="button" aria-pressed={chosen === item.name} onClick={() => setChosen(item.name)} className={`btn-small rounded-full border ${chosen === item.name ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)]'}`}>
-                    {item.title}
+                  <button key={item.name} type="button" aria-pressed={chosen === item.name} onClick={() => setChosen(item.name)} className={styles.scenario}>
+                    <span>{item.title}</span><span aria-hidden>{chosen === item.name ? '●' : '○'}</span>
                   </button>
                 ))}
               </div>
             </fieldset>
             {scenario && <p className="text-sm text-[var(--muted)]">{scenario.summary}</p>}
-            <pre data-testid="invoice" className="inset overflow-x-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-relaxed">{scenario?.invoice ?? 'Loading…'}</pre>
+            <pre data-testid="invoice" className={styles.invoice}>{scenario?.invoice ?? (error ? 'The demo is unavailable. You can still read the integration guide below.' : 'Loading the available scenarios…')}</pre>
             {setup && <p className="text-sm">Budget: <span className="amount font-semibold">{setup.budget_usdc} USDC</span></p>}
-            <button className="btn-primary" disabled={!setup || running || starting} onClick={() => void start()}>
+            <button className="btn-primary neutral-primary" disabled={!setup || running || starting} onClick={() => void start()}>
               {running || starting ? 'Agent is working…' : 'Run agent'}
             </button>
           </section>
 
-          <section className="flex min-h-96 flex-col gap-3 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5" aria-label="What the agent is doing">
+          <section className={styles.execution} aria-label="What the agent is doing">
             <div className="flex items-center justify-between">
-              <p className="font-medium">What the agent is doing</p>
+              <p className={styles.panelTitle}>Run activity</p>
               {run && <p className="amount text-sm text-[var(--muted)]" role="timer">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</p>}
             </div>
-            {!run && !error && <p className="text-sm text-[var(--muted)]">Choose an invoice and run the agent.</p>}
-            <ol className="flex flex-col gap-3" data-testid="timeline">
+            {!run && <div className={styles.emptyRun}><NetworksIcon /><h3>{error ? 'Waiting for a connection' : 'Ready when you are.'}</h3><p>{error ? 'The run will appear here once the demo service is available.' : 'Start a scenario to see the quote, checks and payment outcome here.'}</p><div><span>Quote</span><span>Verify</span><span>Pay</span><span>Receipt</span></div></div>}
+            <ol className={styles.timeline} data-testid="timeline">
               {run?.events.map((event, index) => {
                 const shown = line(event, run.real);
                 if (!shown) return null;
@@ -206,7 +209,9 @@ export function AgentDashboard() {
             {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           </section>
         </div>
+        </section>
         <AgentGuide />
+        <footer className={styles.footer}><a href="/">10kobo.</a><span>Naira and stablecoins, both ways.</span><a href="/proof">Explore payment proof →</a></footer>
       </div>
     </main>
   );

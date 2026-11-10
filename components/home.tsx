@@ -235,6 +235,7 @@ export function Home() {
   }, [draft]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [view, setView] = useState<View>('home');
   const [sendWay, setSendWay] = useState<'bank' | 'phone'>('bank');
@@ -261,7 +262,7 @@ export function Home() {
     };
   }, [api, walletKnown]);
 
-  const refreshSummary = useCallback(() => api.wallet().then(setSummary, () => undefined), [api]);
+  const refreshSummary = useCallback(() => api.wallet().then(value => { setSummary(value); setBalanceError(null); }, () => setBalanceError('We could not load your balance. Please try again.')), [api]);
 
   // Null means a new chat, which only exists once its first message is sent.
   const [chats, setChats] = useState<Chat[]>([]);
@@ -419,7 +420,7 @@ export function Home() {
                   <button
                     aria-label={sending ? 'Sending…' : 'Send'}
                     disabled={sending || !draft.trim()}
-                    className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="neutral-primary grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {sending ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-text)] border-t-transparent" /> : <SendIcon />}
                   </button>
@@ -428,7 +429,7 @@ export function Home() {
 
   return (
     <PinContext.Provider value={Boolean(me?.has_pin)}>
-    <main className="fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto]">
+    <main className="workspace-shell fixed inset-0 grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] md:grid-cols-[17.5rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto]">
       <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-1 md:gap-6 md:border-r md:border-b-0 md:px-4 md:pt-6 md:pb-3">
         <div className="flex items-center justify-between gap-3 md:px-1">
           <div className="flex items-center gap-2.5">
@@ -479,19 +480,16 @@ export function Home() {
             </p>
           )}
         </div>}
-        <div className="hidden grid-cols-2 gap-2 md:grid">
-          <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--pop)] py-2.5 text-sm font-semibold text-[#111] shadow-sm transition-[filter] hover:brightness-95">
-            <ArrowInIcon />
-            Deposit
-          </button>
-          <button
-            onClick={() => { setSendWay('bank'); setView('send'); }}
-            className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
-          >
-            <ArrowOutIcon />
-            Send money
-          </button>
-        </div>
+        {view !== 'home' && (
+          <div className="hidden grid-cols-2 gap-2 md:grid">
+            <button type="button" onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+              Deposit
+            </button>
+            <button type="button" onClick={() => { setSendWay('bank'); setView('send'); }} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+              Send
+            </button>
+          </div>
+        )}
         {summary?.latest && view !== 'home' && (
           <button onClick={() => setView('activity')} data-testid="latest" title="See all activity" className="hidden min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg px-1 text-left text-xs md:flex">
             <span className="min-w-0 truncate text-[var(--muted)]">{summary.latest.description}</span>
@@ -531,9 +529,9 @@ export function Home() {
             </button>
           ))}
         </nav>
-        <div className="hidden min-h-0 flex-col gap-1 border-t border-[var(--line)] pt-3 md:flex">
+        {view === 'chat' && (<div className="hidden min-h-0 flex-col gap-1 border-t border-[var(--line)] pt-3 md:flex">
           <ChatList chats={chats} active={activeChat} actions={chatActions} />
-        </div>
+        </div>)}
       </div>
 
       <footer className="hidden flex-col gap-1 border-t border-r border-[var(--line)] bg-[var(--sidebar)] px-4 py-3 md:col-start-1 md:row-start-3 md:flex">
@@ -574,13 +572,13 @@ export function Home() {
                 api={api}
                 me={me}
                 summary={summary}
+                balanceError={balanceError}
+                onRefreshBalance={() => void refreshSummary()}
                 address={address}
                 extra={me?.pin_required && !me.has_pin ? <SetPinCard api={api} onChange={() => api.me().then(setMe)} /> : undefined}
-                composer={<div className="flex flex-col gap-2">{errorLine}{composer}</div>}
-                suggestions={SUGGESTIONS}
                 onSuggest={(text) => {
+                  openChat(null);
                   setDraft(text);
-                  document.getElementById('message')?.focus();
                 }}
                 onGo={(target: OverviewTarget) => {
                   if (target === 'airtime' || target === 'send') {
@@ -595,7 +593,7 @@ export function Home() {
 
         {view !== 'chat' && view !== 'home' && (
           <section className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
+            <div className="workspace-panel mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
               {view === 'schedules' && <SchedulesPanel api={api} />}
               {view === 'invoices' && <InvoicesPanel api={api} />}
               {view === 'activity' && <ActivityPanel api={api} />}

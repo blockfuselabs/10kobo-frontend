@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const response = await fetch(`${API}/v1/merchant/invoices`, {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ reference: order, line_items: lines, note: `Mama Put Kitchen ${order}`, return_url: `${origin}/shop?order=${order}` }),
+    body: JSON.stringify({ reference: order, line_items: lines, note: `Everyday Supply ${order}`, return_url: `${origin}/shop?order=${order}` }),
   }).catch(() => null);
   if (!response) return Response.json({ message: 'We could not reach the payment service.' }, { status: 502 });
   const invoice = (await response.json()) as { id?: string; message?: string };

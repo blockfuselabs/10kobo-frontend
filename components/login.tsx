@@ -51,7 +51,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="login-page flex min-h-dvh flex-col">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 md:px-8 md:py-7">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo size={38} />
@@ -65,8 +65,9 @@ export function LoginPage() {
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-5 pb-16">
-        <div className="rise flex w-full max-w-md flex-col gap-6 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-7 shadow-[0_30px_70px_rgb(0_0_0/0.1)] md:p-9">
+      <main className="login-layout">
+
+        <div className="login-form rise flex w-full max-w-md flex-col gap-6 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-7 shadow-[0_30px_70px_rgb(0_0_0/0.1)] md:p-9">
           {!codeSent ? (
             <form onSubmit={(event) => void requestCode(event)} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
@@ -87,7 +88,7 @@ export function LoginPage() {
                 />
               </label>
               {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-              <button className="btn-primary w-full py-3.5" disabled={!looksLikeEmail(email) || busy}>
+              <button className="btn-primary neutral-primary w-full py-3.5" disabled={!looksLikeEmail(email) || busy}>
                 {busy ? 'Sending…' : 'Continue'}
               </button>
               <p className="text-center text-xs text-[var(--muted)]">We will email you a six-digit code. There is no password to remember.</p>
@@ -125,7 +126,7 @@ export function LoginPage() {
                 />
               </label>
               {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-              <button className="btn-primary w-full py-3.5" disabled={code.length !== 6 || busy}>
+              <button className="btn-primary neutral-primary w-full py-3.5" disabled={code.length !== 6 || busy}>
                 {busy ? 'Checking…' : 'Log in'}
               </button>
               <div className="flex justify-between text-sm font-medium">

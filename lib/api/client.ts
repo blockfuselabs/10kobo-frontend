@@ -281,6 +281,9 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     } catch {
       throw new ApiError('We could not reach the server. Check your connection and try again.', 0);
     }
+    if (!response || typeof response.json !== 'function') {
+      throw new ApiError('We could not get a response from the server. Please refresh and try again.', 0);
+    }
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const message = (body as { message?: unknown } | null)?.message;
