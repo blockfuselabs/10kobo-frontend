@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ProofHighlights } from './proof-page';
-import { ActivityIcon, CalendarIcon, ChatIcon, CheckIcon, Logo, PlusIcon, ThemeToggle } from './icons';
+import { ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, HomeIcon, InvoiceIcon, Logo, PhoneIcon, ThemeToggle } from './icons';
 
 const STEPS = [
   ['Say it or pick it', 'Type "send 5k to Mum" in the chat, or choose who and how much on the Send page.'],
@@ -23,7 +23,7 @@ const FOR_BUSINESS = [
   'Get paid in naira to your bank, or in USDC to your wallet',
   'A checkout button for your website that opens over your page',
   'Signed notices to your server the moment an order is paid',
-  'An Invoices tab to see what is paid, due or overdue',
+  'An invoices page: make one in seconds, see what is paid, due or overdue',
 ];
 const AGENT_POINTS = [
   ['No sign-up needed', 'An agent can pay over x402 with no account and no API key, or use a key with its own limits.'],
@@ -131,22 +131,46 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
             <Logo size={26} />
             <span className="font-semibold tracking-tight">10kobo</span>
           </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5">
-            <p className="text-xs font-medium text-[var(--muted)]">Your balance</p>
-            <p className="amount text-xl font-semibold tracking-tight">48.20 USDC</p>
-            <p className="amount text-xs text-[var(--muted)]">≈ ₦66,300</p>
-          </div>
           <div className="flex flex-col gap-0.5">
-            <Nav Icon={ChatIcon} label="Chat" active />
+            <Nav Icon={HomeIcon} label="Home" active />
+            <Nav Icon={ChatIcon} label="Ask 10kobo" />
             <Nav Icon={CalendarIcon} label="Scheduled" />
+            <Nav Icon={InvoiceIcon} label="Invoices" />
             <Nav Icon={ActivityIcon} label="Activity" />
-            <Nav Icon={PlusIcon} label="Deposit" />
           </div>
         </div>
         <div className="flex min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-5">
-            <p className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">how much do I have?</p>
-            <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5 text-sm">You have 48.20 USDC, about ₦66,300.</p>
+          <div className="flex flex-col gap-3 px-4 pt-4">
+            <div className="relative overflow-hidden rounded-2xl bg-[var(--accent)] px-4 py-3.5 text-[var(--accent-text)]">
+              <span className="pointer-events-none absolute -top-10 -right-6 h-28 w-28 rounded-full bg-[var(--pop)] opacity-25 blur-2xl" />
+              <p className="text-xs opacity-70">Balance</p>
+              <p className="amount flex items-baseline gap-2"><span className="text-2xl font-semibold tracking-tight">48.20 USDC</span><span className="text-xs opacity-70">≈ ₦66,300</span></p>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-xs font-semibold">
+              <span className="flex items-center justify-center gap-1.5 rounded-xl bg-[var(--pop)] py-2 text-[#111]"><ArrowOutIcon /> Send</span>
+              <span className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2"><ArrowInIcon /> Deposit</span>
+              <span className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2"><InvoiceIcon /> Invoice</span>
+              <span className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2"><PhoneIcon /> Airtime</span>
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-hidden px-4 py-3">
+            {!sent && (
+              <div className="flex flex-1 flex-col gap-1 rounded-2xl border border-[var(--line)] p-3">
+                <p className="pb-1 text-xs font-semibold">Recent activity</p>
+                {([
+                  ['in', 'Invoice paid: website design', 'by bank transfer', '+₦32,500'],
+                  ['out', 'Mum, GTBank ****4821', 'bank transfer', '−₦5,000'],
+                  ['out', 'Ada on Stellar', 'USDC sent', '−10.00 USDC'],
+                  ['in', 'Deposit from Tron', 'USDT to USDC', '+25.00 USDC'],
+                ] as const).map(([way, title, note, amount]) => (
+                  <div key={title} className="flex items-center gap-2.5 border-b border-[var(--line)] py-1.5 last:border-b-0">
+                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${way === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>{way === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}</span>
+                    <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-xs font-medium">{title}</span><span className="text-[11px] text-[var(--muted)]">{note}</span></span>
+                    <span className="amount shrink-0 text-xs font-semibold">{amount}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {sent && (
               <>
                 <p key={scene.request} className="rise max-w-[80%] self-end rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-sm text-[var(--accent-text)]">{scene.request}</p>
@@ -181,7 +205,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
           </div>
           <div className="px-4 pb-4">
             <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] py-2 pr-2 pl-4 text-sm">
-              <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[var(--muted)]' : ''}`}>{sent || !typed ? 'Tell me what to pay' : typed}</span>
+              <span className={`min-w-0 flex-1 truncate ${sent || !typed ? 'text-[var(--muted)]' : ''}`}>{sent || !typed ? 'Ask 10kobo: tell me what to pay' : typed}</span>
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-text)]">↑</span>
             </div>
           </div>
