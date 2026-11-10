@@ -593,7 +593,7 @@ export function Home() {
               {view === 'invoices' && <InvoicesPanel api={api} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
-              {view === 'send' && <SendPanel key={sendWay} initialWay={sendWay} api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}
+              {view === 'send' && <SendPanel key={sendWay} initialWay={sendWay} summary={summary} api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}
             </div>
           </section>
         )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwork, DepositTerms, Invoice, InvoiceStatus, NairaDeposit, Schedule, WalletSummary } from '@/lib/api/client';
 import { CardHeader } from './card-header';
 import { CancelScheduleButton, TxLink } from './cards';
@@ -463,6 +463,18 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   const [copied, setCopied] = useState(false);
   // One way at a time, so the page stays short. Naira first, as most people here add money that way.
   const [way, setWay] = useState<Way>('naira');
+  const [nairaClosed, setNairaClosed] = useState(false);
+  const chosenByHand = useRef(false);
+  // When naira deposits are closed, open on a way that works instead of a dead end.
+  useEffect(() => {
+    api.depositTerms().then(
+      () => setNairaClosed(false),
+      () => {
+        setNairaClosed(true);
+        if (!chosenByHand.current) setWay('base');
+      },
+    );
+  }, [api]);
   const address = summary?.address;
   return (
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
@@ -475,7 +487,10 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
               key={item.id}
               type="button"
               aria-pressed={chosen}
-              onClick={() => setWay(item.id)}
+              onClick={() => {
+                chosenByHand.current = true;
+                setWay(item.id);
+              }}
               className={`relative flex flex-col gap-2 rounded-2xl border bg-[var(--surface)] p-3 text-left transition-all sm:gap-3 sm:p-4 ${chosen ? 'border-[var(--foreground)] shadow-md ring-1 ring-[var(--foreground)]' : 'border-[var(--line)] hover:-translate-y-0.5 hover:shadow-sm'}`}
               data-testid={`way-${item.id}`}
             >
@@ -490,6 +505,7 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
               <span className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold sm:text-base">{item.title}</span>
                 <span className="hidden text-xs text-[var(--muted)] sm:block">{item.detail}</span>
+                {item.id === 'naira' && nairaClosed && <span className="mt-1 self-start rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted)]">Unavailable now</span>}
               </span>
             </button>
           );

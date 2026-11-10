@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ApiClient, DepositNetwork, Plan, SendOptions, SendRequest } from '@/lib/api/client';
+import type { ApiClient, DepositNetwork, Plan, SendOptions, SendRequest, WalletSummary } from '@/lib/api/client';
 import { CardHeader } from './card-header';
 import { PlanApprovalCard } from './cards';
 import { BankIcon, PhoneIcon, WalletIcon } from './icons';
@@ -61,7 +61,17 @@ function NameIt({ contactId, kind, api, onSaved }: { contactId: string; kind: st
 }
 
 /** Sending without the chat: the same payments, rules and approval card, chosen with a form. */
-export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank' }: { api: ApiClient; onChanged: () => void; onAddMoney: () => void; initialWay?: Way }) {
+const QUICK: Record<Way, readonly number[]> = { bank: [1000, 5000, 10000, 20000], crypto: [5, 10, 50, 100], phone: [100, 200, 500, 1000] };
+
+/** A rough figure while typing. The approval card shows the exact amount before anything moves. */
+function estimate(way: Way, amount: string, rate: number | null | undefined): string | null {
+  const value = Number(amount);
+  if (!rate || !value || value <= 0) return null;
+  if (way === 'crypto') return `About ₦${Math.round(value * rate).toLocaleString('en-NG')}`;
+  return `About $${(value / rate).toFixed(2)} from your balance, at ₦${rate.toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1`;
+}
+
+export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', summary = null }: { api: ApiClient; onChanged: () => void; onAddMoney: () => void; initialWay?: Way; summary?: WalletSummary | null }) {
   const [way, setWay] = useState<Way>(initialWay);
   const [options, setOptions] = useState<SendOptions | null>(null);
   const [recipient, setRecipient] = useState<string>(NEW);
@@ -273,9 +283,29 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank' }: {
               </select>
             </Field>
           ) : (
-            <Field label={way === 'crypto' ? 'Amount in USDC' : 'Amount in naira'}>
-              <input className="field text-lg font-medium" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(way === 'crypto' ? /[^\d.]/g : /\D/g, ''))} placeholder={way === 'crypto' ? 'e.g. 10' : 'e.g. 5000'} autoComplete="off" name="send-amount" />
-            </Field>
+            <div className="flex flex-col gap-2">
+              <Field label={way === 'crypto' ? 'Amount in USDC' : 'Amount in naira'}>
+                <input className="field text-lg font-medium" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(way === 'crypto' ? /[^\d.]/g : /\D/g, ''))} placeholder={way === 'crypto' ? 'e.g. 10' : 'e.g. 5000'} autoComplete="off" name="send-amount" />
+              </Field>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
+                {QUICK[way].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setAmount(String(value))}
+                    className={`rounded-full border px-3 py-1 text-sm transition-colors ${amount === String(value) ? 'border-[var(--foreground)] bg-[var(--surface-2)]' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--foreground)]'}`}
+                  >
+                    {way === 'crypto' ? `${value} USDC` : `₦${value.toLocaleString('en-NG')}`}
+                  </button>
+                ))}
+              </div>
+              {(estimate(way, amount, summary?.naira_per_usdc) || summary?.limit_left) && (
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]" data-testid="send-estimate">
+                  <span>{estimate(way, amount, summary?.naira_per_usdc) ?? 'Type an amount to see what it costs'}</span>
+                  {summary?.limit_left && <span>Left to send today: {summary.limit_left.replace(/\.\d+$/, '')}</span>}
+                </div>
+              )}
+            </div>
           )}
 
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}{/need .* but your wallet has/i.test(error) && <> <button type="button" className="font-medium underline underline-offset-2" onClick={onAddMoney}>Add money</button></>}</p>}
