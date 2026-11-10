@@ -16,18 +16,17 @@ for (const size of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) 
   });
 }
 
-test('the landing page shows four real payments and links to the rest', async ({ page }) => {
+test('the landing page shows real payments and links to the rest', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign out' }).click();
-  const proof = page.locator('#proof');
-  await expect(proof.getByRole('heading', { name: 'Proven with real money.' })).toBeVisible();
-  await expect(proof.getByRole('listitem')).toHaveCount(4);
+  const proof = page.locator('section').filter({ has: page.getByRole('heading', { name: /Don’t take our word\./ }) });
+  await expect(proof.getByRole('heading', { level: 3 })).toHaveCount(3);
   await expect(proof).toContainText('An AI agent paid a Nigerian bank');
   await expect(proof).toContainText('Base to Stellar in 40 seconds');
   await proof.scrollIntoViewIfNeeded();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/landing-proof.png' });
-  await proof.getByRole('link', { name: /See all 24 real payments/ }).click();
+  await proof.getByRole('link', { name: /See the payment records/ }).click();
   await expect(page).toHaveURL(/\/proof$/);
 });
 
@@ -37,12 +36,12 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await page.getByRole('button', { name: 'Sign out' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Naira and stablecoins,\s*both ways\./);
-    for (const heading of ['Proven with real money.', 'Money in, money out.', 'AI agents can pay a Nigerian bank now.', 'A checkout button in three lines.', 'Three steps.', 'Safe by design.']) {
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Naira and\s*stablecoins,\s*both ways\./);
+    for (const heading of [/Your money\. More possibilities\./, /A payment link\./, /Build the agent\./, /From intention/, /Don’t take our word\./, /16 networks\./]) {
       await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     }
-    await expect(page.locator('#both-ways')).toContainText('Stellar');
-    await expect(page.locator('#agents')).toContainText('"pay_from": "near"');
+    await expect(page.locator('#networks')).toContainText('Stellar');
+    await expect(page.locator('#developers')).toContainText('"pay_from": "near"');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `/tmp/10kobo-e2e-results/landing-${size.width}.png`, fullPage: true });
   });

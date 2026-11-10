@@ -836,11 +836,11 @@ const nairaOf = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const dayOf = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium' });
 
 /** The merchant's page: what is owed and paid, a way to make an invoice, every pay link, and the checkout button. */
-export function InvoicesPanel({ api }: { api: ApiClient }) {
+export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; startCreating?: boolean }) {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>('all');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(startCreating);
   const load = useCallback(() => api.invoices().then(setInvoices, (failure: Error) => setError(failure.message)), [api]);
   useEffect(() => {
     void load();

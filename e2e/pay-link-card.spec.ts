@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openChat } from './home';
 
 const ID = '11111111-1111-4111-8111-111111111111';
 const URL = `http://localhost:3011/pay/${ID}`;
@@ -17,6 +18,7 @@ test('a pay link in the chat becomes a readable card, with a link that opens', a
     return sent ? route.fulfill({ json: { messages: [{ id: '44444444-4444-4444-8444-444444444444', role: 'user', content: 'make an invoice', created_at: new Date().toISOString() }, reply] } }) : route.continue();
   });
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').fill('make an invoice');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   const card = page.getByRole('region', { name: 'Invoice' });

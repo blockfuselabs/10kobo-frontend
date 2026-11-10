@@ -9,7 +9,7 @@ const outsideShop = (id = ID) => `<html><body><h1>Some other shop</h1><script sr
 test('the button opens 10kobo checkout over the shop page, and Esc or the close button shuts it', async ({ page }) => {
   await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: link }));
   await page.setContent(outsideShop());
-  await page.getByRole('button', { name: /Checkout with 10kobo/ }).click();
+  await page.getByRole('button', { name: /Pay with crypto/ }).click();
   const box = page.getByRole('dialog', { name: '10kobo checkout' });
   await expect(box).toBeVisible();
   const checkout = page.frameLocator('iframe[title="10kobo checkout"]');
@@ -24,7 +24,7 @@ test('the button opens 10kobo checkout over the shop page, and Esc or the close 
   await checkout.getByTestId('link-payee').click();
   await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);
-  await page.getByRole('button', { name: /Checkout with 10kobo/ }).click();
+  await page.getByRole('button', { name: /Pay with crypto/ }).click();
   await page.getByRole('button', { name: 'Close checkout' }).click();
   await expect(box).toHaveCount(0);
   expect(await page.evaluate(() => { try { (window as unknown as { TenKobo: { open: (id: string) => void } }).TenKobo.open('javascript:alert(1)'); return 'opened'; } catch { return 'refused'; } })).toBe('refused');

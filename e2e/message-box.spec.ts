@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { openChat } from './home';
 
 const LONG = 'make an invoice to my client for generator repair 3000 and parts 2000, due 2027-01-31, pay to opay 8031234568 and please add a note that it covers the visit on Tuesday as well';
 
 test('a long message wraps instead of sliding sideways, and Enter sends while Shift+Enter makes a new line', async ({ page }) => {
   await page.goto('/');
+  await openChat(page);
   const box = page.getByLabel('Message');
   await expect(box).toBeVisible();
   const oneLine = (await box.boundingBox())!.height;
@@ -44,6 +46,7 @@ test('a message can be copied', async ({ page, context }) => {
     return sent ? route.fulfill({ json: { messages: [message] } }) : route.continue();
   });
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').fill(text);
   await page.getByLabel('Message').press('Enter');
   const bubble = page.getByText(text, { exact: true });
@@ -71,6 +74,7 @@ test('a long address with no spaces stays inside its bubble', async ({ page }) =
   });
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').fill(text);
   await page.getByLabel('Message').press('Enter');
   const bubble = page.getByText(text, { exact: true });
@@ -92,6 +96,7 @@ test('a reply shows numbered steps and bold facts, and copies as plain text', as
     return sent ? route.fulfill({ json: { messages: [reply] } }) : route.continue();
   });
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').fill('can i deposit from any chain');
   await page.getByLabel('Message').press('Enter');
   const steps = page.getByRole('list').filter({ hasText: 'Open the Add USDC tab.' });

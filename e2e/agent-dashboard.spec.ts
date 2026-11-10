@@ -15,7 +15,7 @@ test('shows each step the agent reports, hides account numbers, and says test mo
     events: [started, { type: 'quote', amount: '₦1,400', name: 'Ad* Be***', bank: 'OPay', account: '****4568', usdc: '1.02' }, { type: 'thinking', text: 'Paying OPay 8031234568.' }, { type: 'sending', usdc: '1.02', to: '0xabc' }, { type: 'result', outcome: 'paid', reason: 'Paid account 8031234568.', receipt: { paid: '₦1,400', to: 'Ad* Be***, OPay ****4568', funded_with: '1.02 USDC' }, transactions: ['simulated'], at: new Date().toISOString() }],
   });
   await page.goto('/agent');
-  await expect(page.getByTestId('money-mode')).toHaveText('Test mode. No real money');
+  await expect(page.getByTestId('money-mode')).toHaveText('Test mode · No real money');
   await page.getByRole('button', { name: 'Run agent' }).click();
   const result = page.getByTestId('result');
   await expect(result).toContainText('Test: would have paid ₦1,400');

@@ -5,7 +5,7 @@ import type { ActivityEntry, ApiClient, Invoice, Me, WalletSummary } from '@/lib
 import { ArrowInIcon, ArrowOutIcon, CalendarIcon, InvoiceIcon, PhoneIcon } from './icons';
 import { Spinner } from './panels';
 
-export type OverviewTarget = 'send' | 'airtime' | 'receive' | 'invoices' | 'activity' | 'schedules';
+export type OverviewTarget = 'send' | 'airtime' | 'receive' | 'invoices' | 'new-invoice' | 'activity' | 'schedules';
 
 const wholeNaira = (amount: string) => amount.replace(/\.\d+$/, '');
 const nairaOf = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
@@ -171,7 +171,7 @@ export function Overview({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Action label="Send" detail="Bank, wallet or phone" icon={<ArrowOutIcon />} onClick={() => onGo('send')} />
         <Action label="Deposit" detail="Naira or crypto" icon={<ArrowInIcon />} onClick={() => onGo('receive')} />
-        <Action label="New invoice" detail="Get paid by link" icon={<InvoiceIcon />} onClick={() => onSuggest('Make an invoice for ')} />
+        <Action label="New invoice" detail="Get paid by link" icon={<InvoiceIcon />} onClick={() => onGo('new-invoice')} />
         <Action label="Airtime & data" detail="MTN, Airtel, Glo, 9mobile" icon={<PhoneIcon />} onClick={() => onGo('airtime')} />
       </div>
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openSend } from './home';
 
 const options = {
   recipients: [
@@ -25,7 +26,7 @@ async function open(page: Page, onSend: (body: Record<string, unknown>) => objec
     return 'message' in answer ? route.fulfill({ status: answer.status as number, json: { message: answer.message } }) : route.fulfill({ json: { plan: answer } });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Send money' }).click();
+  await openSend(page);
 }
 
 test('sends to a saved bank recipient with a form, and shows the same approval card as the chat', async ({ page }) => {
@@ -76,7 +77,7 @@ test('says why a payment was refused, offers to add money, and keeps the form', 
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'wallet has' })).toContainText('You need 3.60 USDC');
   await page.getByRole('button', { name: 'Add money' }).click();
-  await expect(page.getByRole('heading', { name: 'Deposit', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Add money', exact: true })).toBeVisible();
 });
 
 test('a new bank recipient picks the bank from a searchable list, or types one that is not listed', async ({ page }) => {
@@ -107,7 +108,7 @@ test('with 100 saved people, shows only the 5 most recent, and search finds anyo
   let sent: Record<string, unknown> | null = null;
   await page.route('**/v1/send', (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: { plan: planFor({ recipient_name: 'Person 73' }) } }); });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Send money' }).click();
+  await openSend(page);
   await expect(page.getByTestId('recipient-picker')).toContainText('Person 1');
   await page.getByTestId('recipient-picker').click();
   // Someone new, then the five most recent, and a note that the rest are a search away.
@@ -142,7 +143,7 @@ test('wallets saved under their address show short, with network and last paid, 
     return route.fulfill({ status: 204, body: '' });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Send money' }).click();
+  await openSend(page);
   await page.getByTestId('send-crypto').click();
   const picker = page.getByTestId('recipient-picker');
   await expect(picker).toContainText('0x8168…11e2');

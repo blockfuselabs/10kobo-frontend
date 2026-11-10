@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openSend } from './home';
 
 const entry = (n: number, overrides: object = {}) => ({ id: `11111111-1111-4111-8111-1111111111${String(n).padStart(2, '0')}`, has_receipt: true, kind: 'payment', created_at: new Date(2026, 10, 3, 12, n).toISOString(), direction: 'out', type: 'bank', type_label: 'Bank transfer', detail: 'Ada Bello, OPay ****4568', description: `Sent to Person ${n}`, amount_naira: '₦1,000', amount_usdc: '0.72 USDC', status: 'completed', tx_hash: '0x' + 'a'.repeat(64), ...overrides });
 const receipt = { reference: '11111111-1111', kind: 'Bank transfer', title: 'Payment successful', recipient: 'Halima', recipient_detail: 'Danjuma Halima Sani, OPay ****4568', amount: '₦1,376.36', second_amount: '1.00 USDC', note: 'Naira shown is the quoted amount. The exact figure is on the bank alert.', completed_at: new Date().toISOString(), tx_hash: '0x' + 'a'.repeat(64) };
@@ -80,12 +81,14 @@ test('the sidebar shows the rate, Deposit, Send money and the latest transaction
   await expect(page.getByTestId('latest')).toContainText('−₦1,376.36');
   await page.waitForTimeout(300);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/sidebar.png' });
-  await page.getByRole('button', { name: 'Send money' }).click();
-  await expect(page.getByRole('heading', { name: 'Send Money' })).toBeVisible();
+  await openSend(page);
+  await expect(page.getByRole('heading', { name: 'Send', exact: true })).toBeVisible();
+  // Away from home, the sidebar shows Deposit, Send and the latest payment.
+  await expect(page.getByRole('button', { name: 'Send money' })).toBeVisible();
   await page.getByTestId('latest').click();
   await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible();
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
-  await expect(page.getByText('Deposit Naira')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Add money' })).toBeVisible();
 });
 
 test('dark mode settles to dark colours', async ({ page }) => {

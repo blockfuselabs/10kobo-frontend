@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openChat } from './home';
 
 // The approval for a send to a network that receives USDT and has a catch, as the backend presents it.
 const item = {
@@ -20,6 +21,7 @@ test('a send to Tron says the receiver gets USDT, and why, before it is approved
     return sent ? route.fulfill({ json: { messages: [reply] } }) : route.continue();
   });
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').fill('send 0.5 usdc to TJRabPrwbZy45sbavfcjinPJC18kjpRTv8');
   await page.getByLabel('Message').press('Enter');
   const card = page.getByRole('region', { name: 'Payments to approve' });

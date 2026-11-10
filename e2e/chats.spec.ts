@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openChat } from './home';
 
 const say = async (page: import('@playwright/test').Page, text: string) => {
   await page.getByLabel('Message').fill(text);
@@ -34,6 +35,8 @@ test('starts new chats, lists them, and goes back to an old one', async ({ page 
   await list.getByRole('button', { name: first }).click();
   await expect(page.locator('main p').filter({ hasText: second })).toHaveCount(0);
   await page.reload();
+  // The app reopens on the home page; the chat list shows once the chat is open.
+  await openChat(page);
   await expect(list.getByRole('button').first()).toBeVisible();
 });
 
@@ -52,7 +55,7 @@ test('renames and deletes a chat from its menu', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const name = `to delete ${Date.now()}`;
   await page.goto('/');
-  await page.getByRole('button', { name: 'New chat', exact: true }).click();
+  await openChat(page);
   await say(page, name);
   const list = page.getByRole('list', { name: 'Your chats' });
   const row = list.getByRole('listitem').filter({ hasText: name });
@@ -78,13 +81,14 @@ test('renames and deletes a chat from its menu', async ({ page }) => {
   await expect(again).toHaveCount(0);
   await expect(page.locator('main p').filter({ hasText: name })).toHaveCount(0);
   await page.reload();
-  await expect(page.getByLabel('Message')).toBeVisible();
+  await openChat(page);
   await expect(list.getByRole('listitem').filter({ hasText: renamed })).toHaveCount(0);
 });
 
 test('dark mode can be switched on, and stays after a reload', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
+  await openChat(page);
   await expect(page.getByLabel('Message')).toBeVisible();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/new-chat.png' });
   const box = await page.getByLabel('Message').evaluate((node) => ({ outline: getComputedStyle(node).outlineStyle }));
@@ -100,6 +104,7 @@ test('dark mode can be switched on, and stays after a reload', async ({ page }) 
 
 test('the message box shows no outline of its own when focused', async ({ page }) => {
   await page.goto('/');
+  await openChat(page);
   await page.getByLabel('Message').focus();
   await page.keyboard.type('x');
   expect(await page.getByLabel('Message').evaluate((node) => getComputedStyle(node).outlineStyle)).toBe('none');

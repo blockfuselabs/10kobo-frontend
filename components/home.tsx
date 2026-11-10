@@ -239,6 +239,9 @@ export function Home() {
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [view, setView] = useState<View>('home');
   const [sendWay, setSendWay] = useState<'bank' | 'phone'>('bank');
+  // Set by New invoice on the home page, so the invoices page opens with the form showing.
+  const [newInvoice, setNewInvoice] = useState(false);
+  useEffect(() => { if (view !== 'invoices') setNewInvoice(false); }, [view]);
   // Shown straight away, until the saved copy comes back with the reply.
   const [waitingOn, setWaitingOn] = useState<string | null>(null);
   const conversation = useRef<HTMLElement>(null);
@@ -485,7 +488,7 @@ export function Home() {
             <button type="button" onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
               Deposit
             </button>
-            <button type="button" onClick={() => { setSendWay('bank'); setView('send'); }} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
+            <button type="button" aria-label="Send money" onClick={() => { setSendWay('bank'); setView('send'); }} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]">
               Send
             </button>
           </div>
@@ -584,6 +587,9 @@ export function Home() {
                   if (target === 'airtime' || target === 'send') {
                     setSendWay(target === 'airtime' ? 'phone' : 'bank');
                     setView('send');
+                  } else if (target === 'new-invoice') {
+                    setNewInvoice(true);
+                    setView('invoices');
                   } else setView(target);
                 }}
               />
@@ -595,7 +601,7 @@ export function Home() {
           <section className="min-h-0 flex-1 overflow-y-auto">
             <div className="workspace-panel mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
               {view === 'schedules' && <SchedulesPanel api={api} />}
-              {view === 'invoices' && <InvoicesPanel api={api} />}
+              {view === 'invoices' && <InvoicesPanel key={String(newInvoice)} api={api} startCreating={newInvoice} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
               {view === 'send' && <SendPanel key={sendWay} initialWay={sendWay} summary={summary} api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}

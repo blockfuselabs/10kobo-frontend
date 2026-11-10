@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openChat } from './home';
 
 async function boxFullyVisible(page: Page) {
   const box = await page.getByLabel('Message').boundingBox();
@@ -52,6 +53,7 @@ test('a message shows once while it is sending, even when the reply is slow', as
     } else await route.continue();
   });
   await page.goto('/');
+  await openChat(page);
   const text = `only once ${Date.now()}`;
   await page.getByLabel('Message').fill(text);
   await page.getByRole('button', { name: 'Send', exact: true }).click();

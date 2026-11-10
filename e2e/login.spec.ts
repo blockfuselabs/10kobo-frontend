@@ -25,7 +25,7 @@ test('our own login page: email, code, then into the app', async ({ page }) => {
   await expect(page.locator('form').getByRole('alert')).toContainText('did not work');
   await page.getByLabel('Code').fill('123456');
   await expect(page).toHaveURL(/localhost:\d+\/$/);
-  await expect(page.getByLabel('Message')).toBeVisible();
+  await expect(page.getByTestId('balance')).toBeVisible();
 });
 
 test('the Sign in button goes to the same page, and it links home', async ({ page }) => {
