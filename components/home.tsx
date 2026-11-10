@@ -5,10 +5,11 @@ import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSumma
 import { useAuth } from '@/lib/auth/auth';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
+import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, HomeIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
 import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
 import { SendPanel } from './send-panel';
+import { Overview, type OverviewTarget } from './overview';
 import { plainText, RichText } from './rich-text';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
@@ -33,7 +34,8 @@ const SUGGESTIONS = [
   ['What is my balance?', 'What is my balance?'],
 ] as const;
 const VIEWS = [
-  ['chat', 'Chat', ChatIcon],
+  ['home', 'Home', HomeIcon],
+  ['chat', 'Ask 10kobo', ChatIcon],
   ['send', 'Send', ArrowOutIcon],
   ['schedules', 'Scheduled', CalendarIcon],
   ['invoices', 'Invoices', InvoiceIcon],
@@ -42,6 +44,8 @@ const VIEWS = [
 ] as const;
 /** On a computer the Deposit and Send money buttons above the menu open these, so the menu does not repeat them. */
 const BUTTONS_ON_COMPUTER: ReadonlySet<string> = new Set(['send', 'receive']);
+/** The phone's bottom bar keeps five. Deposit and Scheduled open from the home screen there. */
+const COMPUTER_ONLY: ReadonlySet<string> = new Set(['schedules', 'receive']);
 type View = (typeof VIEWS)[number][0];
 
 type ChatActions = { onOpen: (id: string | null) => void; onRename: (id: string, title: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
@@ -232,7 +236,8 @@ export function Home() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<WalletSummary | null>(null);
-  const [view, setView] = useState<View>('chat');
+  const [view, setView] = useState<View>('home');
+  const [sendWay, setSendWay] = useState<'bank' | 'phone'>('bank');
   // Shown straight away, until the saved copy comes back with the reply.
   const [waitingOn, setWaitingOn] = useState<string | null>(null);
   const conversation = useRef<HTMLElement>(null);
@@ -359,6 +364,7 @@ export function Home() {
       void respond(async () => {
         // Cleared at once, so anything typed while this sends is kept. Restored if sending fails.
         setDraft('');
+        setView('chat');
         setWaitingOn(content);
         try {
           const { conversation_id: id } = await api.send(content, activeChatRef.current);
@@ -436,7 +442,7 @@ export function Home() {
           </button>
           </div>
         </div>
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
+        {view !== 'home' && <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
           <div className="flex flex-col gap-0.5">
             <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Your balance</p>
             <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2 md:flex-col md:gap-0.5">
@@ -472,21 +478,21 @@ export function Home() {
               <span className="font-medium">₦{summary.naira_per_usdc.toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1</span>
             </p>
           )}
-        </div>
+        </div>}
         <div className="hidden grid-cols-2 gap-2 md:grid">
           <button onClick={() => setView('receive')} className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--pop)] py-2.5 text-sm font-semibold text-[#111] shadow-sm transition-[filter] hover:brightness-95">
             <ArrowInIcon />
             Deposit
           </button>
           <button
-            onClick={() => setView('send')}
+            onClick={() => { setSendWay('bank'); setView('send'); }}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-2)]"
           >
             <ArrowOutIcon />
             Send money
           </button>
         </div>
-        {summary?.latest && (
+        {summary?.latest && view !== 'home' && (
           <button onClick={() => setView('activity')} data-testid="latest" title="See all activity" className="hidden min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg px-1 text-left text-xs md:flex">
             <span className="min-w-0 truncate text-[var(--muted)]">{summary.latest.description}</span>
             <span className="amount shrink-0 font-semibold">
@@ -500,16 +506,16 @@ export function Home() {
       <div className="row-start-3 flex min-h-0 flex-col gap-3 border-t border-[var(--line)] bg-[var(--sidebar)] px-2 py-1.5 md:col-start-1 md:row-start-2 md:overflow-y-auto md:border-t-0 md:border-r md:px-4 md:py-1">
       <nav
           aria-label="Sections"
-          className="grid grid-cols-6 gap-1 md:flex md:flex-col md:gap-0.5"
+          className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-0.5"
         >
           {VIEWS.map(([key, label, ViewIcon]) => (
             <button
               key={key}
-              onClick={() => setView(key)}
+              onClick={() => { if (key === 'send') setSendWay('bank'); setView(key); }}
               aria-current={view === key ? 'page' : undefined}
               // On the phone the Send tab must not be mistaken for the message box's Send button.
               aria-label={key === 'send' ? 'Send money' : undefined}
-              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${BUTTONS_ON_COMPUTER.has(key) ? 'md:hidden' : ''} ${
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${BUTTONS_ON_COMPUTER.has(key) ? 'md:hidden' : ''} ${COMPUTER_ONLY.has(key) ? 'max-md:hidden' : ''} ${
                 view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
               }`}
             >
@@ -554,14 +560,40 @@ export function Home() {
       </footer>
 
       <div className="row-start-2 flex min-h-0 flex-col md:col-start-2 md:row-span-3 md:row-start-1">
-        {view !== 'chat' && (
+        {view === 'home' && (
+          <section className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-5xl px-4 py-5 md:px-8 md:py-8">
+              <Overview
+                api={api}
+                me={me}
+                summary={summary}
+                address={address}
+                extra={me?.pin_required && !me.has_pin ? <SetPinCard api={api} onChange={() => api.me().then(setMe)} /> : undefined}
+                composer={<div className="flex flex-col gap-2">{errorLine}{composer}</div>}
+                suggestions={SUGGESTIONS}
+                onSuggest={(text) => {
+                  setDraft(text);
+                  document.getElementById('message')?.focus();
+                }}
+                onGo={(target: OverviewTarget) => {
+                  if (target === 'airtime' || target === 'send') {
+                    setSendWay(target === 'airtime' ? 'phone' : 'bank');
+                    setView('send');
+                  } else setView(target);
+                }}
+              />
+            </div>
+          </section>
+        )}
+
+        {view !== 'chat' && view !== 'home' && (
           <section className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
               {view === 'schedules' && <SchedulesPanel api={api} />}
               {view === 'invoices' && <InvoicesPanel api={api} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
-              {view === 'send' && <SendPanel api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}
+              {view === 'send' && <SendPanel key={sendWay} initialWay={sendWay} api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}
             </div>
           </section>
         )}

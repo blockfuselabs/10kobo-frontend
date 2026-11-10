@@ -61,8 +61,8 @@ function NameIt({ contactId, kind, api, onSaved }: { contactId: string; kind: st
 }
 
 /** Sending without the chat: the same payments, rules and approval card, chosen with a form. */
-export function SendPanel({ api, onChanged, onAddMoney }: { api: ApiClient; onChanged: () => void; onAddMoney: () => void }) {
-  const [way, setWay] = useState<Way>('bank');
+export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank' }: { api: ApiClient; onChanged: () => void; onAddMoney: () => void; initialWay?: Way }) {
+  const [way, setWay] = useState<Way>(initialWay);
   const [options, setOptions] = useState<SendOptions | null>(null);
   const [recipient, setRecipient] = useState<string>(NEW);
   const [name, setName] = useState('');
