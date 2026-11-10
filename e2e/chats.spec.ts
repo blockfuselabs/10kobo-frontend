@@ -12,6 +12,7 @@ test('starts new chats, lists them, and goes back to an old one', async ({ page 
   const first = `first chat ${Date.now()}`;
   const second = `second chat ${Date.now()}`;
   await page.goto('/');
+  await page.getByRole('button', { name: 'Ask 10kobo' }).click();
   const list = page.getByRole('list', { name: 'Your chats' });
 
   // A new chat opens by itself, with the box in the middle of the screen until the first message.
@@ -39,6 +40,7 @@ test('starts new chats, lists them, and goes back to an old one', async ({ page 
 test('the chat list opens on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 760 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Ask 10kobo' }).click();
   await page.getByRole('button', { name: /▾/ }).click();
   await expect(page.getByRole('list', { name: 'Your chats' })).toBeVisible();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/chats-phone.png' });

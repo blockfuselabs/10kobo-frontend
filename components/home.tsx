@@ -44,8 +44,8 @@ const VIEWS = [
 ] as const;
 /** On a computer the Deposit and Send money buttons above the menu open these, so the menu does not repeat them. */
 const BUTTONS_ON_COMPUTER: ReadonlySet<string> = new Set(['send', 'receive']);
-/** The phone's bottom bar keeps five. Deposit and Scheduled open from the home screen there. */
-const COMPUTER_ONLY: ReadonlySet<string> = new Set(['schedules', 'receive']);
+/** The phone's bottom bar keeps five. Activity and Scheduled open from the home screen there. */
+const COMPUTER_ONLY: ReadonlySet<string> = new Set(['schedules', 'activity']);
 type View = (typeof VIEWS)[number][0];
 
 type ChatActions = { onOpen: (id: string | null) => void; onRename: (id: string, title: string) => Promise<void>; onDelete: (id: string) => Promise<void> };

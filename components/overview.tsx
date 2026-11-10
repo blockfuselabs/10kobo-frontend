@@ -124,6 +124,21 @@ export function Overview({
             <span className="text-lg opacity-70">{address ? 'Checking your balance…' : 'Setting up your wallet…'}</span>
           )}
         </p>
+        {summary?.latest && (
+          <button
+            type="button"
+            onClick={() => onGo('activity')}
+            data-testid="latest"
+            title="See all activity"
+            className="mt-3 flex max-w-full cursor-pointer items-center gap-2 text-left text-sm opacity-80 hover:opacity-100"
+          >
+            <span className="truncate">Latest: {summary.latest.description}</span>
+            <span className="amount shrink-0 font-semibold">
+              {summary.latest.direction === 'in' ? '+' : '−'}
+              {summary.latest.amount_naira ?? summary.latest.amount_usdc} ›
+            </span>
+          </button>
+        )}
         {summary?.deposit_on_the_way && (
           <p className="mt-3 flex items-center gap-2 text-sm font-medium" data-testid="deposit-on-the-way">
             <Spinner /> {summary.deposit_on_the_way} on its way
@@ -151,7 +166,7 @@ export function Overview({
       </section>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Action strong label="Send money" detail="Bank, wallet or phone" icon={<ArrowOutIcon />} onClick={() => onGo('send')} />
+        <Action strong label="Send" detail="Bank, wallet or phone" icon={<ArrowOutIcon />} onClick={() => onGo('send')} />
         <Action label="Deposit" detail="Naira or crypto" icon={<ArrowInIcon />} onClick={() => onGo('receive')} />
         <Action label="New invoice" detail="Get paid by link" icon={<InvoiceIcon />} onClick={() => onSuggest('Make an invoice for ')} />
         <Action label="Airtime & data" detail="MTN, Airtel, Glo, 9mobile" icon={<PhoneIcon />} onClick={() => onGo('airtime')} />
@@ -190,7 +205,6 @@ export function Overview({
                   <button
                     type="button"
                     onClick={() => onGo('activity')}
-                    data-testid={index === 0 ? 'latest' : undefined}
                     className="flex w-full cursor-pointer items-center gap-3 border-b border-[var(--line)] py-2.5 text-left last:border-b-0"
                   >
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${entry.direction === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>

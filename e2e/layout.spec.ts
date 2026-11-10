@@ -24,6 +24,7 @@ for (const size of [
   test(`message box stays on screen at ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
     await page.goto('/');
+    await page.getByRole('button', { name: 'Ask 10kobo' }).click();
     await expect(page.getByLabel('Message')).toBeVisible();
     console.log('empty chat', await boxFullyVisible(page));
     for (let i = 0; i < 5; i += 1) {

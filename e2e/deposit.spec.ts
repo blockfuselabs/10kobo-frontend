@@ -89,6 +89,7 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     );
     await page.route(`**/v1/deposits/${base.id}`, (route) => route.fulfill({ json: { deposit } }));
     await page.goto('/');
+    await page.getByRole('button', { name: 'Ask 10kobo' }).click();
     if (size.width < 768) await page.getByRole('button', { name: /▾/ }).click();
     await page.getByRole('list', { name: 'Your chats' }).getByRole('button', { name: 'deposit' }).click();
     const card = page.getByRole('region', { name: 'Deposit card' });

@@ -20,7 +20,7 @@ const SAFETY = [
 const CURL = `# 1. Price it and see the account name. Moves nothing.
 curl -X POST $TENKOBO/v1/agent/quotes \\
   -H "authorization: Bearer $KEY" -H 'content-type: application/json' \\
-  -d '{"amount_naira":1400,"bank_name":"OPay","account_number":"8031234568","pay_from":"base","refund_to":"0xYourWallet"}'
+  -d '{"amount_naira":1400,"bank_name":"OPay","account_number":"0123456789","pay_from":"base","refund_to":"0xYourWallet"}'
 
 # 2. Accept it: get the exact USDC and the one-time address. Safe to repeat.
 curl -X POST $TENKOBO/v1/agent/payments \\
@@ -112,7 +112,7 @@ export function AgentGuide() {
         ) : (
           <>
             <Code label="MCP settings" text={MCP} />
-            <p className="text-sm text-[var(--muted)]">Three tools: quote a naira payment, accept the quote, and check the payment. Then ask: “How much USDC to pay ₦1,400 to OPay 8031234568?”</p>
+            <p className="text-sm text-[var(--muted)]">Three tools: quote a naira payment, accept the quote, and check the payment. Then ask: “How much USDC to pay ₦1,400 to OPay 0123456789?”</p>
           </>
         )}
       </section>

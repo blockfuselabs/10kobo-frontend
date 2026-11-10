@@ -124,6 +124,7 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) 
   test(`Add USDC asks how first and shows one way at a time, at ${size.width}px`, async ({ page }) => {
     await page.setViewportSize(size);
     await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
+    await page.route('**/v1/deposits/terms', (route) => route.fulfill({ json: { rate: 1500, minimum_naira: 1000, maximum_naira: 500000 } }));
     await page.goto('/');
     await page.getByRole('button', { name: 'Deposit', exact: true }).click();
     const ways = page.getByRole('group', { name: 'How do you want to add money?' });
@@ -140,3 +141,13 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) 
     await expect(page.getByTestId('way-other')).toHaveAttribute('aria-pressed', 'true');
   });
 }
+
+test('when naira deposits are closed, Deposit opens on USDC on Base and says naira is unavailable', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.route('**/v1/deposits/terms', (route) => route.fulfill({ status: 503, json: { message: 'closed' } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
+  await expect(page.getByTestId('way-base')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('receive-address')).toBeVisible();
+  await expect(page.getByTestId('way-naira')).toContainText('Unavailable now');
+});
