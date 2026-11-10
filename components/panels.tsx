@@ -215,7 +215,7 @@ export function DepositCard({ deposit: first, api, onChanged }: { deposit: Naira
   );
 }
 
-function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => void }) {
+function DepositNaira({ api, onChanged, onSwitch }: { api: ApiClient; onChanged: () => void; onSwitch: (way: 'base' | 'other') => void }) {
   const [terms, setTerms] = useState<DepositTerms | null>(null);
   const [deposit, setDeposit] = useState<NairaDeposit | null | undefined>(undefined);
   const [amount, setAmount] = useState('');
@@ -295,7 +295,19 @@ function DepositNaira({ api, onChanged }: { api: ApiClient; onChanged: () => voi
       </>
     );
   }
-  if (unavailable) return <p className="text-sm text-[var(--muted)]">Naira deposits are not available right now. Please try again later.</p>;
+  if (unavailable)
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-4" role="status">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold">Naira deposits are paused for now</p>
+          <p className="text-sm text-[var(--muted)]">You can still add money with USDC, which arrives in a few moments. Naira transfers will be back here as soon as they reopen.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-small bg-[var(--accent)] text-[var(--accent-text)]" onClick={() => onSwitch('base')}>Deposit USDC on Base</button>
+          <button type="button" className="btn-small border border-[var(--line)] bg-[var(--surface)]" onClick={() => onSwitch('other')}>Use another network</button>
+        </div>
+      </div>
+    );
   return (
     <form
       className="flex flex-col gap-3"
@@ -453,9 +465,9 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
 }
 
 const WAYS = [
-  { id: 'naira', title: 'Naira', detail: 'Bank transfer from any Nigerian bank', Icon: BankIcon },
-  { id: 'base', title: 'USDC on Base', detail: 'Send to your wallet address', Icon: WalletIcon },
-  { id: 'other', title: 'Other Network', detail: 'USDC or USDT from 14 networks', Icon: NetworksIcon },
+  { id: 'naira', title: 'Naira bank transfer', detail: 'From any Nigerian bank, credited as USDC', Icon: BankIcon },
+  { id: 'base', title: 'USDC on Base', detail: 'Directly to your wallet address', Icon: WalletIcon },
+  { id: 'other', title: 'Other networks', detail: 'USDC or USDT from 14 networks', Icon: NetworksIcon },
 ] as const;
 type Way = (typeof WAYS)[number]['id'];
 
@@ -514,30 +526,39 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
 
       {way === 'naira' && (
         <div className="panel">
-          <CardHeader Icon={BankIcon} title="Deposit Naira">Transfer naira from any Nigerian bank, and it arrives in your wallet as USDC.</CardHeader>
-          <DepositNaira api={api} onChanged={onChanged} />
+          <CardHeader Icon={BankIcon} title="Deposit Naira by bank transfer">Pay from any Nigerian bank account. The naira is converted and credited to your wallet as USDC.</CardHeader>
+          <DepositNaira api={api} onChanged={onChanged} onSwitch={(next) => { chosenByHand.current = true; setWay(next); }} />
         </div>
       )}
 
       {way === 'base' && (
         <div className="panel">
-          <CardHeader Icon={WalletIcon} title="Receive USDC on Base">Send USDC on the Base network to this address. Any other coin or network can lose the money.</CardHeader>
-          <p className="inset break-all p-3.5 font-mono text-sm" data-testid="receive-address">
-            {address ?? 'Your wallet is being set up…'}
+          <CardHeader Icon={WalletIcon} title="Receive USDC on Base">Send USDC from an exchange or wallet to your 10kobo address below.</CardHeader>
+          <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-y-2.5 rounded-xl border border-[var(--line)] p-4 text-sm">
+            <dt className="text-[var(--muted)]">Network</dt>
+            <dd className="font-medium">{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Base' : 'Base Sepolia (test network)'}</dd>
+            <dt className="text-[var(--muted)]">Token</dt>
+            <dd className="font-medium">USDC</dd>
+            <dt className="self-start pt-1 text-[var(--muted)]">Your address</dt>
+            <dd className="flex flex-col gap-2">
+              <span className="break-all font-mono text-[13px] leading-5" data-testid="receive-address">{address ?? 'Your wallet is being set up…'}</span>
+              {address && (
+                <button className="btn-small gap-1.5 self-start border border-[var(--line)]" onClick={() => void navigator.clipboard?.writeText(address).then(() => setCopied(true))}>
+                  {copied ? <CheckIcon /> : <CopyIcon />} {copied ? 'Copied' : 'Copy address'}
+                </button>
+              )}
+            </dd>
+          </dl>
+          <p className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="note">
+            Send only USDC on the Base network. Other tokens, or USDC on another network, may be lost.
           </p>
-          {address && (
-            <button className="btn-secondary self-start" onClick={() => void navigator.clipboard?.writeText(address).then(() => setCopied(true))}>
-              {copied ? 'Copied' : 'Copy address'}
-            </button>
-          )}
-          <p className="text-sm text-[var(--muted)]">It shows here a few moments after it arrives. {process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Send USDC on the Base network only.' : 'Test version: test USDC on Base Sepolia only.'}</p>
-          <p className="text-sm text-[var(--muted)]">Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other Network</button>.</p>
+          <p className="text-sm text-[var(--muted)]">Your balance updates a few moments after the transfer arrives. Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other Network</button>.</p>
         </div>
       )}
 
       {way === 'other' && (
         <div className="panel" aria-label="Deposit from another network">
-          <CardHeader Icon={NetworksIcon} title="Deposit from Another Network">USDC or USDT from Tron, BNB Chain, Solana, Ethereum and more. It arrives in your wallet as USDC on Base.</CardHeader>
+          <CardHeader Icon={NetworksIcon} title="Deposit from another network">Send USDC or USDT from Tron, Solana, Ethereum, BNB Chain and more. It is converted and credited to your wallet as USDC on Base.</CardHeader>
           <DepositOtherNetwork api={api} onChanged={onChanged} />
         </div>
       )}

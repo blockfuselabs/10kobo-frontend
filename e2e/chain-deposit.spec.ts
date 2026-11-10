@@ -128,7 +128,7 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) 
     await page.goto('/');
     await page.getByRole('button', { name: 'Deposit', exact: true }).click();
     const ways = page.getByRole('group', { name: 'How do you want to add money?' });
-    await expect(ways.getByRole('button')).toHaveText([/^Naira/, /^USDC on Base/, /^Other Network/]);
+    await expect(ways.getByRole('button')).toHaveText([/^Naira bank transfer/, /^USDC on Base/, /^Other networks/]);
     await expect(page.getByTestId('way-naira')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Deposit Naira')).toBeVisible();
     await expect(page.getByTestId('receive-address')).toHaveCount(0);
