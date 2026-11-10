@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { AgentGuide } from './agent-guide';
+import { Logo } from './icons';
 import { Spinner } from './panels';
 
 // Shows what the demo agent really does: every line below comes from the agent's own run, nothing is scripted.
@@ -133,9 +135,12 @@ export function AgentDashboard() {
     <main className="min-h-dvh bg-[var(--background)] px-4 py-8">
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-display text-2xl font-bold tracking-tight">10kobo agent</p>
-            <p className="text-sm text-[var(--muted)]">An AI agent paying a Nigerian bank account, live</p>
+          <div className="flex items-center gap-3">
+            <a href="/" aria-label="10kobo home"><Logo size={36} /></a>
+            <div>
+              <h1 className="font-display text-2xl font-bold tracking-tight">Agents pay Nigerian banks</h1>
+              <p className="text-sm text-[var(--muted)]">Watch an AI agent read an invoice and pay it in naira, live. Pick a case and run it.</p>
+            </div>
           </div>
           {setup && (
             <p data-testid="money-mode" className={`rounded-full px-3 py-1 text-sm font-semibold ${setup.real ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-[var(--line)]'}`}>
@@ -201,6 +206,7 @@ export function AgentDashboard() {
             {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           </section>
         </div>
+        <AgentGuide />
       </div>
     </main>
   );
