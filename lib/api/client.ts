@@ -120,6 +120,39 @@ export interface Invoice {
   paid_at: string | null;
 }
 
+export interface MerchantKeyInfo {
+  id: string;
+  name: string;
+  payout: string;
+  return_origins: string[];
+  webhook_url: string | null;
+  invoices_per_day: number;
+  created_at: string;
+  revoked: boolean;
+}
+
+export interface ProductLinkInfo {
+  id: string;
+  url: string;
+  title: string;
+  /** Null when each customer types the amount. */
+  amount_naira: number | null;
+  customer_chooses: boolean;
+  minimum_naira: number | null;
+  to: string;
+  receives: string;
+  paid_count: number;
+  stopped: boolean;
+  created_at: string;
+}
+
+export interface NewMerchantKey {
+  name: string;
+  payout: { to_my_wallet: true } | { bank_name: string; account_number: string } | { usdc_address: string } | { near_account: string };
+  return_origins: string[];
+  webhook_url: string | null;
+}
+
 export interface Schedule {
   id: string;
   group_id: string;
@@ -341,6 +374,13 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     createInvoice: (body: { amount_naira?: number; bank_name?: string; account_number?: string; to_my_wallet?: boolean; note?: string; due_date?: string; line_items?: { description: string; amount_naira: number }[] }) =>
       request<{ id: string; url: string }>('/v1/pay-links', { method: 'POST', body: JSON.stringify(body) }),
     cancelInvoice: (id: string) => request<Invoice>(`/v1/pay-links/${id}/cancel`, { method: 'POST' }),
+    merchantKeys: async () => (await request<{ keys: MerchantKeyInfo[] }>('/v1/merchant-keys')).keys,
+    createMerchantKey: (body: NewMerchantKey) => request<{ id: string; key: string; webhook_secret: string | null }>('/v1/merchant-keys', { method: 'POST', body: JSON.stringify(body) }),
+    checkMerchantAccount: (bank_name: string, account_number: string) => request<{ account_name: string }>('/v1/merchant-keys/check-account', { method: 'POST', body: JSON.stringify({ bank_name, account_number }) }),
+    productLinks: async () => (await request<{ links: ProductLinkInfo[] }>('/v1/product-links')).links,
+    createProductLink: (body: { title: string; amount_naira?: number; minimum_naira?: number; to_my_wallet?: boolean; bank_name?: string; account_number?: string }) => request<ProductLinkInfo>('/v1/product-links', { method: 'POST', body: JSON.stringify(body) }),
+    stopProductLink: (id: string) => request<{ stopped: boolean }>(`/v1/product-links/${id}/stop`, { method: 'POST' }),
+    revokeMerchantKey: (id: string) => request<{ revoked: boolean }>(`/v1/merchant-keys/${id}`, { method: 'DELETE' }),
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
     recheckPlan: (id: string) => request<Plan>(`/v1/plans/${id}/recheck`, { method: 'POST' }),

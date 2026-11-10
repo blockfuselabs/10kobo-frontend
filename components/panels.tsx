@@ -7,6 +7,8 @@ import { CancelScheduleButton, TxLink } from './cards';
 import { ArrowInIcon, ArrowOutIcon, BankIcon, CalendarIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
 import { InvoiceForm } from './invoice-form';
 import { NetworkPicker } from './network-picker';
+import { shortenAddresses } from '@/lib/short-address';
+import { asDollars, wholeNaira } from '@/lib/money-display';
 import { ReceiptDialog } from './receipt-dialog';
 
 const row = 'flex justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4';
@@ -317,20 +319,30 @@ function DepositNaira({ api, onChanged, onSwitch }: { api: ApiClient; onChanged:
         if (valid && !busy) void start();
       }}
     >
-      <label className="flex flex-col gap-1 text-sm">
-        Amount in naira
-        <input
-          className="field text-lg font-medium"
-          inputMode="numeric"
-          autoComplete="off"
-          name="deposit-amount"
-          placeholder={terms ? `At least ${naira(terms.minimum_naira)}` : ''}
-          value={amount}
-          onChange={(event) => setAmount(event.target.value.replace(/[^\d]/g, ''))}
-        />
+      <label className="flex flex-col gap-1.5 text-sm">
+        <span>Amount in naira</span>
+        <span className="field flex items-center gap-2 py-3 focus-within:border-[var(--foreground)]">
+          <span className="amount text-2xl font-semibold text-[var(--muted)]" aria-hidden>₦</span>
+          <input
+            className="amount min-w-0 flex-1 bg-transparent text-2xl font-semibold outline-none placeholder:text-[var(--muted)]/50"
+            inputMode="numeric"
+            autoComplete="off"
+            name="deposit-amount"
+            aria-label="Amount in naira"
+            placeholder="0"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value.replace(/[^\d]/g, ''))}
+          />
+        </span>
       </label>
-      {terms && valid && <p className="text-sm text-[var(--muted)]">You get about {(value / terms.rate).toFixed(2)} USDC at ₦{terms.rate.toLocaleString('en-NG')} per USDC.</p>}
-      {terms && amount !== '' && !valid && <p className="text-sm text-[var(--muted)]">Enter between {naira(terms.minimum_naira)} and {naira(terms.maximum_naira)}.</p>}
+      {terms && (
+        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 px-1 text-xs text-[var(--muted)]">
+          <span>
+            {valid ? <>You get about <span className="amount font-medium text-[var(--foreground)]">${(value / terms.rate).toFixed(2)}</span></> : amount !== '' ? `Enter between ${naira(terms.minimum_naira)} and ${naira(terms.maximum_naira)}` : `From ${naira(terms.minimum_naira)} to ${naira(terms.maximum_naira)}`}
+          </span>
+          <span className="amount">₦{terms.rate.toLocaleString('en-NG')} per $1</span>
+        </div>
+      )}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <button className="btn-primary w-full" disabled={!valid || busy}>
         {busy ? 'Processing…' : 'Get bank account'}
@@ -465,7 +477,7 @@ function DepositOtherNetwork({ api, onChanged }: { api: ApiClient; onChanged: ()
 }
 
 const WAYS = [
-  { id: 'naira', title: 'Naira bank transfer', detail: 'From any Nigerian bank, credited as USDC', Icon: BankIcon },
+  { id: 'naira', title: 'Bank transfer', detail: 'From any Nigerian bank, credited as USDC', Icon: BankIcon },
   { id: 'base', title: 'USDC on Base', detail: 'Directly to your wallet address', Icon: WalletIcon },
   { id: 'other', title: 'Other networks', detail: 'USDC or USDT from 14 networks', Icon: NetworksIcon },
 ] as const;
@@ -490,8 +502,16 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
   const address = summary?.address;
   return (
     <section className="flex flex-col gap-4" aria-label="Receive USDC">
-      <div className="product-page-heading"><span className="product-eyebrow">MONEY IN</span><h1 className="page-title">Add money</h1><p>Fund your wallet with naira or crypto. Choose a route to see the details.</p></div>
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label="How do you want to add money?">
+      <div className="flex flex-col gap-1">
+        <h1 className="page-title">Add money</h1>
+        {summary?.balance_usdc && (
+          <p className="text-sm text-[var(--muted)]">
+            Balance: <span className="amount font-medium text-[var(--foreground)]">{asDollars(summary.balance_usdc)}</span>
+            {summary.balance_naira && <span className="amount"> · {wholeNaira(summary.balance_naira)}</span>}
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1" role="group" aria-label="How do you want to add money?">
         {WAYS.map((item) => {
           const chosen = way === item.id;
           return (
@@ -499,26 +519,17 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
               key={item.id}
               type="button"
               aria-pressed={chosen}
+              title={item.detail}
               onClick={() => {
                 chosenByHand.current = true;
                 setWay(item.id);
               }}
-              className={`relative flex flex-col gap-2 rounded-2xl border bg-[var(--surface)] p-3 text-left transition-all sm:gap-3 sm:p-4 ${chosen ? 'border-[var(--foreground)] shadow-md ring-1 ring-[var(--foreground)]' : 'border-[var(--line)] hover:-translate-y-0.5 hover:shadow-sm'}`}
+              className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-sm font-medium transition-colors ${chosen ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'}`}
               data-testid={`way-${item.id}`}
             >
-              <span className={`grid h-9 w-9 place-items-center rounded-full ${chosen ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
-                <item.Icon />
-              </span>
-              {chosen && (
-                <span aria-hidden className="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full bg-[var(--foreground)] text-[var(--background)]">
-                  <CheckIcon />
-                </span>
-              )}
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold sm:text-base">{item.title}</span>
-                <span className="hidden text-xs text-[var(--muted)] sm:block">{item.detail}</span>
-                {item.id === 'naira' && nairaClosed && <span className="mt-1 self-start rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">Unavailable now</span>}
-              </span>
+              <item.Icon />
+              <span>{item.title}</span>
+              {item.id === 'naira' && nairaClosed && <span className="sr-only"> (Unavailable now)</span>}
             </button>
           );
         })}
@@ -526,14 +537,14 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
 
       {way === 'naira' && (
         <div className="panel">
-          <CardHeader Icon={BankIcon} title="Deposit Naira by bank transfer">Pay from any Nigerian bank account. The naira is converted and credited to your wallet as USDC.</CardHeader>
+          <p className="text-sm text-[var(--muted)]">Pay from any Nigerian bank. We give you an account to transfer to, and it arrives as dollars.</p>
           <DepositNaira api={api} onChanged={onChanged} onSwitch={(next) => { chosenByHand.current = true; setWay(next); }} />
         </div>
       )}
 
       {way === 'base' && (
         <div className="panel">
-          <CardHeader Icon={WalletIcon} title="Receive USDC on Base">Send USDC from an exchange or wallet to your 10kobo address below.</CardHeader>
+          <p className="text-sm text-[var(--muted)]">Send USDC from an exchange or wallet to your address below.</p>
           <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-y-2.5 rounded-xl border border-[var(--line)] p-4 text-sm">
             <dt className="text-[var(--muted)]">Network</dt>
             <dd className="font-medium">{process.env.NEXT_PUBLIC_WALLET_CHAIN === 'base' ? 'Base' : 'Base Sepolia (test network)'}</dd>
@@ -552,13 +563,13 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
           <p className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="note">
             Send only USDC on the Base network. Other tokens, or USDC on another network, may be lost.
           </p>
-          <p className="text-sm text-[var(--muted)]">Your balance updates a few moments after the transfer arrives. Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use Other Network</button>.</p>
+          <p className="text-sm text-[var(--muted)]">Your balance updates a few moments after the transfer arrives. Sending from another network? <button type="button" className="font-medium text-[var(--foreground)] underline underline-offset-2" onClick={() => setWay('other')}>Use another network</button>.</p>
         </div>
       )}
 
       {way === 'other' && (
         <div className="panel" aria-label="Deposit from another network">
-          <CardHeader Icon={NetworksIcon} title="Deposit from another network">Send USDC or USDT from Tron, Solana, Ethereum, BNB Chain and more. It is converted and credited to your wallet as USDC on Base.</CardHeader>
+          <p className="text-sm text-[var(--muted)]">USDC or USDT from Tron, Solana, Ethereum, BNB Chain and more. It arrives as dollars.</p>
           <DepositOtherNetwork api={api} onChanged={onChanged} />
         </div>
       )}
@@ -582,21 +593,33 @@ const TABS = [
   ['out', 'Money out'],
 ] as const;
 
+const detailRow = 'flex items-center justify-between gap-4 py-2.5';
+
+/** A small copy button that says Copied for a moment. */
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button type="button" aria-label={label} title={label} className="shrink-0 cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)]"
+      onClick={() => void navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}>
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </button>
+  );
+}
+
 function ActivityRow({ entry, onReceipt }: { entry: ActivityEntry; onReceipt: () => void }) {
   const [open, setOpen] = useState(false);
   const moved = !NOT_MOVED.includes(entry.status);
-  const main = entry.amount_naira ?? entry.amount_usdc;
   const sign = !moved ? '' : entry.direction === 'in' ? '+' : '−';
   const done = entry.status === 'completed';
   const statusTone = entry.status === 'failed' || entry.status === 'needs_support' ? 'text-red-600 dark:text-red-400' : done ? 'text-[var(--muted)]' : 'text-amber-700 dark:text-amber-400';
   return (
     <li className="border-b border-[var(--line)] px-4 py-2.5 last:border-0">
       <div className="flex items-center gap-3">
-        <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${entry.direction === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
+        <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
           {entry.direction === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium first-letter:uppercase" title={entry.description}>{entry.description}</p>
+          <p className="truncate font-medium first-letter:uppercase" title={entry.description}>{shortenAddresses(entry.description.replace(/^Sent USDC to /, 'Sent to '))}</p>
           <p className="flex flex-wrap items-center gap-x-3 text-sm text-[var(--muted)]">
             <span>{entry.type_label} · {dateOf(entry.created_at)}</span>
             <button onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer hover:text-[var(--foreground)]">{open ? '▾' : '▸'} Details</button>
@@ -604,28 +627,38 @@ function ActivityRow({ entry, onReceipt }: { entry: ActivityEntry; onReceipt: ()
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className={`amount font-semibold ${!moved ? 'text-[var(--muted)] line-through' : ''}`}>{sign}{main}</p>
-          <p className={`text-sm ${statusTone}`}>{STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, ' ')}</p>
+          <p className={`amount font-semibold ${!moved ? 'text-[var(--muted)] line-through' : entry.direction === 'in' ? 'text-[var(--positive)]' : ''}`}>{sign}{asDollars(entry.amount_usdc)}</p>
+          <p className="text-sm text-[var(--muted)]">
+            {entry.amount_naira && <span className="amount">{wholeNaira(entry.amount_naira)} · </span>}
+            <span className={statusTone}>{STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, ' ')}</span>
+          </p>
         </div>
       </div>
       {open && (
-        <dl className="mt-2 ml-12 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 rounded-xl bg-[var(--surface-2)] p-3 text-sm">
+        <dl className="mt-2 ml-12 grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm">
           {entry.detail && (
             <>
-              <dt className="text-[var(--muted)]">To</dt>
-              <dd className="break-words">{entry.detail}</dd>
+              <dt className="text-[var(--muted)]">{entry.direction === 'in' ? 'From' : 'To'}</dt>
+              <dd className="flex min-w-0 items-center gap-2 font-medium">
+                <span className="truncate" title={entry.detail}>{shortenAddresses(entry.detail)}</span>
+                <CopyButton text={entry.detail} label="Copy address" />
+              </dd>
             </>
           )}
           {entry.amount_naira && (
             <>
               <dt className="text-[var(--muted)]">Paid with</dt>
-              <dd className="amount">{entry.amount_usdc}</dd>
+              <dd className="amount font-medium">{entry.amount_usdc}</dd>
             </>
           )}
           {entry.tx_hash && (
             <>
               <dt className="text-[var(--muted)]">Transaction</dt>
-              <dd className="break-all">{entry.tx_hash.slice(0, 10)}…{entry.tx_hash.slice(-6)} <TxLink hash={entry.tx_hash} /></dd>
+              <dd className="flex min-w-0 items-center gap-2 font-medium">
+                <span className="truncate font-mono text-[13px]">{entry.tx_hash.slice(0, 8)}…{entry.tx_hash.slice(-6)}</span>
+                <CopyButton text={entry.tx_hash} label="Copy transaction" />
+                <TxLink hash={entry.tx_hash} label="View ↗" className="ml-auto shrink-0 text-sm font-medium underline underline-offset-2" />
+              </dd>
             </>
           )}
         </dl>
@@ -714,8 +747,8 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className={`${control} flex min-w-44 flex-1 items-center gap-2`}>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <label className={`${control} col-span-2 flex items-center gap-2 md:col-span-4`}>
           <SearchIcon />
           <input aria-label="Search transactions" name="activity-search" autoComplete="off" value={typed} onChange={(event) => setTyped(event.target.value)} placeholder="Search by name" className="min-w-0 flex-1 bg-transparent outline-none" />
         </label>
@@ -726,7 +759,7 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
             setType(event.target.value);
             setPage(1);
           }}
-          className={control}
+          className={`${control} w-full`}
         >
           {TYPES.map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
@@ -741,7 +774,7 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
             setFrom(event.target.value);
             setPage(1);
           }}
-          className={control}
+          className={`${control} w-full`}
         />
         <input
           type="date"
@@ -752,9 +785,9 @@ export function ActivityPanel({ api }: { api: ApiClient }) {
             setTo(event.target.value);
             setPage(1);
           }}
-          className={control}
+          className={`${control} w-full`}
         />
-        <button disabled={downloading || result?.total === 0} onClick={() => void download()} className={`${control} flex cursor-pointer items-center gap-2 font-medium disabled:cursor-not-allowed disabled:opacity-50`}>
+        <button disabled={downloading || result?.total === 0} onClick={() => void download()} className={`${control} flex w-full cursor-pointer items-center justify-center gap-2 font-medium disabled:cursor-not-allowed disabled:opacity-50`}>
           <DownloadIcon />
           {downloading ? 'Preparing…' : 'Download list'}
         </button>
@@ -836,11 +869,14 @@ const nairaOf = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const dayOf = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium' });
 
 /** The merchant's page: what is owed and paid, a way to make an invoice, every pay link, and the checkout button. */
+const INVOICES_PER_PAGE = 5;
+
 export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; startCreating?: boolean }) {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>('all');
   const [creating, setCreating] = useState(startCreating);
+  const [page, setPage] = useState(0);
   const load = useCallback(() => api.invoices().then(setInvoices, (failure: Error) => setError(failure.message)), [api]);
   useEffect(() => {
     void load();
@@ -852,6 +888,9 @@ export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const paid = invoices.filter((invoice) => invoice.status === 'paid' && invoice.paid_at && new Date(invoice.paid_at).getTime() >= monthStart);
   const shown = invoices.filter((invoice) => inFilter(invoice, filter));
+  const pages = Math.max(1, Math.ceil(shown.length / INVOICES_PER_PAGE));
+  const onPage = Math.min(page, pages - 1);
+  const pageOfInvoices = shown.slice(onPage * INVOICES_PER_PAGE, (onPage + 1) * INVOICES_PER_PAGE);
   const sum = (list: Invoice[]) => nairaOf(list.reduce((total, invoice) => total + invoice.amount_naira, 0));
   const stats = [
     ['Waiting to be paid', sum(waiting), `${waiting.length} invoice${waiting.length === 1 ? '' : 's'}`],
@@ -897,7 +936,7 @@ export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; 
                   key={key}
                   type="button"
                   aria-pressed={filter === key}
-                  onClick={() => setFilter(key)}
+                  onClick={() => { setFilter(key); setPage(0); }}
                   className={`rounded-full border px-3 py-1 text-sm transition-colors ${filter === key ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--foreground)]'}`}
                 >
                   {label}
@@ -911,29 +950,28 @@ export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; 
           {shown.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">None here.</p>
           ) : (
-            <ul aria-label="Invoices" className="flex flex-col gap-2">
-              {shown.map((invoice) => (
-                <InvoiceRow key={invoice.id} invoice={invoice} api={api} onChange={load} />
-              ))}
-            </ul>
+            <>
+              <ul aria-label="Invoices" className="flex flex-col divide-y divide-[var(--line)] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+                {pageOfInvoices.map((invoice) => (
+                  <InvoiceRow key={invoice.id} invoice={invoice} api={api} onChange={load} />
+                ))}
+              </ul>
+              {shown.length > 0 && (
+                <nav aria-label="Invoice pages" className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[var(--muted)]" data-testid="invoice-page">
+                    {onPage * INVOICES_PER_PAGE + 1}–{Math.min((onPage + 1) * INVOICES_PER_PAGE, shown.length)} of {shown.length}
+                  </span>
+                  {pages > 1 && <span className="flex gap-2">
+                    <button type="button" className={invoiceButton} disabled={onPage === 0} onClick={() => setPage(onPage - 1)}>Previous</button>
+                    <button type="button" className={invoiceButton} disabled={onPage >= pages - 1} onClick={() => setPage(onPage + 1)}>Next</button>
+                  </span>}
+                </nav>
+              )}
+            </>
           )}
         </>
       )}
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="font-semibold">Take payments on your website</h2>
-          <p className="text-sm text-[var(--muted)]">
-            Add the 10kobo checkout button to your shop. Customers pay with USDC or USDT from any network, and you receive naira in your bank.
-          </p>
-        </div>
-        <pre className="overflow-x-auto rounded-xl bg-[var(--surface)] p-3 text-xs leading-5"><code>{`<script src="${typeof window === 'undefined' ? '' : window.location.origin}/checkout.js"></script>
-<script>TenKobo.open(invoiceId)</script>`}</code></pre>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <a className="btn-small border border-[var(--line)] bg-[var(--surface)]" href="/shop" target="_blank" rel="noreferrer">See the demo shop</a>
-          <span className="text-[var(--muted)]">Your server makes the invoice with a merchant key. Ask us for one.</span>
-        </div>
-      </section>
     </div>
   );
 }
@@ -941,11 +979,108 @@ export function InvoicesPanel({ api, startCreating = false }: { api: ApiClient; 
 // Outlined, because the plain small button blends into the white card.
 const invoiceButton = 'btn-small border border-[var(--line)] hover:border-[var(--muted)] hover:bg-[var(--surface-2)]';
 
+/** One invoice, for its owner: what it asks for, where the money goes, what happened, and what can be done. */
+function InvoiceDialog({ invoice, onClose, onCancel }: { invoice: Invoice; onClose: () => void; onCancel?: () => void }) {
+  const close = useRef<HTMLButtonElement>(null);
+  const [copied, setCopied] = useState<'link' | 'address' | null>(null);
+  const [proof, setProof] = useState<{ label: string; url: string }[]>([]);
+  const status = INVOICE_STATUS[invoice.status];
+  const live = ['unpaid', 'overdue', 'being_paid'].includes(invoice.status);
+  useEffect(() => {
+    close.current?.focus();
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  // The proof links (the transactions) come from the public record of the link, which anyone with the link can read.
+  useEffect(() => {
+    if (invoice.status !== 'paid') return;
+    let cancelled = false;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/v1/public/pay-links/${invoice.id}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((link: { payment?: { links?: { label: string; url: string }[] } | null } | null) => !cancelled && setProof(link?.payment?.links ?? []))
+      .catch(() => undefined);
+    return () => void (cancelled = true);
+  }, [invoice.id, invoice.status]);
+  const copy = (what: 'link' | 'address', text: string) =>
+    void navigator.clipboard?.writeText(text).then(() => {
+      setCopied(what);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  const [address, way] = invoice.receives ? [invoice.to, invoice.receives] : [invoice.to, ''];
+  const row = 'flex items-start justify-between gap-4 py-2.5 text-sm';
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Invoice details" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="rise flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-[var(--surface)] shadow-2xl sm:rounded-3xl">
+        <div className="flex items-center justify-between px-5 pt-4">
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+          <button ref={close} onClick={onClose} aria-label="Close" className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-lg text-[var(--muted)] hover:bg-[var(--surface-2)]">×</button>
+        </div>
+        <div className="flex flex-col gap-5 overflow-y-auto px-5 pt-2 pb-5">
+          <div className="flex flex-col gap-1">
+            <p className="amount text-4xl font-semibold">{nairaOf(invoice.amount_naira)}</p>
+            <p className="text-sm text-[var(--muted)]">{invoice.note ?? 'No description'}</p>
+          </div>
+
+          {invoice.line_items?.length ? (
+            <div className="flex flex-col rounded-2xl border border-[var(--line)] px-4 py-1">
+              {invoice.line_items.map((item, index) => (
+                <div key={index} className={`${row} border-b border-[var(--line)]`}><span className="min-w-0 break-words">{item.description}</span><span className="amount shrink-0">{nairaOf(item.amount_naira)}</span></div>
+              ))}
+              <div className={`${row} font-semibold`}><span>Total</span><span className="amount">{nairaOf(invoice.amount_naira)}</span></div>
+            </div>
+          ) : null}
+
+          <dl className="flex flex-col divide-y divide-[var(--line)] rounded-2xl border border-[var(--line)] px-4">
+            <div className={row}>
+              <dt className="text-[var(--muted)]">Pays to</dt>
+              <dd className="flex min-w-0 items-center gap-2 text-right">
+                <span className="truncate font-mono text-[13px]" title={address}>{shortenAddresses(address)}</span>
+                <button type="button" aria-label="Copy address" className="shrink-0 text-[var(--muted)] hover:text-[var(--foreground)]" onClick={() => copy('address', address)}>{copied === 'address' ? <CheckIcon /> : <CopyIcon />}</button>
+              </dd>
+            </div>
+            {way && <div className={row}><dt className="text-[var(--muted)]">Received as</dt><dd className="text-right">{way}</dd></div>}
+            <div className={row}><dt className="text-[var(--muted)]">Created</dt><dd className="text-right">{dateOf(invoice.created_at)}</dd></div>
+            {invoice.due_date && <div className={row}><dt className="text-[var(--muted)]">Due</dt><dd className={`text-right ${invoice.status === 'overdue' ? 'font-medium text-red-600 dark:text-red-400' : ''}`}>{dayOf(invoice.due_date)}</dd></div>}
+            {invoice.paid_at && <div className={row}><dt className="text-[var(--muted)]">Paid</dt><dd className="text-right">{dateOf(invoice.paid_at)}</dd></div>}
+            {live && <div className={row}><dt className="text-[var(--muted)]">Link expires</dt><dd className="text-right">{dateOf(invoice.expires_at)}</dd></div>}
+          </dl>
+
+          {proof.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-medium text-[var(--muted)]">Proof of payment</p>
+              <div className="flex flex-wrap gap-2">
+                {proof.map((item) => (
+                  <a key={item.url} href={item.url} target="_blank" rel="noreferrer" className={`${invoiceButton} gap-1`}>{item.label} ↗</a>
+                ))}
+              </div>
+            </div>
+          )}
+          {invoice.status === 'being_paid' && <p className="text-sm text-[var(--muted)]">Someone is paying this now, so it cannot be cancelled.</p>}
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-[var(--line)] px-5 py-3">
+          {live && (
+            <button type="button" className="btn-small flex-1 gap-1.5 bg-[var(--accent)] text-[var(--accent-text)]" onClick={() => copy('link', invoice.url)}>
+              {copied === 'link' ? <CheckIcon /> : <CopyIcon />} {copied === 'link' ? 'Copied' : 'Copy pay link'}
+            </button>
+          )}
+          <a className={`${invoiceButton} flex-1 justify-center`} href={invoice.url} target="_blank" rel="noreferrer">Client&apos;s view ↗</a>
+          {onCancel && live && invoice.status !== 'being_paid' && (
+            <button type="button" className="btn-small border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40" onClick={() => { onClose(); onCancel(); }}>Cancel invoice</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClient; onChange: () => Promise<unknown> }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const status = INVOICE_STATUS[invoice.status];
   const live = ['unpaid', 'overdue', 'being_paid'].includes(invoice.status);
   const copy = () =>
@@ -967,14 +1102,18 @@ function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClie
     }
   };
   return (
-    <li className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-label={`Invoice for ${nairaOf(invoice.amount_naira)}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="amount text-lg font-semibold">{nairaOf(invoice.amount_naira)}</p>
-          <p className="break-words text-sm">{invoice.note ?? 'No description'}</p>
-        </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`} data-testid="invoice-status">{status.label}</span>
-      </div>
+    <li className="flex flex-col" aria-label={`Invoice for ${nairaOf(invoice.amount_naira)}`}>
+      {/* One line per invoice, like a statement. The details and buttons open under it. */}
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-2)]">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-sm font-medium">{invoice.note ?? 'No description'}</span>
+          <span className="truncate text-xs text-[var(--muted)]">{dateOf(invoice.created_at)}{invoice.due_date ? ` · due ${dayOf(invoice.due_date)}` : ''}</span>
+        </span>
+        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.tone}`} data-testid="invoice-status">{status.label}</span>
+        <span className="amount w-24 shrink-0 text-right text-sm font-semibold">{nairaOf(invoice.amount_naira)}</span>
+        <span aria-hidden className={`shrink-0 text-[var(--muted)] transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
+      </button>
+      {open && <div className="flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--surface-2)]/40 px-4 py-3">
       {invoice.line_items?.length ? (
         <ul className="flex flex-col gap-0.5 text-sm text-[var(--muted)]">
           {invoice.line_items.map((item, index) => (
@@ -984,7 +1123,7 @@ function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClie
       ) : null}
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-sm">
         <dt className="text-[var(--muted)]">Pays to</dt>
-        <dd className="[overflow-wrap:anywhere]">{invoice.to}, {invoice.receives}</dd>
+        <dd className="[overflow-wrap:anywhere]" title={invoice.to}>{shortenAddresses(invoice.to)}, {invoice.receives}</dd>
         <dt className="text-[var(--muted)]">Made</dt>
         <dd>{dateOf(invoice.created_at)}</dd>
         {invoice.due_date && (
@@ -1001,7 +1140,7 @@ function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClie
         )}
       </dl>
       <div className="flex flex-wrap items-center gap-2">
-        <a className={invoiceButton} href={invoice.url} target="_blank" rel="noreferrer">Open</a>
+        <button type="button" className={invoiceButton} onClick={() => setViewing(true)}>View details</button>
         {live && (
           <button type="button" className={`${invoiceButton} gap-1.5`} onClick={copy}>
             {copied ? <CheckIcon /> : <CopyIcon />}
@@ -1021,6 +1160,8 @@ function InvoiceRow({ invoice, api, onChange }: { invoice: Invoice; api: ApiClie
       </div>
       {invoice.status === 'being_paid' && <p className="text-sm text-[var(--muted)]">Someone is paying this now, so it cannot be cancelled.</p>}
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      </div>}
+      {viewing && <InvoiceDialog invoice={invoice} onClose={() => setViewing(false)} onCancel={() => { setOpen(true); setConfirming(true); }} />}
     </li>
   );
 }

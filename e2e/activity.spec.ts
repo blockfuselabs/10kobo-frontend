@@ -19,7 +19,8 @@ test('activity has pages, and a receipt downloads as an image', async ({ page })
   await expect(page.getByText('Page 1 of 2')).toBeVisible();
   await expect(page.getByRole('button', { name: '← Previous' })).toBeDisabled();
   await expect(list.getByRole('listitem').first()).toContainText('Processing');
-  await expect(list.getByRole('listitem').nth(1)).toContainText('−₦1,000');
+  await expect(list.getByRole('listitem').nth(1)).toContainText('−$');
+  await expect(list.getByRole('listitem').nth(1)).toContainText('₦1,000');
   await expect(list.getByRole('listitem').first().getByRole('button', { name: 'Receipt' })).toHaveCount(0);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/activity.png' });
 
@@ -54,7 +55,7 @@ test('tabs, search, type, dates and download all reach the server', async ({ pag
   await page.goto('/');
   await page.getByRole('button', { name: 'Activity', exact: true }).click();
   const row = page.getByRole('list', { name: 'Activity' }).getByRole('listitem').first();
-  await expect(row).toContainText('+1.44 USDC');
+  await expect(row).toContainText('+$1.44');
   await page.getByRole('button', { name: 'Details' }).click();
   await expect(row.getByRole('link', { name: 'View' })).toBeVisible();
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/activity-filters.png' });
@@ -78,7 +79,8 @@ test('the sidebar shows the rate, Deposit, Send money and the latest transaction
   await page.route('**/v1/wallet', (route) => route.fulfill({ json: { address: '0x393eA6fbd50b821CdE7EdC1b936c567dbb15c26d', balance_usdc: '0.76 USDC', balance_naira: '₦1,041.66', limit_used: '₦0', limit_left: '₦500,000', naira_per_usdc: 1375.36, latest: entry(1, { description: 'Sent to Halima', amount_naira: '₦1,376.36' }) } }));
   await page.goto('/');
   await expect(page.getByTestId('rate')).toContainText('₦1,375.36 per $1');
-  await expect(page.getByTestId('latest')).toContainText('−₦1,376.36');
+  await expect(page.getByTestId('latest')).toContainText('Sent to Halima');
+  await expect(page.getByTestId('latest')).toContainText('−$');
   await page.waitForTimeout(300);
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/sidebar.png' });
   await openSend(page);

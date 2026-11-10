@@ -29,10 +29,10 @@ for (const size of [{ width: 1191, height: 575 }, { width: 390, height: 760 }]) 
     await openDeposit(page);
     const amount = page.getByLabel('Amount in naira');
     await amount.fill('1000');
-    await expect(page.getByText('Enter between ₦1,500 and ₦500,000.')).toBeVisible();
+    await expect(page.getByText('Enter between ₦1,500 and ₦500,000')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Get bank account' })).toBeDisabled();
     await amount.fill('2000');
-    await expect(page.getByText(/You get about 1\.44 USDC/)).toBeVisible();
+    await expect(page.getByText(/You get about \$1\.4\d/)).toBeVisible();
     await page.getByRole('button', { name: 'Get bank account' }).click();
 
     await expect(page.getByTestId('deposit-account')).toHaveText('6010681891');

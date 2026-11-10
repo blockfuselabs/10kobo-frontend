@@ -4,7 +4,7 @@
 .agent { background: #e7ecea; display: flex; flex-direction: column; }
 .merchant { background: #eee6db; }
 .label { font-size: 10px; letter-spacing: .13em; color: #67736d; font-weight: 600; }
-.showcase h3 { font-size: clamp(28px,3vw,42px); line-height: 1.08; letter-spacing: -.055em; font-weight: 600; margin: 20px 0 16px; }
+.showcase h3 { font-size: clamp(28px,3vw,42px); line-height: 1.08; letter-spacing: -0.015em; font-weight: 600; margin: 20px 0 16px; }
 .showcase p { font-size: 15px; line-height: 1.7; color: #59625e; margin: 0; max-width: 360px; }
 .showcase a,.showcase button { display: flex; gap: 20px; align-items: center; justify-content: space-between; color: #164f33; text-decoration: none; font: inherit; font-size: 14px; font-weight: 600; background: none; border: 0; padding: 0; cursor: pointer; }
 .copy a { margin-top: 24px; width: fit-content; }
@@ -27,7 +27,7 @@
 .receipt::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; bottom: -9px; background: linear-gradient(135deg,#fff 25%,transparent 25%) -5px 0/10px 10px,linear-gradient(225deg,#fff 25%,transparent 25%) -5px 0/10px 10px; }
 .receipt > svg { color: #8a7e6e; margin-bottom: 18px; }
 .receipt > small { display: block; font-size: 9px; letter-spacing: .12em; color: #8a7e6e; }
-.receipt > strong { display: block; font-size: 38px; letter-spacing: -.06em; margin: 8px 0 20px; }
+.receipt > strong { display: block; font-size: 38px; letter-spacing: -0.015em; margin: 8px 0 20px; }
 .receipt > div { display: flex; gap: 8px; font-size: 11px; }
 .receipt > div span { border: 1px solid #e1ded7; border-radius: 6px; padding: 8px; }
 .receipt footer { display: flex; justify-content: space-between; border-top: 1px dashed #d4cfc5; margin-top: 20px; padding-top: 14px; font-size: 12px; font-weight: 600; }
@@ -54,7 +54,7 @@
 .phone i:nth-last-child(2) { height: 20px; }.phone i:last-child { height: 28px; }
 .schedule > span { background: #fff; border-radius: 9px; text-align: center; padding: 10px 16px; transform: rotate(-7deg); box-shadow: 0 12px 18px -14px #26352e40; }
 .schedule small { display: block; font-size: 8px; letter-spacing: .06em; color: #6f7a75; }
-.schedule b { font-size: 42px; font-weight: 550; letter-spacing: -.06em; }
+.schedule b { font-size: 42px; font-weight: 550; letter-spacing: -0.015em; }
 .schedule > svg { width: 26px; height: 26px; color: #75837c; }
 .showcase a:focus-visible,.showcase button:focus-visible { outline: 2px solid var(--teal); outline-offset: 5px; }
 @media (hover:hover) and (pointer:fine) { .agent:hover .agentNode { transform: translateY(-4px) rotate(-2deg); }.agent:hover .bankNode { transform: translateY(-3px) rotate(1deg); }.merchant:hover .receipt { transform: rotate(1deg) translateY(-4px); } }

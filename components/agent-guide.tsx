@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { CodeEditor } from './code-editor';
+import { McpConnect } from './mcp-connect';
 import { CheckIcon, CopyIcon } from './icons';
 import styles from './agent-page.module.css';
 
@@ -30,40 +32,44 @@ curl -X POST $TENKOBO/v1/agent/payments \\
 # 3. Send the USDC from your wallet, then follow it.
 curl $TENKOBO/v1/agent/payments/<id> -H "authorization: Bearer $KEY"`;
 
-const MCP = `{ "mcpServers": { "10kobo": {
-  "command": "node",
-  "args": ["/path/to/mcp-server/src/main.ts"],
-  "env": { "TENKOBO_API_URL": "https://…" }
-} } }`;
+const X402 = `// The official x402 client pays 10kobo from NEAR. No API key, and no NEAR needed for gas.
+import { x402Client } from '@x402/core/client';
+import { wrapFetchWithPayment } from '@x402/fetch';
+import { createClientNearSigner } from '@x402/near';
+import { ExactNearScheme } from '@x402/near/exact/client';
 
-function Code({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
-  return (
-    <div className="relative">
-      <pre aria-label={label} className="overflow-x-auto rounded-2xl bg-[#111] p-4 pr-12 text-xs leading-5 text-[#e8e8e3]"><code>{text}</code></pre>
-      <button
-        type="button"
-        aria-label={`Copy ${label}`}
-        className="absolute top-2.5 right-2.5 grid h-8 w-8 place-items-center rounded-lg text-[#e8e8e3] hover:bg-white/10"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true); setCopyError(false);
-            setTimeout(() => setCopied(false), 1500);
-          } catch { setCopyError(true); }
-        }}
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-      </button>
-      <span role="status" className={styles.copyStatus}>{copyError ? "Copy unavailable. Select the code to copy it." : copied ? "Copied." : ""}</span>
-    </div>
-  );
-}
+const client = new x402Client();
+client.register('near:*', new ExactNearScheme(
+  createClientNearSigner({ accountId: 'agent.near', secretKey: process.env.NEAR_KEY! }),
+));
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+const res = await fetchWithPayment(\`\${TENKOBO}/v1/agent/x402/pay\`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    amount_naira: 1400, bank_name: 'OPay', account_number: '0123456789',
+    pay_from: 'near', refund_to: 'agent.near',
+    payer_name: 'Your agent', payer_email: 'agent@example.com', purpose: 'Supplier invoice',
+  }),
+});
+console.log(res.status, await res.json()); // 200: paid on NEAR, the naira is on its way`;
+
+
+
+type Tab = 'x402' | 'http' | 'mcp';
+const FILES: [Exclude<Tab, 'mcp'>, string, string][] = [
+  ['x402', 'pay-with-x402.ts', X402],
+  ['http', 'pay-with-key.sh', CURL],
+];
+const NOTES: Record<Exclude<Tab, 'mcp'>, string> = {
+  x402: 'Standard x402 v2, scheme exact on near:mainnet, using the official @x402 packages. The agent signs one USDC transfer; 10kobo checks it with the official verifier and pays the NEAR gas. No key: the no-key limits apply and the account name is partly hidden.',
+  http: 'With an API key: your own limits, the full account name, and a CSV of your payments. The same three steps, without the 402s.',
+};
 
 /** Under the live run: how an agent pays, what keeps it safe, and how to connect one. */
 export function AgentGuide() {
-  const [tab, setTab] = useState<'http' | 'mcp'>('http');
+  const [tab, setTab] = useState<Tab>('x402');
   return (
     <div className={styles.guide}>
       <section aria-labelledby="how" className={styles.how}><span className={styles.eyebrow}>02 / THE PAYMENT PATH</span>
@@ -98,28 +104,23 @@ export function AgentGuide() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="connect" className="font-display text-xl font-bold tracking-tight">Connect your agent</h2>
-            <p className="text-sm text-[var(--muted)]">Plain HTTP, x402, or the MCP server for Claude and other MCP clients.</p>
+            <p className="text-sm text-[var(--muted)]">x402 with no key, plain HTTP with a key, or the MCP server for Claude and other MCP clients.</p>
           </div>
           <div className="flex gap-1 rounded-full bg-[var(--surface-2)] p-1" role="group" aria-label="Way to connect">
-            {([['http', 'HTTP API'], ['mcp', 'MCP']] as const).map(([key, label]) => (
+            {([['x402', 'x402'], ['http', 'HTTP API'], ['mcp', 'MCP']] as const).map(([key, label]) => (
               <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`rounded-full px-4 py-2 text-sm font-medium ${tab === key ? 'bg-[#141414] text-white' : 'text-[var(--muted)]'}`}>
                 {label}
               </button>
             ))}
           </div>
         </div>
-        {tab === 'http' ? (
-          <>
-            <Code label="HTTP example" text={CURL} />
-            <p className="text-sm text-[var(--muted)]">
-              This API needs a key. Without one, agents that speak x402 call <code className="text-[var(--foreground)]">/v1/agent/x402/pay</code>, get a standard 402 answer, and give a name, email and purpose for the record. The no-key limits apply.
-            </p>
-          </>
+        {tab === 'mcp' ? (
+          <McpConnect />
         ) : (
-          <>
-            <Code label="MCP settings" text={MCP} />
-            <p className="text-sm text-[var(--muted)]">Three tools: quote a naira payment, accept the quote, and check the payment. Then ask: “How much USDC to pay ₦1,400 to OPay 0123456789?”</p>
-          </>
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+            <CodeEditor files={FILES.map(([, name, code]) => ({ name, code }))} active={FILES.findIndex(([key]) => key === tab)} onSelect={(index) => setTab(FILES[index][0])} />
+            <p className="text-sm text-[var(--muted)]">{NOTES[tab]}</p>
+          </div>
         )}
       </section>
     </div>

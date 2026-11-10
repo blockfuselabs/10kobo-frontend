@@ -33,7 +33,7 @@ test('sends to a saved bank recipient with a form, and shows the same approval c
   await page.setViewportSize({ width: 1280, height: 900 });
   let sent: Record<string, unknown> | null = null;
   await open(page, (body) => { sent = body; return planFor({}); });
-  await expect(page.getByRole('group', { name: 'Who are you sending to?' }).getByRole('button')).toHaveText([/Bank Account/, /Crypto Wallet/, /Airtime & Data/]);
+  await expect(page.getByRole('group', { name: 'Who are you sending to?' }).getByRole('button')).toHaveText([/Bank account/, /Crypto wallet/, /Airtime & data/]);
   await expect(page.getByTestId('recipient-picker')).toContainText('Mum');
   await page.getByLabel('Amount in naira').fill('5000');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/send-bank.png' });

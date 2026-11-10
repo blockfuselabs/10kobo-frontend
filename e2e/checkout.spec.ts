@@ -72,6 +72,9 @@ test('only the checkout may be shown inside another website', async ({ request }
   expect((await request.get('/')).headers()['x-frame-options']).toBe('DENY');
   expect((await request.get('/agent')).headers()['content-security-policy']).toContain("frame-ancestors 'none'");
   expect((await request.get(`/pay/${ID}`)).headers()['x-frame-options']).toBeUndefined();
+  // A payment link opens in the checkout too; nothing else that starts with p does.
+  expect((await request.get(`/p/${ID}`)).headers()['x-frame-options']).toBeUndefined();
+  expect((await request.get('/proof')).headers()['x-frame-options']).toBe('DENY');
 });
 
 test('opened as a plain page, a paid checkout offers a link back to the shop', async ({ page }) => {
@@ -111,4 +114,32 @@ test('the demo shop makes the order on its server, opens checkout over the page,
   await expect(page.getByTestId('order-status')).toHaveText('Paid', { timeout: 10_000 });
   await expect(page.getByTestId('order-notice')).toContainText('received and checked: invoice.paid');
   await page.screenshot({ path: '/tmp/10kobo-e2e-results/shop-paid.png' });
+});
+
+test('no code: a seller pastes the script and one button, and the payment link opens over their page', async ({ page }) => {
+  const LINK = '22222222-2222-4222-8222-222222222222';
+  const product = { id: LINK, url: `http://localhost:3011/p/${LINK}`, title: 'Jollof pack', amount_naira: 3500, to: 'Ada Bello', receives: 'naira, OPay ****4108', open: true };
+  let checkouts = 0;
+  await page.route(`**/v1/public/product-links/${LINK}`, (route) => route.fulfill({ json: product }));
+  await page.route(`**/v1/public/product-links/${LINK}/checkout`, (route) => {
+    checkouts += 1;
+    return route.fulfill({ json: { invoice_id: ID, url: `http://localhost:3011/pay/${ID}` } });
+  });
+  await page.route(`**/v1/public/pay-links/${ID}`, (route) => route.fulfill({ json: { ...link, merchant: null, note: 'Jollof pack', amount_naira: 3500, line_items: [{ description: 'Jollof pack', amount_naira: 3500 }] } }));
+  await page.setContent(`<html><body><h1>Ada's Kitchen</h1><script src="http://localhost:3011/checkout.js"></script><a href="http://localhost:3011/p/${LINK}" data-10kobo-link="${LINK}">Pay ₦3,500 with 10kobo</a></body></html>`);
+  await page.getByRole('link', { name: /Pay ₦3,500 with 10kobo/ }).click();
+  const box = page.getByRole('dialog', { name: '10kobo checkout' });
+  await expect(box).toBeVisible();
+  // Still on the seller's page, with 10kobo over it.
+  await expect(page.getByRole('heading', { name: "Ada's Kitchen" })).toBeVisible();
+  const checkout = page.frameLocator('iframe[title="10kobo checkout"]');
+  await expect(checkout.getByTestId('product-title')).toHaveText('Jollof pack');
+  await expect(checkout.getByTestId('product-seller')).toHaveText('Ada Bello');
+  expect(checkouts).toBe(0);
+  await checkout.getByRole('button', { name: 'Pay ₦3,500' }).click();
+  await expect(checkout.getByTestId('link-payee')).toBeVisible();
+  expect(checkouts).toBe(1);
+  await page.screenshot({ path: '/tmp/10kobo-e2e-results/no-code-widget.png' });
+  await page.getByRole('button', { name: 'Close checkout' }).click();
+  await expect(box).toHaveCount(0);
 });

@@ -10,7 +10,7 @@ const noFraming = [
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   devIndicators: false,
-  headers: async () => [{ source: '/:path((?!pay/).*)', headers: noFraming }],
+  headers: async () => [{ source: '/:path((?!pay/|p/).*)', headers: noFraming }],
 };
 
 export default nextConfig;

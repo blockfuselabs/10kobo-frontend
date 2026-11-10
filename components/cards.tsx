@@ -186,10 +186,10 @@ function useAction(onChange: () => Promise<unknown>) {
 }
 
 /** Opens the transaction on the block explorer, in a new tab. */
-export function TxLink({ hash }: { hash: string }) {
+export function TxLink({ hash, label = 'View', className = 'font-medium text-[var(--accent)] underline-offset-2 hover:underline' }: { hash: string; label?: string; className?: string }) {
   return (
-    <a className="font-medium text-[var(--accent)] underline-offset-2 hover:underline" href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
-      View
+    <a className={className} href={`${EXPLORER}${hash}`} target="_blank" rel="noreferrer">
+      {label}
     </a>
   );
 }

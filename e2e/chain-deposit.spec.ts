@@ -104,7 +104,7 @@ test('the network list opens, searches, and chooses with the keyboard', async ({
 });
 
 test('near the bottom of the screen the network list opens upwards and fits, so nothing has to be scrolled to', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 640 });
+  await page.setViewportSize({ width: 1440, height: 520 });
   await page.route('**/v1/chain-deposits', (route) => route.fulfill({ json: { networks, refund_addresses: {}, deposits: [] } }));
   await page.goto('/');
   await openDeposit(page);
@@ -129,15 +129,15 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 800 }]) 
     await page.goto('/');
     await openDeposit(page);
     const ways = page.getByRole('group', { name: 'How do you want to add money?' });
-    await expect(ways.getByRole('button')).toHaveText([/^Naira bank transfer/, /^USDC on Base/, /^Other networks/]);
+    await expect(ways.getByRole('button')).toHaveText([/Bank transfer/, /USDC on Base/, /Other networks/]);
     await expect(page.getByTestId('way-naira')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByText('Deposit Naira')).toBeVisible();
+    await expect(page.getByText('Pay from any Nigerian bank.')).toBeVisible();
     await expect(page.getByTestId('receive-address')).toHaveCount(0);
     await page.screenshot({ path: `/tmp/10kobo-e2e-results/add-usdc-${size.width}.png` });
     await page.getByTestId('way-base').click();
     await expect(page.getByTestId('receive-address')).toBeVisible();
-    await expect(page.getByText('Deposit Naira')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Use Other Network' }).click();
+    await expect(page.getByText('Pay from any Nigerian bank.')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Use another network' }).click();
     await expect(page.getByTestId('network-picker')).toBeVisible();
     await expect(page.getByTestId('way-other')).toHaveAttribute('aria-pressed', 'true');
   });

@@ -7,11 +7,6 @@ import './globals.css';
 // Self-hosted so nothing is fetched at build time. Licences are beside the files.
 // Inter sets all text and figures. Its basic Latin file has no naira sign, so the extended Latin file follows it;
 // Space Grotesk then covers anything still missing, such as some Yoruba letters. Outfit stays as a last fallback.
-// Plus Jakarta Sans (Google Fonts) sets the text. It is split like Google serves it: basic Latin, then the extended file
-// with the naira sign, then the Vietnamese file, which has the dotted letters Yoruba uses. Inter fills any gap.
-const jakarta = localFont({ src: './fonts/PlusJakartaSans-Latin-Variable.woff2', weight: '200 800', variable: '--font-jakarta', display: 'swap' });
-const jakartaExt = localFont({ src: './fonts/PlusJakartaSans-LatinExt-Variable.woff2', weight: '200 800', variable: '--font-jakarta-ext', display: 'swap' });
-const jakartaViet = localFont({ src: './fonts/PlusJakartaSans-Vietnamese-Variable.woff2', weight: '200 800', variable: '--font-jakarta-viet', display: 'swap' });
 const inter = localFont({ src: './fonts/Inter-Latin-Variable.woff2', weight: '100 900', variable: '--font-inter', display: 'swap' });
 const interExt = localFont({ src: './fonts/Inter-LatinExt-Variable.woff2', weight: '100 900', variable: '--font-inter-ext', display: 'swap' });
 const sans = localFont({ src: './fonts/Outfit-Variable.woff2', weight: '100 900', variable: '--font-outfit', display: 'swap' });
@@ -34,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${jakartaExt.variable} ${jakartaViet.variable} ${inter.variable} ${interExt.variable} ${sans.variable} ${figures.variable} ${mono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${interExt.variable} ${sans.variable} ${figures.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {children}

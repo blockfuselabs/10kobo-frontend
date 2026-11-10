@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ApiClient, DepositNetwork, Plan, SendOptions, SendRequest, WalletSummary } from '@/lib/api/client';
-import { CardHeader } from './card-header';
+import { asDollars, wholeNaira } from '@/lib/money-display';
 import { PlanApprovalCard } from './cards';
 import { BankIcon, PhoneIcon, WalletIcon } from './icons';
 import { NetworkPicker } from './network-picker';
 import { NEW_RECIPIENT, RecipientPicker } from './recipient-picker';
 
 const WAYS = [
-  { id: 'bank', title: 'Bank Account', detail: 'Naira to any Nigerian bank', Icon: BankIcon },
-  { id: 'crypto', title: 'Crypto Wallet', detail: 'USDC or USDT on 16 networks', Icon: WalletIcon },
-  { id: 'phone', title: 'Airtime & Data', detail: 'MTN, Airtel, Glo, 9mobile', Icon: PhoneIcon },
+  { id: 'bank', title: 'Bank account', detail: 'Naira to any Nigerian bank', Icon: BankIcon },
+  { id: 'crypto', title: 'Crypto wallet', detail: 'USDC or USDT on 16 networks', Icon: WalletIcon },
+  { id: 'phone', title: 'Airtime & data', detail: 'MTN, Airtel, Glo, 9mobile', Icon: PhoneIcon },
 ] as const;
 type Way = (typeof WAYS)[number]['id'];
 
@@ -171,13 +171,19 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
     api.sendOptions().then(setOptions).catch(() => undefined);
   };
 
-  const current = WAYS.find((item) => item.id === way)!;
-
   return (
     <section className="flex flex-col gap-4" aria-label="Send money">
-      <div className="product-page-heading"><span className="product-eyebrow">MOVE YOUR MONEY</span><h1 className="page-title">Send</h1><p>Choose where it goes. Review the recipient and quote before you approve.</p></div>
+      <div className="flex flex-col gap-1">
+        <h1 className="page-title">Send</h1>
+        {summary?.balance_usdc && (
+          <p className="text-sm text-[var(--muted)]">
+            Available: <span className="amount font-medium text-[var(--foreground)]">{asDollars(summary.balance_usdc)}</span>
+            {summary.balance_naira && <span className="amount"> · {wholeNaira(summary.balance_naira)}</span>}
+          </p>
+        )}
+      </div>
       {!plan && (
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Who are you sending to?">
+        <div className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1" role="group" aria-label="Who are you sending to?">
           {WAYS.map((item) => {
             const on = way === item.id;
             return (
@@ -186,16 +192,12 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
                 type="button"
                 aria-pressed={on}
                 onClick={() => switchWay(item.id)}
-                className={`relative flex flex-col gap-2 rounded-2xl border bg-[var(--surface)] p-3 text-left transition-all sm:gap-3 sm:p-4 ${on ? 'border-[var(--foreground)] shadow-md ring-1 ring-[var(--foreground)]' : 'border-[var(--line)] hover:-translate-y-0.5 hover:shadow-sm'}`}
+                title={item.detail}
+                className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-sm font-medium transition-colors ${on ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'}`}
                 data-testid={`send-${item.id}`}
               >
-                <span className={`grid h-9 w-9 place-items-center rounded-full ${on ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
-                  <item.Icon />
-                </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold sm:text-base">{item.title}</span>
-                  <span className="hidden text-xs text-[var(--muted)] sm:block">{item.detail}</span>
-                </span>
+                <item.Icon />
+                <span>{item.title}</span>
               </button>
             );
           })}
@@ -210,9 +212,9 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
         </div>
       ) : (
         <form className="panel" onSubmit={(event) => { event.preventDefault(); if (ready && !busy) void prepare(); }}>
-          <CardHeader Icon={current.Icon} title={way === 'bank' ? 'Send to a Bank Account' : way === 'crypto' ? 'Send to a Crypto Wallet' : 'Buy Airtime or Data'}>
-            {way === 'bank' ? 'Paid in naira from your USDC. The bank’s name for the account shows before you approve.' : way === 'crypto' ? 'From your wallet on Base to any of 16 networks.' : 'Paid from your USDC, delivered in seconds.'}
-          </CardHeader>
+          <p className="text-sm text-[var(--muted)]">
+            {way === 'bank' ? 'Naira to any Nigerian bank. The account name shows before you approve.' : way === 'crypto' ? 'USDC or USDT to a wallet on any of 16 networks.' : 'MTN, Airtel, Glo or 9mobile, delivered in seconds.'}
+          </p>
 
           {saved.length > 0 && <RecipientPicker recipients={saved} value={recipient} onChange={setRecipient} />}
           {chosen?.unnamed && <NameIt key={chosen.contact_id} contactId={chosen.contact_id} kind={chosen.kind} api={api} onSaved={() => api.sendOptions().then(setOptions).catch(() => undefined)} />}
@@ -284,9 +286,13 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
             </Field>
           ) : (
             <div className="flex flex-col gap-2">
-              <Field label={way === 'crypto' ? 'Amount in USDC' : 'Amount in naira'}>
-                <input className="field text-lg font-medium" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(way === 'crypto' ? /[^\d.]/g : /\D/g, ''))} placeholder={way === 'crypto' ? 'e.g. 10' : 'e.g. 5000'} autoComplete="off" name="send-amount" />
-              </Field>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span>{way === 'crypto' ? 'Amount in USDC' : 'Amount in naira'}</span>
+                <span className="field flex items-center gap-2 py-3 focus-within:border-[var(--foreground)]">
+                  <span className="amount text-2xl font-semibold text-[var(--muted)]" aria-hidden>{way === 'crypto' ? '$' : '₦'}</span>
+                  <input className="amount min-w-0 flex-1 bg-transparent text-2xl font-semibold outline-none placeholder:text-[var(--muted)]/50" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(way === 'crypto' ? /[^\d.]/g : /\D/g, ''))} placeholder="0" autoComplete="off" name="send-amount" aria-label={way === 'crypto' ? 'Amount in USDC' : 'Amount in naira'} />
+                </span>
+              </label>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
                 {QUICK[way].map((value) => (
                   <button
@@ -300,7 +306,7 @@ export function SendPanel({ api, onChanged, onAddMoney, initialWay = 'bank', sum
                 ))}
               </div>
               {(estimate(way, amount, summary?.naira_per_usdc) || summary?.limit_left) && (
-                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]" data-testid="send-estimate">
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 px-1 text-xs text-[var(--muted)]" data-testid="send-estimate">
                   <span>{estimate(way, amount, summary?.naira_per_usdc) ?? 'Type an amount to see what it costs'}</span>
                   {summary?.limit_left && <span>Left to send today: {summary.limit_left.replace(/\.\d+$/, '')}</span>}
                 </div>

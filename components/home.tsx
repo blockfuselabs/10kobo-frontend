@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createApiClient, type Chat, type ChatMessage, type Me, type WalletSummary } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth';
+import { asDollars, useHiddenBalance, wholeNaira } from '@/lib/money-display';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, HomeIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon } from './icons';
+import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, HomeIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon, LinkIcon, SettingsIcon } from './icons';
 import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
 import { SendPanel } from './send-panel';
+import { PaymentLinks } from './payment-links';
+import { SettingsPanel } from './settings-panel';
 import { Overview, type OverviewTarget } from './overview';
 import { plainText, RichText } from './rich-text';
 
@@ -16,15 +19,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
 // New messages can arrive with no action from the user: deposits, reminders and scheduled payments.
 const REFRESH_MS = 10000;
-const wholeNaira = (amount: string) => amount.replace(/\.\d+$/, '');
 
 /** How much of today's limit is left. The two figures are formatted naira, such as ₦1,250.50. */
-function limitLeftPercent(summary: WalletSummary): number {
-  const value = (amount: string) => Number(amount.replace(/[^\d.]/g, ''));
-  const left = value(summary.limit_left);
-  const total = left + value(summary.limit_used);
-  return total > 0 ? Math.round((left / total) * 100) : 0;
-}
 
 const SUGGESTIONS = [
   ['Deposit ₦5,000', 'Deposit 5000'],
@@ -39,13 +35,15 @@ const VIEWS = [
   ['send', 'Send', ArrowOutIcon],
   ['schedules', 'Scheduled', CalendarIcon],
   ['invoices', 'Invoices', InvoiceIcon],
+  ['links', 'Payment links', LinkIcon],
   ['activity', 'Activity', ActivityIcon],
   ['receive', 'Deposit', PlusIcon],
+  ['settings', 'Settings', SettingsIcon],
 ] as const;
 /** On a computer the Deposit and Send money buttons above the menu open these, so the menu does not repeat them. */
 const BUTTONS_ON_COMPUTER: ReadonlySet<string> = new Set(['send', 'receive']);
 /** The phone's bottom bar keeps five. Activity and Scheduled open from the home screen there. */
-const COMPUTER_ONLY: ReadonlySet<string> = new Set(['schedules', 'activity']);
+const COMPUTER_ONLY: ReadonlySet<string> = new Set(['schedules', 'activity', 'links', 'settings']);
 type View = (typeof VIEWS)[number][0];
 
 type ChatActions = { onOpen: (id: string | null) => void; onRename: (id: string, title: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
@@ -254,6 +252,7 @@ export function Home() {
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [view, setView] = useState<View>('home');
+  const [hiddenBalance] = useHiddenBalance();
   const [sendWay, setSendWay] = useState<'bank' | 'phone'>('bank');
   // Set by New invoice on the home page, so the invoices page opens with the form showing.
   const [newInvoice, setNewInvoice] = useState(false);
@@ -471,14 +470,14 @@ export function Home() {
           </button>
           </div>
         </div>
-        {view !== 'home' && <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-gradient-to-br from-[var(--accent-soft)] to-[var(--surface)] p-3.5 md:p-4">
+        {view !== 'home' && <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 md:p-4">
           <div className="flex flex-col gap-0.5">
-            <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Your balance</p>
+            <p className="hidden text-xs font-medium text-[var(--muted)] md:block">Your dollars</p>
             <p data-testid="balance" className="amount flex flex-wrap items-baseline gap-x-2 md:flex-col md:gap-0.5">
               {summary?.balance_usdc ? (
                 <>
-                  <span className="text-xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">{summary.balance_usdc}</span>
-                  {summary.balance_naira && <span className="text-sm text-[var(--muted)]">≈ {summary.balance_naira}</span>}
+                  <span className="text-xl font-semibold leading-tight tracking-tight md:text-2xl">{hiddenBalance ? '$••••' : asDollars(summary.balance_usdc)}</span>
+                  {summary.balance_naira && <span className="text-sm text-[var(--muted)]">In naira: {hiddenBalance ? '₦••••' : wholeNaira(summary.balance_naira)}</span>}
                 </>
               ) : (
                 <span className="text-sm text-[var(--muted)]">{address ? 'Balance unavailable' : 'Setting up your wallet…'}</span>
@@ -489,17 +488,6 @@ export function Home() {
             <p className="flex items-center gap-2 text-sm font-medium text-[var(--accent-strong)]" data-testid="deposit-on-the-way">
               <Spinner /> {summary.deposit_on_the_way} on its way
             </p>
-          )}
-          {summary && (
-            <div className="hidden flex-col gap-1.5 md:flex">
-              <div className="flex justify-between gap-2 text-xs">
-                <span className="text-[var(--muted)]">Left to send today</span>
-                <span className="amount font-medium">{wholeNaira(summary.limit_left)}</span>
-              </div>
-              <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]" aria-hidden>
-                <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${limitLeftPercent(summary)}%` }} />
-              </div>
-            </div>
           )}
           {summary?.naira_per_usdc && (
             <p className="amount hidden justify-between gap-2 border-t border-[var(--line)] pt-2.5 text-xs md:flex" data-testid="rate">
@@ -627,6 +615,8 @@ export function Home() {
             <div className="workspace-panel mx-auto w-full max-w-2xl px-4 py-5 md:px-8 md:py-8">
               {view === 'schedules' && <SchedulesPanel api={api} />}
               {view === 'invoices' && <InvoicesPanel key={String(newInvoice)} api={api} startCreating={newInvoice} />}
+              {view === 'links' && <PaymentLinks api={api} />}
+              {view === 'settings' && <SettingsPanel api={api} me={me} />}
               {view === 'activity' && <ActivityPanel api={api} />}
               {view === 'receive' && <ReceivePanel summary={summary} api={api} onChanged={refreshSummary} />}
               {view === 'send' && <SendPanel key={sendWay} initialWay={sendWay} summary={summary} api={api} onChanged={refreshSummary} onAddMoney={() => setView('receive')} />}

@@ -9,10 +9,7 @@
   color: var(--ink);
   background: var(--paper);
   font-family:
-    var(--font-jakarta),
-    var(--font-jakarta-ext),
-    var(--font-jakarta-viet),
-    var(--font-inter),
+        var(--font-inter),
     var(--font-inter-ext),
     sans-serif;
   font-size: 15px;
@@ -51,13 +48,13 @@
   font-size: clamp(32px, 3.5vw, 51px);
   line-height: 1.12;
   font-weight: 500;
-  letter-spacing: -.055em;
+  letter-spacing: -0.015em;
 }
 .site h3 {
   font-size: 21px;
   line-height: 1.35;
   font-weight: 550;
-  letter-spacing: -.04em;
+  letter-spacing: -0.015em;
 }
 .site section[id] {
   scroll-margin-top: 30px;
@@ -69,7 +66,7 @@
     serif;
   font-weight: 400;
   font-style: italic;
-  letter-spacing: -.055em;
+  letter-spacing: -0.015em;
 }
 .liveDot {
   display: inline-block;
@@ -209,7 +206,7 @@
   font-weight: 500;
   font-size: clamp(45px, 5.4vw, 75px);
   line-height: 1.045;
-  letter-spacing: -.065em;
+  letter-spacing: -0.015em;
   margin: 25px 0;
 }
 .hero h1 .serif {
@@ -288,7 +285,7 @@
   gap: 8px;
   font-weight: 600;
   font-size: 16px;
-  letter-spacing: -.055em;
+  letter-spacing: -0.015em;
 }
 .networkNames i {
   display: grid;
@@ -621,7 +618,7 @@
 .orderAmount strong {
   display: block;
   font-size: 34px;
-  letter-spacing: -.06em;
+  letter-spacing: -0.015em;
   font-weight: 500;
 }
 .orderAmount strong > span {
@@ -1697,7 +1694,7 @@
 /* Layered payment visuals with a clear headline and warm canvas. */
 .hero { position: relative; isolation: isolate; grid-template-columns: 1fr 1.08fr; gap: 54px; padding-top: 48px; padding-bottom: 70px; }
 .hero::before { content: ''; position: absolute; inset: -20px -80px 0; z-index: -1; pointer-events: none; background-image: radial-gradient(#14141412 .7px, transparent .7px); background-size: 23px 23px; mask-image: linear-gradient(to bottom, #00000055, transparent 90%); }
-.hero h1 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(48px,5.3vw,76px); line-height: 1.05; letter-spacing: -.065em; }
+.hero h1 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(48px,5.3vw,76px); line-height: 1.05; letter-spacing: -0.015em; }
 .heroHighlight { position: relative; display: inline-block; isolation: isolate; }
 .heroHighlight::after { content: ''; position: absolute; z-index: -1; bottom: .02em; left: -.04em; right: -.06em; height: .17em; background: var(--highlight); border-radius: 100px; transform: rotate(-2deg); }
 .heroDescription { font-size: 16px; max-width: 430px; line-height: 1.85; }
@@ -1731,12 +1728,12 @@
 .senderCard { position: absolute; left: 3%; top: 20px; width: 57%; padding: 24px; border-radius: 22px; background: #fff; color: #183d2b; border: 1px solid #d9e4de; transform: rotate(-5deg); box-shadow: 0 18px 30px -16px #161e4335; }
 .senderTop { display: flex; align-items: center; gap: 7px; color: #64796e; font-size: 9px; letter-spacing: .08em; }
 .senderNetwork { margin-left: auto; padding: 4px 7px; border: 1px solid #cde2d8; border-radius: 5px; background: #edf6f2; color: #26744d; font-size: 8px; }
-.senderCard > strong { display: flex; flex-direction: column; font-size: 39px; letter-spacing: -.05em; margin: 15px 0; font-weight: 550; line-height: 1.1; }
+.senderCard > strong { display: flex; flex-direction: column; font-size: 39px; letter-spacing: -0.015em; margin: 15px 0; font-weight: 550; line-height: 1.1; }
 .senderCard > strong > span { font-size: 13px; font-weight: 400; color: #64796e; letter-spacing: -.01em; margin-top: 6px; }
 .senderFoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #e4ece8; padding-top: 12px; font-size: 9px; color: #64796e; }
 .paymentHub { position: absolute; left: 17%; top: 242px; display: flex; align-items: center; gap: 8px; padding: 12px 15px; background: #fff; border: 1px solid #d9e4de; border-radius: 14px; z-index: 3; box-shadow: 0 7px 20px #121b3009; }
 .paymentHub svg { --accent: #087f72; --accent-text: #fff; }
-.paymentHub > strong { font-size: 20px; letter-spacing: -.05em; }
+.paymentHub > strong { font-size: 20px; letter-spacing: -0.015em; }
 .paymentHub > span { padding-left: 10px; margin-left: 5px; border-left: 1px solid #dedfe6; font-size: 8px; color: #777c88; line-height: 1.5; }
 .paymentHub b { color: #414856; font-weight: 500; }
 .paymentTrack { position: absolute; width: 1px; height: 175px; background: #b8d7c8; top: 183px; left: 35%; z-index: -1; }
@@ -1746,7 +1743,7 @@
 .floatingInvoice > div { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .invoiceGlyph { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #eaf5f0; color: #087f72; }
 .floatingInvoice > small { font-size: 8px; letter-spacing: .08em; color: #797e89; }
-.floatingInvoice > strong { display: block; font-size: 27px; font-weight: 550; letter-spacing: -.05em; }
+.floatingInvoice > strong { display: block; font-size: 27px; font-weight: 550; letter-spacing: -0.015em; }
 .floatingInvoice > p { font-size: 10px; color: #797e89; margin: 4px 0 16px; }
 .invoiceCurrency { display: flex; justify-content: space-between; gap: 5px; padding-top: 11px; border-top: 1px solid #e9eaf0; font-size: 9px; color: #087f72; }
 .recipientCard { position: absolute; left: 9%; top: 329px; width: 67%; padding: 21px 24px; border: 1px solid #d9e4de; border-radius: 21px; background: #fff; box-shadow: 0 20px 40px -16px #14264a20; transform: rotate(-2deg); }
@@ -1755,7 +1752,7 @@
 .recipientTop > div { display: flex; flex-direction: column; }
 .recipientTop small { font-size: 8px; letter-spacing: .1em; color: #767d8b; }
 .recipientTop strong { font-size: 12px; font-weight: 500; }
-.receiptAmount { display: block; font-size: 36px; font-weight: 550; letter-spacing: -.05em; margin: 10px 0; }
+.receiptAmount { display: block; font-size: 36px; font-weight: 550; letter-spacing: -0.015em; margin: 10px 0; }
 .receiptAmount > span { color: #9ca3b3; font-size: 25px; margin-left: 2px; }
 .receiptStatus { display: flex; align-items: center; gap: 7px; border-top: 1px solid #e7eaf0; padding-top: 12px; font-size: 10px; color: #5f6a82; min-height: 29px; }
 .receiptStatus > span { width: 17px; height: 17px; display: grid; place-items: center; }
@@ -1852,7 +1849,7 @@
 
 /* Everyday payments: four readable examples with a consistent hierarchy. */
 .everydayHeading { max-width: 680px; margin-bottom: 36px; }
-.everydayHeading h2 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; letter-spacing: -.055em; line-height: 1.08; margin: 20px 0; }
+.everydayHeading h2 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; letter-spacing: -0.015em; line-height: 1.08; margin: 20px 0; }
 .everydayHeading h2 span { color: #087f72; }
 .everydayHeading > p:last-child { color: #5a5a54; font-size: 16px; line-height: 1.7; max-width: 520px; }
 .everydayCards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
@@ -1860,7 +1857,7 @@
 .everydayCardTitle { display: flex; align-items: center; gap: 14px; }
 .everydayCardTitle > span { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; color: #087f72; background: #eaf5f0; }
 .everydayCardTitle svg { width: 22px; height: 22px; }
-.everydayCardTitle h3 { font-size: 25px; font-weight: 600; letter-spacing: -.04em; margin: 0; }
+.everydayCardTitle h3 { font-size: 25px; font-weight: 600; letter-spacing: -0.015em; margin: 0; }
 .everydayCard > p { font-size: 15px; color: #5a5a54; line-height: 1.7; max-width: 440px; margin: 16px 0 24px; min-height: 51px; }
 .everydayExample { margin-top: auto; background: #f3f7f5; border: 1px solid #e5ece9; border-radius: 16px; padding: 22px; min-height: 160px; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 .exampleMessage { align-self: flex-end; background: #087f72; color: white; border-radius: 14px 14px 4px 14px; padding: 13px 17px; font-size: 15px; }
@@ -1870,7 +1867,7 @@
 .exampleReply small, .exampleTransfer small { display: block; font-size: 12px; color: #68766f; margin-top: 5px; font-weight: 400; }
 .exampleTransfer { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 550; }
 .exampleTransfer > strong, .exampleTransfer > svg { margin-left: auto; flex-shrink: 0; }
-.exampleTransfer > strong { font-size: 24px; letter-spacing: -.04em; }
+.exampleTransfer > strong { font-size: 24px; letter-spacing: -0.015em; }
 .exampleAvatar { width: 42px; height: 42px; background: #dcebe3; color: #276345; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .exampleAvatar svg { width: 20px; height: 20px; }
 .exampleRoute { border-top: 1px solid #dce5e0; padding-top: 15px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #5b6e65; }
@@ -1890,7 +1887,7 @@
 .stripViewport { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
 .stripTrack { display: flex; width: max-content; animation: feature-scroll 48s linear infinite; }
 .stripTrack ul { display: flex; align-items: center; flex-shrink: 0; list-style: none; padding: 0 48px 0 0; margin: 0; gap: 48px; }
-.stripTrack li { display: flex; align-items: center; gap: 12px; white-space: nowrap; font-size: 19px; font-weight: 550; letter-spacing: -.035em; }
+.stripTrack li { display: flex; align-items: center; gap: 12px; white-space: nowrap; font-size: 19px; font-weight: 550; letter-spacing: -0.015em; }
 .stripTrack li > span { display: grid; place-items: center; background: #fff; color: #087f72; border: 1px solid #e0e9e4; border-radius: 12px; width: 38px; height: 38px; }
 .stripTrack svg { width: 19px; height: 19px; }
 .stripTrack b { background: #087f72; color: #fff; font-size: 11px; letter-spacing: .04em; border-radius: 20px; padding: 4px 8px; }
@@ -1923,7 +1920,7 @@
 .agentVisualTop { display: flex; align-items: center; justify-content: space-between; color: #426b56; font-size: 11px; letter-spacing: .09em; }
 .agentVisualTop b { font-size: 16px; padding: 6px 13px; background: #087f72; color: #fff; border-radius: 30px; }
 .agentVisualRoute { display: flex; justify-content: center; align-items: center; gap: 28px; }
-.agentVisualRoute > span:not(:nth-child(2)) { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 600; letter-spacing: -.04em; }
+.agentVisualRoute > span:not(:nth-child(2)) { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 600; letter-spacing: -0.015em; }
 .agentVisualRoute svg { width: 25px; height: 25px; color: #087f72; }
 .agentVisualReceipt { background: #fff; display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 15px 18px; box-shadow: 0 14px 28px -20px #294c3b80; font-size: 14px; }
 .agentVisualReceipt > svg { color: #087f72; flex-shrink: 0; }
@@ -1931,7 +1928,7 @@
 .agentVisualReceipt strong { margin-left: auto; font-size: 18px; }
 .merchantSlip { display: flex; flex-direction: column; align-items: center; align-self: center; width: 75%; padding: 23px; border-radius: 18px; background: #fff; box-shadow: 0 20px 36px -22px #294c3b70; }
 .merchantSlip > span { font-size: 10px; letter-spacing: .12em; color: #62776d; }
-.merchantSlip > strong { font-size: 34px; letter-spacing: -.05em; margin: 9px 0; }
+.merchantSlip > strong { font-size: 34px; letter-spacing: -0.015em; margin: 9px 0; }
 .merchantSlip > small { font-size: 12px; color: #63796e; }
 .merchantSlip > div { display: flex; gap: 8px; margin-top: 15px; font-size: 11px; }
 .merchantSlip > div > span { border: 1px solid #d6e5de; border-radius: 8px; padding: 8px 10px; color: #087568; }
@@ -1985,7 +1982,7 @@
 /* Carry the compact, tactile showcase language through the full page. */
 .section { padding-block: 76px; }
 .business,.howSection,.networkSection,.finalCta { border-radius: 30px; }
-.business h2,.developerCopy h2,.howSection h2,.proofSection h2,.networkSection h2,.faqSection h2,.finalCta h2 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(32px,3.3vw,46px); letter-spacing: -.055em; line-height: 1.12; }
+.business h2,.developerCopy h2,.howSection h2,.proofSection h2,.networkSection h2,.faqSection h2,.finalCta h2 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(32px,3.3vw,46px); letter-spacing: -0.015em; line-height: 1.12; }
 .business .serif,.developerSection .serif,.howSection .serif,.proofSection .serif,.networkSection .serif,.faqSection .serif,.finalCta .serif { font-family: inherit; font-style: normal; font-weight: inherit; color: #596c62; }
 .business { background: #e8dac8; border: 0; padding: 42px; gap: 36px; align-items: center; }
 .business h2 { margin: 17px 0; }
@@ -2021,12 +2018,12 @@
 .steps { gap: 22px; }
 .steps article { padding: 23px; background: #ffffffb0; border: 1px solid #cdd9d3; border-radius: 20px; }
 .stepNumber { display: inline-grid; place-items: center; width: 34px; height: 34px; background: #dde8e2; border-radius: 50%; color: #3e6451; font-size: 12px; }
-.steps h3 { font-size: 21px; letter-spacing: -.035em; margin-top: 20px; }
+.steps h3 { font-size: 21px; letter-spacing: -0.015em; margin-top: 20px; }
 .steps p { font-size: 14px; color: #52625a; line-height: 1.7; }
 .proofGrid { gap: 18px; border: 0; }
 .proofItem,.proofItem:first-child,.proofItem:last-child { border: 1px solid #d5dfda; border-radius: 22px; padding: 25px; background: #fff; }
 .proofIndex { color: #547062; font-size: 11px; }
-.proofItem h3 { max-width: none; font-size: 25px; letter-spacing: -.04em; line-height: 1.2; }
+.proofItem h3 { max-width: none; font-size: 25px; letter-spacing: -0.015em; line-height: 1.2; }
 .proofItem p { max-width: none; font-size: 14px; line-height: 1.7; color: #52625a; }
 .proofTag { font-size: 11px; color: #087568; padding-top: 18px; border-top: 1px dashed #d3dfd9; }
 .proofItem small { font-size: 10px; color: #607269; line-height: 1.6; }

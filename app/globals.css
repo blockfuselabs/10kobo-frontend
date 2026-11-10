@@ -3,10 +3,10 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
-  --font-figures: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-display: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-figures: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.25rem;
   --text-sm: 0.9375rem;
@@ -24,13 +24,18 @@
   --foreground: #111111;
   --muted: #5a5a54;
   --line: rgb(0 0 0 / 0.11);
-  --accent: #087f72;
-  --accent-strong: #06665c;
-  --accent-soft: #e4eee9;
+  --accent: #141414;
+  --accent-strong: #000000;
+  --accent-soft: #ecebe6;
+  --positive: #15803d;
+  --hero: #161616;
+  --hero-2: #232323;
+  --hero-text: #ffffff;
+  --hero-muted: rgb(255 255 255 / 0.62);
   --accent-text: #ffffff;
   --deep: #141414;
   --deep-hover: #333333;
-  --pop: #c9e4d5;
+  --pop: #e6e4de;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
 }
 
@@ -44,9 +49,14 @@
   --foreground: #f5f5f4;
   --muted: #a8a8a3;
   --line: rgb(255 255 255 / 0.12);
-  --accent: #8dd3b9;
-  --accent-strong: #b4e6d3;
-  --accent-soft: #22372e;
+  --accent: #f2f2f0;
+  --accent-strong: #ffffff;
+  --accent-soft: #2a2a2e;
+  --positive: #4ade80;
+  --hero: #232327;
+  --hero-2: #2c2c31;
+  --hero-text: #ffffff;
+  --hero-muted: rgb(255 255 255 / 0.6);
   --accent-text: #111111;
   --deep: #f5f5f4;
   --deep-hover: #ffffff;
@@ -315,19 +325,19 @@ input:-webkit-autofill:focus {
 }
 
 
-/* Product surfaces share the landing page's warm neutrals and restrained teal. */
-:root { --product-sand: #e8dac8; --product-sage: #e0e6df; --product-border: #d7e1dc; }
-:root[data-theme='dark'] { --product-sand: #332f27; --product-sage: #24342c; --product-border: #384840; --pop: #b5d7c2; }
+/* Product surfaces use warm neutrals. Green is kept for money received. */
+:root { --product-sand: #e8dac8; --product-sage: #eeede8; --product-border: #e2e1dc; }
+:root[data-theme='dark'] { --product-sand: #332f27; --product-sage: #232326; --product-border: #34343a; --pop: #d9d8d3; }
 @layer components {
   .panel,.card { border-radius: 1.5rem; padding: 1.4rem; box-shadow: 0 12px 28px -24px rgb(27 48 34 / .25); }
   .btn-primary,.btn-secondary { border-radius: 999px; min-height: 44px; }
   .btn-small { min-height: 36px; border-radius: 12px; }
   .field { min-height: 46px; border-radius: 12px; }
   .field:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
-  .page-title { font-size: clamp(1.7rem, 2.5vw, 2.1rem); letter-spacing: -.045em; line-height: 1.2; }
+  .page-title { font-size: clamp(1.7rem, 2.5vw, 2.1rem); letter-spacing: -0.015em; line-height: 1.2; }
 }
 .public-nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 1152px; width: 100%; margin: 0 auto 40px; }
-.public-brand { display: flex; align-items: center; gap: 9px; font-size: 24px; font-weight: 700; letter-spacing: -.05em; }
+.public-brand { display: flex; align-items: center; gap: 9px; font-size: 24px; font-weight: 700; letter-spacing: -0.015em; }
 .public-nav > div { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 100px; padding: 5px; background: var(--surface); }
 .public-nav > div a { font-size: 13px; font-weight: 500; padding: 9px 14px; border-radius: 100px; }
 .public-nav [aria-current=page] { background: var(--accent-soft); color: var(--accent-strong); }
@@ -335,7 +345,7 @@ input:-webkit-autofill:focus {
 .product-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .13em; color: var(--muted); }
 .login-layout { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: 64px; max-width: 1100px; width: 100%; padding: 24px 32px 60px; margin: auto; flex: 1; }
 .login-story { background: var(--product-sage); padding: 38px; border-radius: 30px; overflow: hidden; }
-.login-story h2 { font-size: clamp(30px,3.1vw,42px); font-weight: 650; line-height: 1.12; letter-spacing: -.055em; margin: 22px 0 18px; }
+.login-story h2 { font-size: clamp(30px,3.1vw,42px); font-weight: 650; line-height: 1.12; letter-spacing: -0.015em; margin: 22px 0 18px; }
 .login-story h2 span { color: var(--muted); }
 .login-story > p { font-size: 15px; line-height: 1.75; max-width: 350px; color: var(--muted); }
 .login-money { display: flex; align-items: center; justify-content: center; gap: 24px; padding: 38px 0; color: var(--accent-strong); }
@@ -355,23 +365,23 @@ input:-webkit-autofill:focus {
 .wallet-summary [data-testid=balance] { position: relative; }
 .wallet-summary .h-1\.5 > div { background: var(--accent); }
 .agent-page > div > header { background: var(--product-sage); border: 1px solid var(--product-border); border-radius: 24px; padding: 26px; margin-bottom: 24px; }
-.agent-page h1 { font-size: clamp(24px,3vw,34px); letter-spacing: -.05em; line-height: 1.15; }
+.agent-page h1 { font-size: clamp(24px,3vw,34px); letter-spacing: -0.015em; line-height: 1.15; }
 .agent-page header p { max-width: 640px; margin-top: 8px; line-height: 1.7; }
 .agent-page section[aria-label="The task"],.agent-page section[aria-label="What the agent is doing"] { padding: 24px; box-shadow: 0 14px 30px -26px rgb(26 47 32 / .25); }
 .agent-page pre { background: #202a25; border: 1px solid #405148; color: #e3ece8; border-radius: 18px; }
 .proof-page .public-nav { margin-bottom: 0; }
 .proof-page > div > section:first-of-type { background: var(--product-sage); padding: 32px; border-radius: 28px; border: 1px solid var(--product-border); }
-.proof-page h1 { letter-spacing: -.055em; line-height: 1.1; }
+.proof-page h1 { letter-spacing: -0.015em; line-height: 1.1; }
 .proof-page section[aria-label="All payments"] > ul { border-radius: 22px; overflow: hidden; }
 .proof-page section[aria-label="All payments"] li { background: var(--surface); }
 .checkout-page { background: var(--background); }
 .checkout-page > section { border-radius: 28px; border-color: var(--product-border); box-shadow: 0 24px 48px -32px rgb(26 47 32 / .35); padding: 28px; }
-.checkout-page [data-testid=link-amount] { font-size: clamp(32px,6vw,44px); letter-spacing: -.055em; margin-block: 6px; }
+.checkout-page [data-testid=link-amount] { font-size: clamp(32px,6vw,44px); letter-spacing: -0.015em; margin-block: 6px; }
 .checkout-page section > div:first-child { border-bottom: 1px dashed var(--product-border); padding-bottom: 20px; }
 .checkout-embedded > section { box-shadow: none; padding: 20px; }
 .shop-page { background: var(--background); color: var(--foreground); }
 .shop-page > div > header { background: var(--product-sand); padding: 28px; border-radius: 24px; border: 1px solid var(--line); }
-.shop-page > div > header h1 { font-size: 36px; letter-spacing: -.055em; }
+.shop-page > div > header h1 { font-size: 36px; letter-spacing: -0.015em; }
 .shop-page > div > header p { margin-top: 10px; }
 .shop-page section[aria-label=Menu] { gap: 12px; }
 .shop-page section[aria-label=Menu] > div { background: var(--surface); color: var(--foreground); padding: 20px; border: 1px solid var(--line); border-radius: 18px; }
@@ -405,13 +415,13 @@ input:-webkit-autofill:focus {
 .product-page-heading > p { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 440px; }
 .product-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; border: 1px solid var(--product-border); background: var(--surface); border-radius: 24px; padding: 30px; margin-top: 16px; }
 .product-empty > svg { width: 48px; height: 48px; padding: 12px; background: var(--product-sage); border-radius: 14px; color: var(--accent-strong); }
-.product-empty h2 { font-size: 23px; font-weight: 600; letter-spacing: -.04em; }
+.product-empty h2 { font-size: 23px; font-weight: 600; letter-spacing: -0.015em; }
 .product-empty p { color: var(--muted); font-size: 14px; line-height: 1.7; }
 .product-empty > span { padding: 14px; border-radius: 12px; background: var(--surface-2); font-size: 13px; }
 .invoice-editor { border-radius: 24px; padding: 24px; box-shadow: 0 14px 30px -28px rgb(26 47 32 / .3); }
 .receipt-sheet { border: 1px solid var(--product-border); padding: 22px; }
 .receipt-sheet > div:first-child { border-bottom: 1px dashed var(--product-border); padding-bottom: 15px; }
-.receipt-sheet > div:first-child > p { font-size: 20px; letter-spacing: -.03em; }
+.receipt-sheet > div:first-child > p { font-size: 20px; letter-spacing: -0.015em; }
 @media (max-width: 500px) { .invoice-editor,.product-empty { padding: 20px; }.receipt-sheet { padding: 16px; } }
 
 /* A focused sign-in screen with the teal product palette. */
