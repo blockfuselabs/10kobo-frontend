@@ -5,6 +5,7 @@ import type { ActivityEntry, ActivityPage, ApiClient, ChainDeposit, DepositNetwo
 import { CardHeader } from './card-header';
 import { CancelScheduleButton, TxLink } from './cards';
 import { ArrowInIcon, ArrowOutIcon, BankIcon, CheckIcon, CopyIcon, DownloadIcon, NetworksIcon, SearchIcon, WalletIcon } from './icons';
+import { InvoiceForm } from './invoice-form';
 import { NetworkPicker } from './network-picker';
 import { ReceiptDialog } from './receipt-dialog';
 
@@ -797,11 +798,12 @@ const inFilter = (invoice: Invoice, filter: InvoiceFilter) =>
 const nairaOf = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 const dayOf = (date: string) => new Date(`${date}T12:00:00+01:00`).toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium' });
 
-/** Every pay link and invoice the user has made, so none are lost in old chats. */
+/** The merchant's page: what is owed and paid, a way to make an invoice, every pay link, and the checkout button. */
 export function InvoicesPanel({ api }: { api: ApiClient }) {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>('all');
+  const [creating, setCreating] = useState(false);
   const load = useCallback(() => api.invoices().then(setInvoices, (failure: Error) => setError(failure.message)), [api]);
   useEffect(() => {
     void load();
@@ -809,29 +811,65 @@ export function InvoicesPanel({ api }: { api: ApiClient }) {
   if (error) return <p role="alert" className="py-4 text-sm text-red-600 dark:text-red-400">{error}</p>;
   if (!invoices) return <p className="py-4 text-sm text-[var(--muted)]">Loading…</p>;
   const waiting = invoices.filter((invoice) => inFilter(invoice, 'open'));
+  const overdue = invoices.filter((invoice) => invoice.status === 'overdue');
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const paid = invoices.filter((invoice) => invoice.status === 'paid' && invoice.paid_at && new Date(invoice.paid_at).getTime() >= monthStart);
   const shown = invoices.filter((invoice) => inFilter(invoice, filter));
+  const sum = (list: Invoice[]) => nairaOf(list.reduce((total, invoice) => total + invoice.amount_naira, 0));
+  const stats = [
+    ['Waiting to be paid', sum(waiting), `${waiting.length} invoice${waiting.length === 1 ? '' : 's'}`],
+    ['Overdue', sum(overdue), `${overdue.length} invoice${overdue.length === 1 ? '' : 's'}`],
+    ['Paid this month', sum(paid), `${paid.length} invoice${paid.length === 1 ? '' : 's'}`],
+  ] as const;
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="page-title">Invoices</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="page-title">Invoices</h1>
+          <p className="text-sm text-[var(--muted)]">Get paid in naira or crypto. Your client needs no account.</p>
+        </div>
+        {!creating && (
+          <button type="button" className="btn-small gap-1.5 bg-[var(--pop)] px-4 py-2.5 font-semibold text-[#111]" onClick={() => setCreating(true)}>
+            + New invoice
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {stats.map(([label, amount, count]) => (
+          <div key={label} className="flex flex-col gap-0.5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+            <span className="text-xs text-[var(--muted)]">{label}</span>
+            <span className="amount text-xl font-semibold">{amount}</span>
+            <span className="text-xs text-[var(--muted)]">{count}</span>
+          </div>
+        ))}
+      </div>
+
+      {creating && <InvoiceForm api={api} onDone={() => void load()} onClose={() => setCreating(false)} />}
+
       {invoices.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">No invoices yet. Ask in the chat, for example: make an invoice for my client, ₦5,000 for repairs, due 30 November.</p>
+        <p className="rounded-2xl border border-dashed border-[var(--line)] p-6 text-center text-sm text-[var(--muted)]">
+          No invoices yet. Press New invoice, or ask in the chat, for example: make an invoice for my client, ₦5,000 for repairs, due 30 November.
+        </p>
       ) : (
         <>
-          <p className="text-sm text-[var(--muted)]" data-testid="invoice-summary">
-            {waiting.length === 0 ? 'Nothing waiting to be paid.' : `${waiting.length} waiting to be paid, ${nairaOf(waiting.reduce((sum, invoice) => sum + invoice.amount_naira, 0))} in all.`}
-          </p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
-            {FILTERS.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${filter === key ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--foreground)]'}`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
+              {FILTERS.map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={filter === key}
+                  onClick={() => setFilter(key)}
+                  className={`rounded-full border px-3 py-1 text-sm transition-colors ${filter === key ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--foreground)]'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-[var(--muted)]" data-testid="invoice-summary">
+              {waiting.length === 0 ? 'Nothing waiting to be paid.' : `${waiting.length} waiting to be paid, ${sum(waiting)} in all.`}
+            </p>
           </div>
           {shown.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">None here.</p>
@@ -844,6 +882,21 @@ export function InvoicesPanel({ api }: { api: ApiClient }) {
           )}
         </>
       )}
+
+      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-5">
+        <div className="flex flex-col gap-1">
+          <h2 className="font-semibold">Take payments on your website</h2>
+          <p className="text-sm text-[var(--muted)]">
+            Add the 10kobo checkout button to your shop. Customers pay with USDC or USDT from any network, and you receive naira in your bank.
+          </p>
+        </div>
+        <pre className="overflow-x-auto rounded-xl bg-[var(--surface)] p-3 text-xs leading-5"><code>{`<script src="${typeof window === 'undefined' ? '' : window.location.origin}/checkout.js"></script>
+<script>TenKobo.open(invoiceId)</script>`}</code></pre>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <a className="btn-small border border-[var(--line)] bg-[var(--surface)]" href="/shop" target="_blank" rel="noreferrer">See the demo shop</a>
+          <span className="text-[var(--muted)]">Your server makes the invoice with a merchant key. Ask us for one.</span>
+        </div>
+      </section>
     </div>
   );
 }

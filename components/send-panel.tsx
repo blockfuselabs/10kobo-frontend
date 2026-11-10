@@ -16,12 +16,12 @@ const WAYS = [
 type Way = (typeof WAYS)[number]['id'];
 
 /** Banks most people here use, offered as suggestions. Any bank's name can still be typed. */
-const BANKS = ['OPay', 'PalmPay', 'Moniepoint', 'Kuda', 'GTBank', 'Access Bank', 'Zenith Bank', 'First Bank', 'UBA', 'Fidelity Bank', 'Union Bank', 'Stanbic IBTC', 'Sterling Bank', 'Wema Bank', 'FCMB', 'Ecobank', 'Polaris Bank', 'Keystone Bank'];
+export const BANKS = ['OPay', 'PalmPay', 'Moniepoint', 'Kuda', 'GTBank', 'Access Bank', 'Zenith Bank', 'First Bank', 'UBA', 'Fidelity Bank', 'Union Bank', 'Stanbic IBTC', 'Sterling Bank', 'Wema Bank', 'FCMB', 'Ecobank', 'Polaris Bank', 'Keystone Bank'];
 
 const KIND_OF: Record<Way, 'bank' | 'wallet' | 'phone'> = { bank: 'bank', crypto: 'wallet', phone: 'phone' };
 const NEW = NEW_RECIPIENT;
 
-function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
       {label}

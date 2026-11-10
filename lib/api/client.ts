@@ -335,6 +335,8 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
     receipt: async (kind: 'payment' | 'deposit', id: string) => (await request<{ receipt: Receipt }>(`/v1/receipts/${kind}/${id}`)).receipt,
     schedules: async () => (await request<{ schedules: Schedule[] }>('/v1/schedules')).schedules,
     invoices: async () => (await request<{ invoices: Invoice[] }>('/v1/pay-links')).invoices,
+    createInvoice: (body: { amount_naira?: number; bank_name?: string; account_number?: string; to_my_wallet?: boolean; note?: string; due_date?: string; line_items?: { description: string; amount_naira: number }[] }) =>
+      request<{ id: string; url: string }>('/v1/pay-links', { method: 'POST', body: JSON.stringify(body) }),
     cancelInvoice: (id: string) => request<Invoice>(`/v1/pay-links/${id}/cancel`, { method: 'POST' }),
     fundPlan: (id: string, txHash: string) =>
       request<Plan>(`/v1/plans/${id}/funding`, { method: 'POST', body: JSON.stringify({ tx_hash: txHash }) }),
