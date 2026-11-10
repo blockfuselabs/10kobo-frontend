@@ -3,10 +3,16 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: var(--font-outfit), var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: var(--font-outfit), var(--font-space-grotesk), ui-sans-serif, sans-serif;
-  --font-figures: var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, sans-serif;
+  --font-display: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-figures: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.6rem;
 }
 
 :root {
@@ -154,8 +160,8 @@ input:-webkit-autofill:focus {
     flex-shrink: 0;
     border-radius: 0.625rem;
     background: var(--surface);
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8125rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
   }
   .btn-small:hover:not(:disabled) {
     color: var(--accent);
@@ -177,13 +183,14 @@ input:-webkit-autofill:focus {
     outline: none;
   }
   .page-title {
-    font-size: 1.375rem;
+    font-size: 1.625rem;
     font-weight: 650;
     letter-spacing: -0.02em;
   }
   .amount {
     font-family: var(--font-figures);
     font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
   }
 }
 

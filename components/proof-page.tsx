@@ -94,7 +94,7 @@ export function ProofPage() {
               <li key={proof.at} className="flex flex-col gap-2 border-b border-[var(--line)] p-4 last:border-0 sm:flex-row sm:items-center sm:gap-4" data-testid="proof-row">
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold">{KIND_LABEL[proof.kind]}</span>
+                    <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[12px] font-semibold">{KIND_LABEL[proof.kind]}</span>
                     <span className="font-medium">{proof.title}</span>
                   </span>
                   <span className="text-sm text-[var(--muted)]">{proof.detail}</span>

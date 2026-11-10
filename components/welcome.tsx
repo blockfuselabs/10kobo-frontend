@@ -165,7 +165,7 @@ function AppWindow({ scene, typed, phase }: { scene: Scene; typed: string; phase
                 ] as const).map(([way, title, note, amount]) => (
                   <div key={title} className="flex items-center gap-2.5 border-b border-[var(--line)] py-1.5 last:border-b-0">
                     <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${way === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>{way === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}</span>
-                    <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-xs font-medium">{title}</span><span className="text-[11px] text-[var(--muted)]">{note}</span></span>
+                    <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-xs font-medium">{title}</span><span className="text-[12px] text-[var(--muted)]">{note}</span></span>
                     <span className="amount shrink-0 text-xs font-semibold">{amount}</span>
                   </div>
                 ))}

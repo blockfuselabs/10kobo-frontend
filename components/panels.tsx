@@ -517,7 +517,7 @@ export function ReceivePanel({ summary, api, onChanged }: { summary: WalletSumma
               <span className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold sm:text-base">{item.title}</span>
                 <span className="hidden text-xs text-[var(--muted)] sm:block">{item.detail}</span>
-                {item.id === 'naira' && nairaClosed && <span className="mt-1 self-start rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted)]">Unavailable now</span>}
+                {item.id === 'naira' && nairaClosed && <span className="mt-1 self-start rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">Unavailable now</span>}
               </span>
             </button>
           );

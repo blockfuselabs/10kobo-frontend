@@ -20,7 +20,7 @@ function Tokens({ tokens }: { tokens: string[] }) {
   return (
     <span className="flex gap-1">
       {tokens.map((token) => (
-        <span key={token} className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted)]">{token}</span>
+        <span key={token} className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">{token}</span>
       ))}
     </span>
   );

@@ -514,13 +514,20 @@ export function Home() {
               onClick={() => { if (key === 'send') setSendWay('bank'); setView(key); }}
               aria-current={view === key ? 'page' : undefined}
               // On the phone the Send tab must not be mistaken for the message box's Send button.
-              aria-label={key === 'send' ? 'Send money' : undefined}
-              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${BUTTONS_ON_COMPUTER.has(key) ? 'md:hidden' : ''} ${COMPUTER_ONLY.has(key) ? 'max-md:hidden' : ''} ${
+              aria-label={key === 'send' ? 'Send money' : key === 'chat' ? 'Ask 10kobo' : undefined}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[12px] font-medium transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm ${BUTTONS_ON_COMPUTER.has(key) ? 'md:hidden' : ''} ${COMPUTER_ONLY.has(key) ? 'max-md:hidden' : ''} ${
                 view === key ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
               }`}
             >
               <ViewIcon />
-              {label}
+              {key === 'chat' ? (
+                <>
+                  <span className="md:hidden">Ask</span>
+                  <span className="max-md:hidden">{label}</span>
+                </>
+              ) : (
+                label
+              )}
             </button>
           ))}
         </nav>
