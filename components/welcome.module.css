@@ -9,6 +9,9 @@
   color: var(--ink);
   background: var(--paper);
   font-family:
+    var(--font-jakarta),
+    var(--font-jakarta-ext),
+    var(--font-jakarta-viet),
     var(--font-inter),
     var(--font-inter-ext),
     sans-serif;
@@ -1694,7 +1697,7 @@
 /* Layered payment visuals with a clear headline and warm canvas. */
 .hero { position: relative; isolation: isolate; grid-template-columns: 1fr 1.08fr; gap: 54px; padding-top: 48px; padding-bottom: 70px; }
 .hero::before { content: ''; position: absolute; inset: -20px -80px 0; z-index: -1; pointer-events: none; background-image: radial-gradient(#14141412 .7px, transparent .7px); background-size: 23px 23px; mask-image: linear-gradient(to bottom, #00000055, transparent 90%); }
-.hero h1 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(48px,5.3vw,76px); line-height: 1.05; letter-spacing: -.065em; }
+.hero h1 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(48px,5.3vw,76px); line-height: 1.05; letter-spacing: -.065em; }
 .heroHighlight { position: relative; display: inline-block; isolation: isolate; }
 .heroHighlight::after { content: ''; position: absolute; z-index: -1; bottom: .02em; left: -.04em; right: -.06em; height: .17em; background: var(--highlight); border-radius: 100px; transform: rotate(-2deg); }
 .heroDescription { font-size: 16px; max-width: 430px; line-height: 1.85; }
@@ -1849,7 +1852,7 @@
 
 /* Everyday payments: four readable examples with a consistent hierarchy. */
 .everydayHeading { max-width: 680px; margin-bottom: 36px; }
-.everydayHeading h2 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; letter-spacing: -.055em; line-height: 1.08; margin: 20px 0; }
+.everydayHeading h2 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; letter-spacing: -.055em; line-height: 1.08; margin: 20px 0; }
 .everydayHeading h2 span { color: #087f72; }
 .everydayHeading > p:last-child { color: #5a5a54; font-size: 16px; line-height: 1.7; max-width: 520px; }
 .everydayCards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
@@ -1982,7 +1985,7 @@
 /* Carry the compact, tactile showcase language through the full page. */
 .section { padding-block: 76px; }
 .business,.howSection,.networkSection,.finalCta { border-radius: 30px; }
-.business h2,.developerCopy h2,.howSection h2,.proofSection h2,.networkSection h2,.faqSection h2,.finalCta h2 { font-family: var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(32px,3.3vw,46px); letter-spacing: -.055em; line-height: 1.12; }
+.business h2,.developerCopy h2,.howSection h2,.proofSection h2,.networkSection h2,.faqSection h2,.finalCta h2 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), sans-serif; font-weight: 650; font-size: clamp(32px,3.3vw,46px); letter-spacing: -.055em; line-height: 1.12; }
 .business .serif,.developerSection .serif,.howSection .serif,.proofSection .serif,.networkSection .serif,.faqSection .serif,.finalCta .serif { font-family: inherit; font-style: normal; font-weight: inherit; color: #596c62; }
 .business { background: #e8dac8; border: 0; padding: 42px; gap: 36px; align-items: center; }
 .business h2 { margin: 17px 0; }

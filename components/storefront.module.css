@@ -85,7 +85,7 @@
 .productInfo h3 { min-height: 0; margin-bottom: 14px; }
 .productBottom { margin-top: 10px; }
 .integration { grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: 42px; padding-block: 64px; }
-.integration h2 { font-family: var(--font-inter),sans-serif; font-size: clamp(32px,3vw,42px); font-weight: 600; letter-spacing: -.045em; line-height: 1.15; }
+.integration h2 { font-family: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext),sans-serif; font-size: clamp(32px,3vw,42px); font-weight: 600; letter-spacing: -.045em; line-height: 1.15; }
 .integrationIntro > p { font-size: 16px; line-height: 1.8; }
 .integrationIntro ol { list-style: none; padding: 0; margin: 28px 0; }
 .integrationIntro li { display: flex; gap: 14px; padding: 15px 0; margin: 0; border-bottom: 1px solid var(--line); }

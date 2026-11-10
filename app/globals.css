@@ -3,10 +3,10 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), var(--font-outfit), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
-  --font-figures: var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-figures: var(--font-jakarta), var(--font-jakarta-ext), var(--font-jakarta-viet), var(--font-inter), var(--font-inter-ext), var(--font-space-grotesk), ui-sans-serif, sans-serif;
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.25rem;
   --text-sm: 0.9375rem;

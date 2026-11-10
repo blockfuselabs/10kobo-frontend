@@ -26,6 +26,9 @@ function greeting(): string {
 const when = (iso: string) =>
   new Date(iso).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+/** Long wallet addresses inside a description become start…end, so a row stays one readable line. */
+export const shortenAddresses = (text: string) => text.replace(/\b(0x[0-9a-fA-F]{6}|[A-Za-z0-9]{6})[A-Za-z0-9]{14,}([A-Za-z0-9]{4})\b/g, '$1…$2');
+
 function Action({ label, detail, icon, onClick, strong = false }: { label: string; detail: string; icon: ReactNode; onClick: () => void; strong?: boolean }) {
   return (
     <button
@@ -88,7 +91,7 @@ export function Overview({
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      api.activity(1).then((page) => !cancelled && (setActivity(page.activity.slice(0, 5)), setActivityFailed(false)), () => !cancelled && setActivityFailed(true));
+      api.activity(1).then((page) => !cancelled && (setActivity(page.activity.slice(0, 4)), setActivityFailed(false)), () => !cancelled && setActivityFailed(true));
       api.invoices().then((list) => !cancelled && (setInvoices(list), setInvoicesFailed(false)), () => !cancelled && setInvoicesFailed(true));
     };
     load();
@@ -114,7 +117,6 @@ export function Overview({
       {extra}
 
       <section className="wallet-summary relative overflow-hidden rounded-3xl p-5 md:p-7">
-        <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full bg-[var(--pop)] opacity-25 blur-2xl" />
         <p className="text-sm opacity-70">Balance</p>
         <p data-testid="balance" className="amount mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           {summary?.balance_usdc ? (
@@ -135,7 +137,7 @@ export function Overview({
             title="See all activity"
             className="mt-3 flex max-w-full cursor-pointer items-center gap-2 text-left text-sm opacity-80 hover:opacity-100"
           >
-            <span className="truncate">Latest: {summary.latest.description}</span>
+            <span className="truncate">Latest: {shortenAddresses(summary.latest.description)}</span>
             <span className="amount shrink-0 font-semibold">
               {summary.latest.direction === 'in' ? '+' : '−'}
               {summary.latest.amount_naira ?? summary.latest.amount_usdc} ›
@@ -192,14 +194,14 @@ export function Overview({
                     onClick={() => onGo('activity')}
                     className="flex w-full cursor-pointer items-center gap-3 border-b border-[var(--line)] py-2.5 text-left last:border-b-0"
                   >
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${entry.direction === 'in' ? 'bg-[var(--pop)] text-[#111]' : 'bg-[var(--surface-2)]'}`}>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
                       {entry.direction === 'in' ? <ArrowInIcon /> : <ArrowOutIcon />}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-sm font-medium">{entry.description}</span>
+                      <span className="truncate text-sm font-medium">{shortenAddresses(entry.description)}</span>
                       <span className="truncate text-xs text-[var(--muted)]">{when(entry.created_at)} · {entry.type_label}</span>
                     </span>
-                    <span className="amount shrink-0 text-sm font-semibold">
+                    <span className={`amount shrink-0 text-sm font-semibold ${entry.direction === 'in' ? 'text-[var(--accent)]' : ''}`}>
                       {entry.direction === 'in' ? '+' : '−'}
                       {entry.amount_naira ?? entry.amount_usdc}
                     </span>

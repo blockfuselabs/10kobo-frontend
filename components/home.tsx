@@ -216,6 +216,22 @@ function CopyMessage({ text, mine }: { text: string; mine: boolean }) {
   );
 }
 
+const SUMMARY_KEY = '10kobo-last-summary';
+function savedSummary(userId: string): WalletSummary | null {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(SUMMARY_KEY) ?? 'null') as { user?: string; summary?: WalletSummary } | null;
+    return saved?.user === userId && saved.summary ? saved.summary : null;
+  } catch {
+    return null;
+  }
+}
+function rememberSummary(userId: string, summary: WalletSummary) {
+  try { window.localStorage.setItem(SUMMARY_KEY, JSON.stringify({ user: userId, summary })); } catch {}
+}
+function forgetSummary() {
+  try { window.localStorage.removeItem(SUMMARY_KEY); } catch {}
+}
+
 export function Home() {
   const { getToken, signOut } = useAuth();
   const wallet = useWallet();
@@ -264,6 +280,15 @@ export function Home() {
       clearInterval(timer);
     };
   }, [api, walletKnown]);
+
+  // The last balance this browser saw for this person shows at once, then the fresh one replaces it.
+  // It is per person and removed on sign out; the server is still the only source of truth.
+  useEffect(() => {
+    if (me?.id) setSummary((current) => current ?? savedSummary(me.id));
+  }, [me?.id]);
+  useEffect(() => {
+    if (me?.id && summary) rememberSummary(me.id, summary);
+  }, [me?.id, summary]);
 
   const refreshSummary = useCallback(() => api.wallet().then(value => { setSummary(value); setBalanceError(null); }, () => setBalanceError('We could not load your balance. Please try again.')), [api]);
 
@@ -441,7 +466,7 @@ export function Home() {
           </div>
           <div className="flex items-center gap-1 md:hidden">
             <ThemeToggle />
-          <button onClick={() => void signOut()} aria-label="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+          <button onClick={() => { forgetSummary(); void signOut(); }} aria-label="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
             <SignOutIcon />
           </button>
           </div>
@@ -561,7 +586,7 @@ export function Home() {
           </span>
           <p className="min-w-0 flex-1 truncate text-sm" title={me?.email ?? undefined}>{me?.email ?? '…'}</p>
           <ThemeToggle />
-          <button onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+          <button onClick={() => { forgetSummary(); void signOut(); }} aria-label="Sign out" title="Sign out" className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
             <SignOutIcon />
           </button>
         </div>
