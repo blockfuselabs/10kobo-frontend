@@ -63,7 +63,7 @@ const FILES: [Exclude<Tab, 'mcp'>, string, string][] = [
   ['http', 'pay-with-key.sh', CURL],
 ];
 const NOTES: Record<Exclude<Tab, 'mcp'>, string> = {
-  x402: 'Standard x402 v2, scheme exact on near:mainnet, using the official @x402 packages. The agent signs one USDC transfer; 10kobo checks it with the official verifier and pays the NEAR gas. No key: the no-key limits apply and the account name is partly hidden.',
+  x402: 'Standard x402 v2, scheme exact on near:mainnet, using the official @x402 packages. The agent signs one USDC transfer; 10kobo checks it with the official verifier and pays the NEAR gas. No key: the no-key limits apply. Full docs at /docs.',
   http: 'With an API key: your own limits, the full account name, and a CSV of your payments. The same three steps, without the 402s.',
 };
 

@@ -1,0 +1,55 @@
+# 10kobo
+
+> 10kobo lets AI agents, apps and shops pay any Nigerian bank account in naira with USDC (from Base, NEAR, Solana, Arbitrum, Ethereum and ten more networks), usually in under a minute. Shops can also take payment by naira bank transfer or crypto through payment links, a checkout widget, or a merchant API.
+
+Base URL: https://api.10kobo.xyz
+Human docs: https://10kobo.xyz/docs
+All amounts in naira are whole numbers (5000 = ₦5,000). USDC amounts are strings with 6 decimals.
+Every quote returns the account holder's name from the bank before money moves. Check it before paying.
+
+## Pay a Nigerian bank with x402 (no API key)
+
+Standard x402 v2, scheme "exact", network "near:mainnet". Use the official packages @x402/core, @x402/fetch and @x402/near (ExactNearScheme). The agent needs USDC on NEAR and no NEAR for gas.
+
+POST https://api.10kobo.xyz/v1/agent/x402/pay
+JSON body:
+- amount_naira (integer, required)
+- bank_name (string, required, e.g. "OPay", "GTBank", "Access Bank")
+- account_number (string, 10 digits, required)
+- pay_from: "near"
+- refund_to (string, your NEAR account; USDC returns here if delivery fails)
+- payer_name, payer_email, purpose (required when paying without a key)
+
+First answer: 402 with a PAYMENT-REQUIRED header. body.payment holds account_name and amount. The client retries the same request with PAYMENT-SIGNATURE; the answer is 200 with PAYMENT-RESPONSE and body.payment.status "processing", later "paid".
+Note: the official client refuses payments over $1 by default. Raise it with client.setSpendControls({ maxAmountPerPayment: '$50' }).
+
+## HTTP API (with an API key)
+
+Header: authorization: Bearer <key>. Keys are issued by 10kobo (contact @10koboPay on X).
+1. POST /v1/agent/quotes {amount_naira, bank_name, account_number, pay_from, refund_to} -> payment with status "quoted", pay_usdc and account_name. Moves nothing.
+2. POST /v1/agent/payments {quote_id} -> status "awaiting_deposit", deposit_address, deposit_deadline. Safe to repeat.
+3. Send exactly pay_usdc to deposit_address, then GET /v1/agent/payments/{id} until status is "paid".
+GET /v1/agent/payments.csv -> every payment for the key.
+pay_from: base, near, arbitrum, ethereum, solana, optimism, polygon, avalanche, bsc, gnosis, monad, sui, aptos, tron (USDT), ton (USDT).
+
+## Statuses
+
+quoted, awaiting_deposit, processing, paying, paid, expired (nothing arrived, nothing paid), refunded (USDC returned to refund_to), needs_support (a person is checking; do not pay again).
+
+## Limits without a key
+
+₦50,000 per payment; ₦100,000 a day per wallet and per bank account; 3 unpaid payments open per bank account; 30 quotes and 10 accepted payments an hour per IP.
+
+## Errors
+
+Every refusal is JSON: {"code": "...", "message": "..."}. Common codes: invalid_request (400), invalid_key (401), key_required (401), account_not_found, below_minimum (422), over_payment_limit (422), over_daily_limit (422), over_wallet_limit (422), over_account_limit (422), too_many_open (429), too_many_requests (429), quote_expired (410), price_changed (409), reference_used (409), bank_unavailable (503), unavailable (503).
+
+## Merchants
+
+Merchant key: 10kobo app -> Settings -> Developers.
+- POST /v1/merchant/invoices {reference, amount_naira or line_items[{description, amount_naira}], note?, due_date?, return_url?} -> invoice with id, status, checkout_url
+- GET /v1/merchant/invoices/{id}
+- POST /v1/merchant/invoices/{id}/cancel
+Browser: <script src="https://10kobo.xyz/checkout.js"></script> then TenKobo.open(invoiceId, {onPaid, onClose}).
+No-code: <a href="https://10kobo.xyz/p/LINK_ID" data-10kobo-link="LINK_ID">Pay</a> with the same script.
+Webhooks: events invoice.paid, invoice.cancelled, invoice.expired. Header 10kobo-signature: t=<unix>,v1=<hex HMAC-SHA256 of "t.rawBody" with your webhook secret>. Header 10kobo-event-id for de-duplication. Answer 2xx.
