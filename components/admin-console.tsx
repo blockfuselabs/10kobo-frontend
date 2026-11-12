@@ -170,6 +170,9 @@ function Heading({ title, note, action }: { title: string; note?: string; action
 
 /** 10kobo's back office. The admin token stays in this page's memory only, so a refresh asks for it again. */
 export function AdminConsole() {
+  // Shown only in the browser: the theme switch reads the page, which does not exist while Next.js prebuilds it.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [token, setToken] = useState('');
   const [signedIn, setSignedIn] = useState(false);
   const [tab, setTab] = useState<Tab>('overview');
@@ -250,6 +253,8 @@ export function AdminConsole() {
     await call(path, body);
     await loadOverview();
   });
+
+  if (!mounted) return null;
 
   if (!signedIn) {
     return (
