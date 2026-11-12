@@ -19,6 +19,7 @@ NEAR HACKATHON (November 2026).
 | https://10kobo.xyz/shop | A demo shop with the checkout widget, taking real payments |
 | https://10kobo.xyz/agent | How an AI agent pays, with x402, HTTP and MCP examples |
 | https://10kobo.xyz/proof | Real mainnet payments, with explorer links |
+| [Demo video on X](https://x.com/10koboPay/status/2120959937916322236) | The walkthrough: deposit, send, shop checkout and x402 |
 | `/pay/[id]`, `/p/[id]` | A pay link (one invoice) and a payment link (reusable), payable with no account |
 
 ## Run it for development
