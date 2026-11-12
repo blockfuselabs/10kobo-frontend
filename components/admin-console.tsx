@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Logo } from './icons';
+import { Logo, ThemeToggle } from './icons';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 
@@ -257,9 +257,9 @@ export function AdminConsole() {
         <form onSubmit={signIn} className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8">
           <div className="flex items-center gap-2.5">
             <Logo size={30} />
-            <span className="text-lg font-semibold">10kobo back office</span>
+            <span className="flex-1 text-lg font-semibold">10kobo back office</span>
+            <ThemeToggle />
           </div>
-          <p className="text-sm text-[var(--muted)]">Staff only. The token is kept in this tab’s memory and forgotten when you close or refresh it.</p>
           <input type="password" aria-label="Admin token" autoComplete="off" autoFocus value={token} onChange={(event) => setToken(event.target.value)} placeholder="Admin token" className="rounded-xl border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm" />
           <button className="btn-primary justify-center">Open</button>
           {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -285,13 +285,14 @@ export function AdminConsole() {
           </button>
         ))}
         <div className="mt-auto flex flex-col gap-1 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-          <span>Mode: {overview?.mode ?? '—'}</span>
+          <span className="flex items-center justify-between">Mode: {overview?.mode ?? '—'} <ThemeToggle /></span>
           <button type="button" className="text-left underline-offset-2 hover:underline" onClick={() => { setToken(''); setSignedIn(false); }}>Sign out</button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex gap-1 overflow-x-auto border-b border-[var(--line)] bg-[var(--surface)] p-2 md:hidden" aria-label="Back office sections">
+        <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--line)] bg-[var(--surface)] p-2 md:hidden" aria-label="Back office sections">
+          <ThemeToggle />
           {TABS.map(([key, label]) => (
             <button key={key} type="button" onClick={() => setTab(key)} className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${tab === key ? 'bg-[var(--surface-2)] font-medium' : 'text-[var(--muted)]'}`}>{label}</button>
           ))}
