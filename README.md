@@ -2,8 +2,9 @@
 
 **Dollars to any wallet. Naira to any bank. For people and AI agents.**
 
-The web app for 10kobo, live at **https://10kobo.xyz**. People hold dollars (USDC) in their own wallet and pay any
-Nigerian bank, airtime or wallets on 16 networks just by chatting. Businesses take payments with payment links, a
+The web app for 10kobo, live at **https://10kobo.xyz**. People hold dollars (USDC) in their own wallet. They **send**
+to any Nigerian bank, airtime or wallets on 16 networks just by chatting, and **receive** by naira bank transfer,
+from 14 other networks or with a pay link. Businesses take payments with payment links, a
 no-code checkout widget or merchant keys, paid in naira or crypto. AI agents pay with x402 on NEAR. Built at
 NEAR HACKATHON (November 2026).
 
