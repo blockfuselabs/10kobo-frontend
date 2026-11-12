@@ -64,6 +64,7 @@ interface Merchants {
 interface AuditEntry {
   id: string;
   actor: string;
+  actor_email?: string | null;
   action: string;
   subject: string | null;
   created_at?: string;
@@ -496,7 +497,7 @@ export function AdminConsole() {
                 {(audit ?? []).map((entry) => (
                   <tr key={entry.id}>
                     <Td muted>{when(entry.created_at ?? entry.createdAt)}</Td>
-                    <Td mono>{short(entry.actor)}</Td>
+                    <Td>{entry.actor_email ?? <span className="font-mono text-xs">{short(entry.actor)}</span>}</Td>
                     <Td><span className="font-medium">{entry.action}</span></Td>
                     <Td mono>{short(entry.subject)}</Td>
                   </tr>
