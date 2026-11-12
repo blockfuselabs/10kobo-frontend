@@ -238,6 +238,12 @@ export function PlanApprovalCard({ plan, api, onChange }: { plan: Plan; api: Api
       hash = await wallet.sendCalls(fresh.calls);
     } catch (failure) {
       if (!userDeclined(failure)) {
+        // Our gas route explains its refusals; when it does, nothing was sent and the reason is the useful part.
+        const reason = String((failure as Error)?.message ?? '').match(/(This (?:action|wallet) [^."]*\.|The gas service [^."]*\.)/)?.[1];
+        if (reason) {
+          forgetSend(plan.id);
+          throw new Error(`Nothing was sent. ${reason}`);
+        }
         throw new Error('We could not confirm this yet, and it may still go through. Please wait. Do not send it again.');
       }
       forgetSend(plan.id);

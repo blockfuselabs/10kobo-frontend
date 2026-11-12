@@ -27,6 +27,11 @@ interface RpcRequest {
 
 const rpcError = (id: unknown, code: number, message: string, status: number) =>
   Response.json({ jsonrpc: '2.0', id: id ?? null, error: { code, message } }, { status });
+/** Our own refusals, logged so a failed send can be explained. Method and reason only, never the operation. */
+const refuse = (method: unknown, id: unknown, code: number, message: string, status: number) => {
+  console.warn(`Gas route: ${String(method)} refused by 10kobo: ${message}`);
+  return rpcError(id, code, message, status);
+};
 
 /** An operation must be signed by its wallet, so this limits free gas to wallets of real 10kobo users. */
 async function isOurWallet(address: string): Promise<boolean> {
@@ -71,16 +76,16 @@ export async function POST(request: Request) {
 
   const checked = new Map<string, boolean>();
   for (const item of requests) {
-    if (typeof item?.method !== 'string' || !ALLOWED.has(item.method)) return rpcError(item?.id, -32601, 'Method not supported.', 403);
+    if (typeof item?.method !== 'string' || !ALLOWED.has(item.method)) return refuse(item?.method, item?.id, -32601, 'Method not supported.', 403);
     if (!USER_OP.has(item.method)) continue;
     const operation = Array.isArray(item.params) ? (item.params[0] as { sender?: unknown; callData?: unknown } | undefined) : undefined;
     const refusal = sponsorshipRefusal(operation, USDC);
-    if (refusal) return rpcError(item.id, -32602, refusal, 403);
+    if (refusal) return refuse(item.method, item.id, -32602, refusal, 403);
     const sender = operation!.sender as string;
     if (!checked.has(sender)) checked.set(sender, await isOurWallet(sender).catch(() => false));
-    if (!checked.get(sender)) return rpcError(item.id, -32602, 'This wallet is not a 10kobo wallet.', 403);
+    if (!checked.get(sender)) return refuse(item.method, item.id, -32602, 'This wallet is not a 10kobo wallet.', 403);
     // Estimates and stub requests repeat freely while one send is prepared.
-    if (SIGNS_SPONSORSHIP.has(item.method) && !gasLimit.take(sender)) return rpcError(item.id, -32602, 'This wallet has reached its free sends for today. Please try again tomorrow.', 429);
+    if (SIGNS_SPONSORSHIP.has(item.method) && !gasLimit.take(sender)) return refuse(item.method, item.id, -32602, 'This wallet has reached its free sends for today. Please try again tomorrow.', 429);
   }
 
   try {
@@ -96,6 +101,6 @@ export async function POST(request: Request) {
     logRefusals(requests, answer);
     return new Response(answer, { status: response.status, headers: { 'content-type': 'application/json' } });
   } catch {
-    return rpcError(null, -32603, 'The gas service could not be reached. Please try again.', 502);
+    return refuse(requests.map((item) => String(item.method)).join(', '), null, -32603, 'The gas service could not be reached. Please try again.', 502);
   }
 }
