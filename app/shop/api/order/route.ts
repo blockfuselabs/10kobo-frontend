@@ -3,6 +3,17 @@ import { API, MENU, notices, shopKey } from '@/lib/shop/server';
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+/**
+ * The shop's public address, for the customer's way back. Behind a host's proxy the request can look like plain http
+ * or an internal address, which 10kobo refuses in production, so the forwarded host and scheme are used instead.
+ */
+function shopOrigin(request: Request): string {
+  if (process.env.SHOP_ORIGIN) return process.env.SHOP_ORIGIN.replace(/\/$/, '');
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
+  const scheme = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  return host && scheme ? `${scheme}://${host}` : new URL(request.url).origin;
+}
+
 /** Makes an invoice for the basket with the shop's merchant key. Prices come from the shop's own menu, never from the browser. */
 export async function POST(request: Request) {
   const key = shopKey();
@@ -14,7 +25,7 @@ export async function POST(request: Request) {
   });
   if (lines.length === 0) return Response.json({ message: 'Your basket is empty.' }, { status: 400 });
   const order = `order-${randomUUID().slice(0, 8)}`;
-  const origin = new URL(request.url).origin;
+  const origin = shopOrigin(request);
   const response = await fetch(`${API}/v1/merchant/invoices`, {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
