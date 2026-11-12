@@ -387,10 +387,9 @@ input:-webkit-autofill:focus {
 .shop-page section[aria-label=Menu] > div { background: var(--surface); color: var(--foreground); padding: 20px; border: 1px solid var(--line); border-radius: 18px; }
 .shop-page > div > button { background: var(--accent); color: var(--accent-text); border-radius: 100px; min-height: 56px; }
 .shop-page section[aria-label=Menu] button { min-width: 36px; min-height: 36px; border-color: var(--line); background: var(--surface-2); }
-.admin-page { padding-block: 32px; }
-.admin-page > header { padding: 22px; border-radius: 22px; background: var(--product-sage); }
-.admin-page > section { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
-.admin-page > section p { line-height: 1.8; }
+
+
+
 @media (max-width: 800px) {
   .public-nav { flex-wrap: wrap; gap: 15px; margin-bottom: 28px; }
   .public-nav > div { order: 3; width: 100%; justify-content: center; }
