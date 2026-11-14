@@ -3,7 +3,8 @@
 **Dollars to any wallet. Naira to any bank. For people and AI agents.**
 
 The web app for 10kobo, live at **https://10kobo.xyz**. People hold dollars (USDC) in their own wallet. They **send**
-to any Nigerian bank, airtime or wallets on 16 networks just by chatting, and **receive** by naira bank transfer,
+to any Nigerian bank, airtime or wallets on 16 networks just by chatting (or by attaching a photo or PDF of an
+invoice, which is checked for hidden text), and **receive** by naira bank transfer,
 from 14 other networks or with a pay link. Businesses take payments with payment links, a
 no-code checkout widget or merchant keys, paid in naira or crypto. AI agents pay with x402 on NEAR. Built at
 NEAR HACKATHON (November 2026).
@@ -54,6 +55,7 @@ npm run build
 | --- | --- |
 | Pages: home, `/docs`, `/pay/[id]`, `/p/[id]`, `/proof`, `/shop`, `/agent`, `/admin` (back office) | `app/` |
 | Chat, Send, Deposit, Invoices, Payment links, Settings, Activity and the approval cards | `components/` |
+| Attaching an invoice: the file picker, the picture of the invoice and the warning about hidden text | `components/attachment.tsx` |
 | The API client and every type the backend returns | `lib/api/client.ts` |
 | Gas sponsorship for users' wallets (only USDC and 10kobo users' wallets) | `app/api/aa/route.ts`, `lib/sponsorship.ts` |
 | Real payments shown on `/proof` | `lib/proof.ts` |
