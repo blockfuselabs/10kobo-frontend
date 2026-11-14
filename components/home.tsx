@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth/auth';
 import { asDollars, useHiddenBalance, wholeNaira } from '@/lib/money-display';
 import { useWallet } from '@/lib/wallet/wallet';
 import { CancelScheduleCard, ContactConfirmCard, TxLink, PinContext, PlanApprovalCard, ScheduleApprovalCard, SetPinCard } from './cards';
-import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, HomeIcon, Logo, PencilIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon, LinkIcon, SettingsIcon } from './icons';
+import { InvoiceIcon, ActivityIcon, ArrowInIcon, ArrowOutIcon, CalendarIcon, ChatIcon, CheckIcon, CopyIcon, DotsIcon, HomeIcon, Logo, PencilIcon, PaperclipIcon, PlusIcon, SendIcon, SignOutIcon, ThemeToggle, TrashIcon, LinkIcon, SettingsIcon } from './icons';
 import { ActivityPanel, DepositCard, InvoicesPanel, ReceivePanel, SchedulesPanel, Spinner } from './panels';
 import { PayLinkCard, splitPayLink } from './pay-link-card';
 import { SendPanel } from './send-panel';
@@ -14,6 +14,8 @@ import { PaymentLinks } from './payment-links';
 import { SettingsPanel } from './settings-panel';
 import { Overview, type OverviewTarget } from './overview';
 import { plainText, RichText } from './rich-text';
+import { AttachmentView, FILE_ACCEPT, PendingAttachment, prepareFile, rememberPreview, splitAttachment } from './attachment';
+import type { FileReading } from '@/lib/api/client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010';
 const WALLET_POLL_MS = 3000;
@@ -239,6 +241,10 @@ export function Home() {
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
+  // An invoice photo or PDF: it is read as soon as it is picked, and it goes with the next message.
+  const [attachment, setAttachment] = useState<{ name: string; reading: FileReading | null; error: string | null; preview?: string | null } | null>(null);
+  const attachmentRun = useRef(0);
+  const filePicker = useRef<HTMLInputElement>(null);
   const messageBox = useRef<HTMLTextAreaElement>(null);
   // The box grows with what is typed, up to about eight lines, and then scrolls.
   useEffect(() => {
@@ -385,13 +391,33 @@ export function Home() {
     }
   }
 
+  async function attach(file: File | undefined) {
+    if (!file) return;
+    const run = ++attachmentRun.current;
+    setAttachment({ name: file.name, reading: null, error: null });
+    try {
+      const prepared = await prepareFile(file);
+      if (attachmentRun.current === run) setAttachment({ name: file.name, reading: null, error: null, preview: prepared.preview });
+      const reading = await api.readFile(prepared.name, prepared.type, prepared.base64);
+      if (prepared.preview) rememberPreview(reading.file_name, prepared.preview);
+      if (attachmentRun.current === run) setAttachment({ name: reading.file_name, reading, error: null, preview: prepared.preview });
+    } catch (failure) {
+      if (attachmentRun.current === run) setAttachment({ name: file.name, reading: null, error: (failure as Error).message });
+    }
+  }
+
   function send(event: FormEvent) {
     event.preventDefault();
-    const content = draft.trim();
+    const typed = draft.trim();
+    const block = attachment?.reading?.message_block;
+    if (attachment && !block) return;
+    const content = block ? `${typed || 'Please pay this invoice.'}\n\n${block}` : typed;
     if (content && !sending)
       void respond(async () => {
         // Cleared at once, so anything typed while this sends is kept. Restored if sending fails.
         setDraft('');
+        const sentAttachment = attachment;
+        setAttachment(null);
         setView('chat');
         setWaitingOn(content);
         try {
@@ -400,7 +426,8 @@ export function Home() {
           startedNew.current = false;
           setActiveChat(id);
         } catch (failure) {
-          setDraft((current) => current || content);
+          setDraft((current) => current || typed);
+          setAttachment((current) => current ?? sentAttachment);
           throw failure;
         } finally {
           setWaitingOn(null);
@@ -418,11 +445,24 @@ export function Home() {
   const fresh = activeChat === null && messages.length === 0 && !waitingOn && !sending;
   const errorLine = error && <p role="alert" className="pb-2 text-sm text-red-600 dark:text-red-400">{error}</p>;
   const composer = (
+    <>
+    {attachment && <PendingAttachment state={attachment} onRemove={() => { attachmentRun.current += 1; setAttachment(null); }} />}
     <form
                   onSubmit={send}
                   autoComplete="off"
-                  className="flex w-full items-end gap-2 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-2.5 pl-6 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--muted)]"
+                  className="flex w-full items-end gap-2 rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] p-2.5 pl-3 shadow-[var(--shadow)] transition-colors focus-within:border-[var(--muted)]"
                 >
+                  <input ref={filePicker} type="file" accept={FILE_ACCEPT} hidden data-testid="attach-input" onChange={(event) => { void attach(event.target.files?.[0]); event.target.value = ''; }} />
+                  <button
+                    type="button"
+                    aria-label="Attach an invoice photo or PDF"
+                    title="Attach an invoice photo or PDF. 10kobo reads it and looks for hidden text."
+                    onClick={() => filePicker.current?.click()}
+                    disabled={sending}
+                    className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+                  >
+                    <PaperclipIcon />
+                  </button>
                   <textarea
                     ref={messageBox}
                     rows={1}
@@ -446,12 +486,13 @@ export function Home() {
                   />
                   <button
                     aria-label={sending ? 'Sending…' : 'Send'}
-                    disabled={sending || !draft.trim()}
+                    disabled={sending || (attachment ? !attachment.reading : !draft.trim())}
                     className="neutral-primary grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-text)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {sending ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-text)] border-t-transparent" /> : <SendIcon />}
                   </button>
                 </form>
+    </>
   );
 
   return (
@@ -680,7 +721,16 @@ export function Home() {
                             : 'max-w-[85%] self-start whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-2.5'
                       }
                     >
-                      {message.role === 'assistant' && !message.notice ? <RichText text={splitPayLink(message.content).text} /> : message.content}
+                      {message.role === 'assistant' && !message.notice ? (
+                        <RichText text={splitPayLink(message.content).text} />
+                      ) : message.role === 'user' && !message.notice ? (
+                        (() => {
+                          const sent = splitAttachment(message.content);
+                          return sent.file ? <>{sent.text}<AttachmentView file={sent.file} /></> : message.content;
+                        })()
+                      ) : (
+                        message.content
+                      )}
                       {message.notice && message.tx_hash && (
                         <>
                           {' '}
@@ -708,7 +758,7 @@ export function Home() {
                   </div>
                 ))}
                 {waitingOn && (
-                  <p className="max-w-[80%] self-end whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]">{waitingOn}</p>
+                  <div className="max-w-[80%] self-end whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-md bg-[var(--accent)] px-4 py-2.5 text-[var(--accent-text)]">{(() => { const sent = splitAttachment(waitingOn); return sent.file ? <>{sent.text}<AttachmentView file={sent.file} /></> : waitingOn; })()}</div>
                 )}
                 {sending && (
                   <p className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-4 py-3.5" aria-label="Thinking">

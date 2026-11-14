@@ -298,6 +298,15 @@ export class ApiError extends Error {
 type GetToken = () => Promise<string | null>;
 
 /** Talks to the backend. Knows nothing about React or which sign-in provider is in use. */
+export interface FileReading {
+  file_name: string;
+  kind: 'photo' | 'pdf';
+  text: string;
+  hidden_text: string[];
+  seconds: number;
+  message_block: string;
+}
+
 export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: typeof fetch = fetch) {
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await getToken();
@@ -338,6 +347,9 @@ export function createApiClient(baseUrl: string, getToken: GetToken, fetcher: ty
         method: 'POST',
         body: JSON.stringify(conversationId ? { content, conversation_id: conversationId } : { content, new_chat: true }),
       }),
+    /** Claude reads an invoice photo or PDF; hidden text comes back listed apart. */
+    readFile: (fileName: string, mimeType: string, dataBase64: string) =>
+      request<FileReading>('/v1/chat/messages/read-file', { method: 'POST', body: JSON.stringify({ file_name: fileName, mime_type: mimeType, data_base64: dataBase64 }) }),
     contactConfirmed: async (contactId: string, conversationId: string | null) =>
       (
         await request<{ reply: ChatMessage }>('/v1/chat/messages/contact-confirmed', {

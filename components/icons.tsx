@@ -15,6 +15,7 @@ export const CalendarIcon = () => <Icon><rect x="3.5" y="5" width="17" height="1
 export const InvoiceIcon = () => <Icon><path d="M6.5 3.5h11A1.5 1.5 0 0 1 19 5v15.5l-2.5-1.5-2.5 1.5-2-1.5-2 1.5-2.5-1.5L5 20.5V5a1.5 1.5 0 0 1 1.5-1.5Z" /><path d="M9 8.5h6M9 12h6" /></Icon>;
 export const ActivityIcon = () => <Icon><path d="M3 12h4l3-7 4 14 3-7h4" /></Icon>;
 export const PlusIcon = () => <Icon><circle cx="12" cy="12" r="8.5" /><path d="M12 8.5v7M8.5 12h7" /></Icon>;
+export const PaperclipIcon = () => <Icon size={20}><path d="m20 11.5-7.8 7.8a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" /></Icon>;
 export const SendIcon = () => <Icon><path d="M12 19V5M6 11l6-6 6 6" /></Icon>;
 export const CopyIcon = () => <Icon size={14}><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5" /><path d="M15.5 8.5V6.5A2.5 2.5 0 0 0 13 4H6.5A2.5 2.5 0 0 0 4 6.5V13a2.5 2.5 0 0 0 2.5 2.5h2" /></Icon>;
 export const CheckIcon = () => <Icon size={14}><path d="m5 12.5 4.5 4.5L19 7.5" /></Icon>;
